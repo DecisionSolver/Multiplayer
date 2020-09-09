@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Файлы ресурсов">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\MySQL">
+      <UniqueIdentifier>{b1f6b4d5-05c3-459a-a59d-25f488131ec0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Include Files\LZ4">
+      <UniqueIdentifier>{25eedf5f-5b6f-4e4a-9eeb-3f872901df43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include Files\MySQL">
+      <UniqueIdentifier>{e4990491-1169-4824-937c-a69514f83895}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include Files\MySQL\Network">
+      <UniqueIdentifier>{6395685c-c05b-471d-b1dd-f256a5dbcd8a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\Client.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\File.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\IPEndpoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Network.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Packet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Server.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Socket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SocketSelector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\TCPSocket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UDPSocket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ZipPacket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MySQL\MySQL_Client.cpp">
+      <Filter>Source Files\MySQL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MySQL\MySQL_Database.cpp">
+      <Filter>Source Files\MySQL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MySQL\MySQL_Impl.cpp">
+      <Filter>Source Files\MySQL</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Include\Client.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\File.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\IPEndpoint.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Network.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Packet.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Server.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Socket.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SocketSelector.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\TCPSocket.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\UDPSocket.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ZipPacket.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\LZ4\lz4.h">
+      <Filter>Include Files\LZ4</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\LZ4\lz4frame.h">
+      <Filter>Include Files\LZ4</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\LZ4\lz4hc.h">
+      <Filter>Include Files\LZ4</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\MySQL\MySQL_Database.h">
+      <Filter>Include Files\MySQL\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\MySQL\MySQL_Config.h">
+      <Filter>Include Files\MySQL\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\MySQL\MySQL_Client.h">
+      <Filter>Include Files\MySQL\Network</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

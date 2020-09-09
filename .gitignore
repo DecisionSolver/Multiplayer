@@ -1,0 +1,71 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.obj.enc
+*.exp
+*.user
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# PBAX
+*.ipch 
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Executables
+*.exe
+*.out
+*.app
+
+# //////////////////////////////////
+# PBAX or Powered_By_AndroX 21.10.18
+# //////////////////////////////////
+
+# SUO
+*.suo
+
+# db and Opendb
+*.db
+*.opendb
+*.pdb
+*.idb
+
+# Log File
+*.ilk
+*.log
+*.tlog
+
+# State Build
+*.lastbuildstate
+
+# HLSL Compiled File
+*.cso
+
+# Solution VC DB
+*Solution.VC.db-wal
+*Solution.VC.db-shm
+*.iobj
+*.ipdb
+
+Build/
+intermediate/
+.vs
+Network/.vs
