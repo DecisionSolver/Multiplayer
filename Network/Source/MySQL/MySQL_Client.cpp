@@ -40,7 +40,7 @@ namespace mysql
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::Connect(const std::string& user, const std::string& password, const std::string& host, //
+	void Client::Connect(const std::string& user, const std::string& password, const std::string& host,			//
 		const std::string DB, const unsigned short& port, const std::string charset)
 	{
 		try
@@ -54,8 +54,7 @@ namespace mysql
 				<< __LINE__ << std::endl;
 			std::cout << "# ERR: " << e.what();
 			std::cout << " (MySQL error code: " << e.getErrorCode();
-			std::cout << ", SQLState: " << e.getSQLState() <<
-				" )" << std::endl;
+			std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
 		}
 	}
 

@@ -35,10 +35,6 @@
 *.out
 *.app
 
-# //////////////////////////////////
-# PBAX or Powered_By_AndroX 21.10.18
-# //////////////////////////////////
-
 # SUO
 *.suo
 
@@ -65,7 +61,11 @@
 *.iobj
 *.ipdb
 
+Debug/
+Release/
 Build/
+!Build/*.lib
+!*.lib
 intermediate/
 .vs
 Network/.vs

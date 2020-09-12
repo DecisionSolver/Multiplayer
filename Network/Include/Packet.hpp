@@ -10,19 +10,31 @@ namespace swl
 	class UDPSocket;
 	class Packet
 	{
-	public:
 		enum Type
 		{
 			Chat,
 			File,
-			Audio
+			//Audio,
+			MySQL
 		};
+
+		struct Header
+		{
+			uint8_t Settings = 0; // IsCompressed, OrigSize etc...
+			Type type;
+		};
+	public:
+		//
 		Packet();
 		virtual ~Packet();
+
 		void clear();
 		void resize(const uint32_t& size);
+
 		uint32_t getSize() const;
 		void* getData();
+
+		// Filling data
 		void append(const void* _data, const uint32_t& size);
 		template <typename T>
 		Packet& operator <<(const T& _data);
@@ -44,5 +56,6 @@ namespace swl
 	private:
 		uint32_t readPos = 0;
 		std::vector<char> data;
+		Header _H;
 	};
 }

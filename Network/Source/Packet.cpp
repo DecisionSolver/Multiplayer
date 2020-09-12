@@ -29,8 +29,8 @@ namespace swl
 	template <typename T>
 	Packet& Packet::operator <<(const std::vector<T>& _data)
 	{
-		*this << data.size();
-		append(data.data(), sizeof(T) * data.size());
+		*this << _data.size();
+		append(_data.data(), sizeof(T) * _data.size());
 		return *this;
 	}
 	template <typename T>
@@ -112,6 +112,23 @@ namespace swl
 	}
 	void Packet::onReceive(const void* _data, const std::uint32_t& size)
 	{
-		append(_data, size);
+		//ToDo("Decompress here");
+		// JSON Parse
+		//			Settings	Orig Size
+		//{header:{"_s":"3","_o":"500"},"data":{"id":"trgffdsfh"body:{"type":"5",data:"Login='1',Pass='2'"}}}
+		
+		////////////////////////////////////////////////////
+		//Decompression Prototype
+		////////////////////////////////////////////////////
+		//void* NewData = const_cast<void*>(_data);
+		//auto OBJ = JSON.Parse(NewData);
+		//h = OBJ._s;
+		//if (h & (1 << 2)) 
+		//{
+			char* outData = new char[size * 2];
+			//uint32_t outSize = LZ4_decompress_safe((const char*)NewData, outData, size, size * 2);
+		//}
+		////////////////////////////////////////////////////
+		//append(NewData, size);
 	}
 }

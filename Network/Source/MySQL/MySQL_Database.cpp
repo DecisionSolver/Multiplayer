@@ -21,9 +21,9 @@ namespace mysql
 		impl = std::make_shared<mysql::Impl>();
 	}
 
-	void Database::SetNewDatabase(sql::Connection &NewConnection, Database *NewDB)
+	void Database::SetNewDatabase(std::shared_ptr<sql::Connection> NewConnection)
 	{
-		impl = std::make_shared<mysql::Impl>(NewConnection, NewDB);
+		impl = std::make_shared<mysql::Impl>(NewConnection, std::make_shared<Database>());
 	}
 
 

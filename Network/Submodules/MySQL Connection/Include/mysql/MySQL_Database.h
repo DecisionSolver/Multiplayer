@@ -27,7 +27,7 @@ namespace mysql
 
 		Database();
 
-		void SetNewDatabase(sql::Connection &NewConnection, Database *NewDB);
+		void SetNewDatabase(std::shared_ptr<sql::Connection> NewConnection);
 
 	private:
 		std::shared_ptr<Impl> impl;

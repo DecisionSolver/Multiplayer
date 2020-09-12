@@ -1,5 +1,6 @@
 #include "Client.hpp"
 
+ToDo("Add Catcher Message And Store Them In Massive (With Thread)");
 namespace swl
 {
 	Client::Client() : packets{}, packetId{}
@@ -73,7 +74,9 @@ namespace swl
 			Socket::Status status;
 			while (connection)
 			{
-				status = socket.receiveAll((void*)&id, 4);
+				//{"data":{"id":"trgffdsfh"body:{"type":"5",data:"Login = '1', Pass = '2'"}, "isComp":"1"}}
+				ToDo("Reformatting everything is here!");
+				//status = socket.receiveAll((void*)&id, 4);
 				status = socket.receive(packet);
 				if (status == Socket::Disconnected)
 				{

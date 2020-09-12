@@ -16,7 +16,7 @@
 
 #endif // defined(_CONSOLE)
 
-std::map<std::string, mysql::Database> mysql::Impl::databases;
+std::map<std::string, std::shared_ptr<mysql::Database>> mysql::Impl::databases;
 
 namespace mysql
 {
@@ -112,7 +112,7 @@ namespace mysql
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
 
-		databases.insert(std::make_pair(name, Database()));
+		databases.insert(std::make_pair(name, std::make_shared<Database>()));
 		SelectDatabase(name);
 	}
 
@@ -121,13 +121,13 @@ namespace mysql
 	void Impl::SelectDatabase(const std::string& name)								  //
 	{
 		if (!databases.empty())
-			current_database = &(databases.find(name)->second);
+			current_database = databases.find(name)->second;
 
 		connection->setSchema(name);
 		//if (!current_database)
 		//{
 		//	current_database = new Database();
-		current_database->SetNewDatabase(*connection, current_database);
+		current_database->SetNewDatabase(connection);
 		//}
 		//else
 		//	current_database->SetNewDatabase(connection, current_database);
@@ -142,7 +142,7 @@ namespace mysql
 
 
 	////////////////////////////////////////////////////////////////////////////////////
-	Database* Impl::GetCurrentDatabase() const										  //
+	std::shared_ptr<Database> Impl::GetCurrentDatabase() const						  //
 	{
 		return current_database;
 	}

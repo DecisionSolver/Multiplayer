@@ -11,6 +11,9 @@
 	#include "Packet.hpp"
 #endif
 
+#define MacroStr(x) #x
+#define MacroStr2(x) MacroStr(x)
+#define ToDo(desc) __pragma(message(__FILE__ "(" MacroStr2(__LINE__) "): " #desc))
 namespace swl
 {
 	class Client
@@ -38,7 +41,6 @@ namespace swl
 #else
 		std::queue<std::pair<Packet, uint32_t>> packets;
 #endif
-
 	};
 	class TCPClient : public Client
 	{

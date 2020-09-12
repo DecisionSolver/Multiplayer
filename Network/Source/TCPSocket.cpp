@@ -90,6 +90,7 @@ namespace swl
 	}
 	Socket::Status TCPSocket::send(Packet& packet)
 	{
+		//ToDo
 		uint32_t packetSize = 0;
 		const void* data = packet.onSend(packetSize);
 		packetSize = htonl(packetSize);
@@ -104,6 +105,7 @@ namespace swl
 	{
 		packet.clear();
 		uint32_t packetSize = 0;
+		//ToDo("Think it over!");
 		if (receiveAll((void*)&packetSize, sizeof(uint32_t)))
 			return getErrorStatus();
 		packetSize = ntohl(packetSize);

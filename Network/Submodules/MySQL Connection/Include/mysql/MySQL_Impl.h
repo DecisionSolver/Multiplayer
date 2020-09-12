@@ -21,7 +21,7 @@ namespace mysql
 	{
 	public:
 		Impl() {}
-		Impl(sql::Connection &NewConnection, Database *NewDB = nullptr)
+		Impl(std::shared_ptr<sql::Connection> NewConnection, std::shared_ptr<Database> NewDB = nullptr)
 		{
 			if (NewDB)
 			{
@@ -29,9 +29,9 @@ namespace mysql
 				current_database = NewDB;
 			}
 
-			connection.reset(&NewConnection);
+			connection = NewConnection;
 		}
-		~Impl() { Destroy(); }
+		~Impl() { }
 
 		///////////////////////////////////////////////
 		// Data type                                 //
@@ -46,8 +46,8 @@ namespace mysql
 	private:
 		sql::Driver *driver = nullptr;
 		std::shared_ptr<sql::Connection> connection;
-		static std::map<std::string, Database> databases;
-		Database*	   current_database = nullptr;
+		static std::map<std::string, std::shared_ptr<mysql::Database>> databases;
+		std::shared_ptr<Database> current_database;
 		bool isReadOnly = false, wasSelectedDB = false;
 	public:
 		//////////////////////////////////////////////////////////
@@ -61,7 +61,7 @@ namespace mysql
 
 		void SelectDatabase(const std::string& name);
 
-		Database* GetCurrentDatabase() const;
+		std::shared_ptr<Database> GetCurrentDatabase() const;
 
 		void TryInsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
 			const std::vector<std::string>& values);
