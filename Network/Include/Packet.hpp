@@ -3,41 +3,57 @@
 #include "File.hpp"
 #include <vector>
 #include <string>
+#include "nlohmann/json.hpp"
 
+// for convenience
+using json = nlohmann::json;
 namespace swl
 {
 	class TCPSocket;
 	class UDPSocket;
 	class Packet
 	{
+	public:
 		enum Type
 		{
-			Chat,
+			Chat = 0,
 			File,
 			//Audio,
-			MySQL
+			MySQL,
+			Answer
 		};
 
 		struct Header
 		{
-			uint8_t Settings = 0; // IsCompressed, OrigSize etc...
+			enum TypeSettings
+			{
+				IsCompressed = 1,
+			};
+			uint8_t Settings = 0; // IsCompressed etc...
 			Type type;
+			size_t OrigSize = 0;
+
+			Header(Type NewType, uint8_t NewSettings) : type(NewType), Settings(NewSettings) {}
+			Header() {}
 		};
-	public:
 		//
-		Packet();
-		virtual ~Packet();
+		Packet(): readPos(0) {}
+		~Packet() {}
 
 		void clear();
 		void resize(const uint32_t& size);
 
-		uint32_t getSize() const;
-		void* getData();
+		size_t getSize() const;
+		char *getData();
+		const char *ToString();
 
 		// Filling data
-		void append(const void* _data, const uint32_t& size);
-		template <typename T>
-		Packet& operator <<(const T& _data);
+		void FillIn(const json NewData);
+		void FillIn(Header NewHeader, const void *NewData);
+		void FillIn(Header NewHeader, const json NewData);
+		void append(const char* _data, const uint32_t& size);
+	//	template <typename T>
+	//	Packet& operator <<(const T& _data);
 		template <typename T>
 		Packet& operator >>(T& _data);
 		template <typename T>
@@ -48,11 +64,14 @@ namespace swl
 		Packet& operator >>(std::string& _data);
 		Packet& operator <<(swl::File& file);
 		Packet& operator >>(swl::File& file);
+		operator bool() { return !data.empty(); }
+
+		Header getHeader() { return _H; }
 	protected:
 		friend TCPSocket;
 		friend UDPSocket;
-		virtual const void* onSend(std::uint32_t& size);
-		virtual void onReceive(const void* _data, const std::uint32_t& size);
+		const char* onSend(std::uint32_t& size);
+		void onReceive(const char* _data, const std::uint32_t& size);
 	private:
 		uint32_t readPos = 0;
 		std::vector<char> data;

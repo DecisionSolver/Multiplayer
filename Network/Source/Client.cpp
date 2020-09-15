@@ -3,36 +3,14 @@
 ToDo("Add Catcher Message And Store Them In Massive (With Thread)");
 namespace swl
 {
-	Client::Client() : packets{}, packetId{}
-	{
-		connection = false;
-	}
-	Client::~Client()
-	{
-
-	}
 	void Client::setSettingsSend(const bool& _encrypt, const bool& _zip)
 	{
 		encrypt = _encrypt;
 		zip = _zip;
 	}
-#if defined (COMPRESS_PACKETS)
-	ZipPacket Client::getLastPacket(uint32_t& id)
-	{
-		ZipPacket packet;
-		id = 0;
-		if (!packets.empty())
-		{
-			packet = packets.front().first;
-			id = packets.front().second;
-			packets.pop();
-		}
-		return packet;
-	}
-#else
 	Packet Client::getLastPacket(uint32_t& id)
 	{
-		Packet packet;
+		Packet packet = swl::Packet();
 		id = 0;
 		if (!packets.empty())
 		{
@@ -42,14 +20,9 @@ namespace swl
 		}
 		return packet;
 	}
-#endif
 	bool Client::isConnected() const
 	{
 		return connection;
-	}
-	TCPClient::TCPClient() : socket{}
-	{
-		
 	}
 	TCPClient::~TCPClient()
 	{
@@ -61,20 +34,21 @@ namespace swl
 		if (connection) return Socket::Done;
 		if (socket.getHandle() == INVALID_SOCKET)
 			socket = TCPSocket();
+		else
+		{
+			socket.close();
+			socket = TCPSocket();
+		}
 		if (socket.connect(ip, port))
 			return Socket::Error;
 		connection = true;
-		std::thread([&]() {
-#if defined (COMPRESS_PACKETS)
-			ZipPacket packet;
-#else
-			Packet packet;
-#endif
-			uint32_t id{};
+		std::thread([&]()
+		{
+			std::shared_ptr<Packet> packet = std::make_shared<Packet>();
+			uint32_t id = 0;
 			Socket::Status status;
 			while (connection)
 			{
-				//{"data":{"id":"trgffdsfh"body:{"type":"5",data:"Login = '1', Pass = '2'"}, "isComp":"1"}}
 				ToDo("Reformatting everything is here!");
 				//status = socket.receiveAll((void*)&id, 4);
 				status = socket.receive(packet);
@@ -83,7 +57,7 @@ namespace swl
 					connection = false;
 					break;
 				}
-				packets.push(std::make_pair(packet, id));
+				packets.push(std::make_pair(*packet, id));
 			}
 		}).detach();
 		return Socket::Done;
@@ -91,22 +65,25 @@ namespace swl
 	void TCPClient::disconnect()
 	{
 		connection = false;
-		socket.close();
+		if (socket.getHandle() != INVALID_SOCKET)
+			socket.close();
 	}
-	void TCPClient::send(Packet& packet, uint32_t id)
+	void TCPClient::send(std::shared_ptr<Packet> packet, uint32_t id)
 	{
-		socket.sendAll((const void*)&id, 4);
-		socket.send(packet);
+		if (!connection) return;
+		swl::Socket::Status ST;
+		//if ((ST = socket.sendAll((const void*)&id, 4)) != swl::Socket::Status::Done)
+		//	printf(("Status: "+ std::to_string(ST) + std::string(__FILE__) + "\n" + (__FUNCTION__) +
+		//		" on line " + std::to_string(__LINE__)).c_str());
+		if ((ST = socket.send(packet)) != swl::Socket::Status::Done)
+			printf(("Status: " + std::to_string(ST) + std::string(__FILE__) + "\n" + (__FUNCTION__) +
+				" on line " + std::to_string(__LINE__)).c_str());
 	}
 	TCPSocket& TCPClient::getSocket()
 	{
 		return socket;
 	}
 
-	UDPClient::UDPClient() : socket{}
-	{
-
-	}
 	UDPClient::~UDPClient()
 	{
 		connection = false;
@@ -122,43 +99,39 @@ namespace swl
 		ip = NewIP;
 		port = NewPort;
 		uint32_t conn = 0x7FFFFFFF;
-		Packet pconn;
-		socket.sendAll((void*)&conn, 4, ip, port);
+		std::shared_ptr<Packet> pconn = std::make_shared<Packet>(), packet = std::make_shared<Packet>();
+		//socket.sendAll((void*)&conn, 4, ip, port);
 		socket.send(pconn, ip, port);
-		std::thread([&]() {
-#if defined (COMPRESS_PACKETS)
-			ZipPacket packet;
-#else
-			Packet packet;
-#endif
-			uint32_t id{};
-			IPEndpoint ip;
-			uint16_t port;
+		std::thread([&]()
+		{
+			uint32_t id = 0u;
+			IPEndpoint ip = IPEndpoint();
+			uint16_t port = 0;
 			Socket::Status status;
 			while (connection)
 			{
-				status = socket.receiveAll((void*)&id, 4, ip, port);
 				status = socket.receive(packet, ip, port);
 				if (status != Socket::Done)
 				{
 					connection = false;
 					break;
 				}
-				packets.push(std::make_pair(packet, id));
+				packets.push(std::make_pair(*packet, id));
 			}
 		}).detach();
 		return Socket::Done;
 	}
 	void UDPClient::disconnect()
 	{
-		swl::Packet packet;
+		std::shared_ptr<swl::Packet> packet = std::make_shared<Packet>();
 		send(packet, 0x7FFFFFFF);
 		connection = false;
 		socket.close();
 	}
-	void UDPClient::send(Packet& packet, uint32_t id)
+	void UDPClient::send(std::shared_ptr<Packet> packet, uint32_t id)
 	{
-		socket.sendAll((const void*)&id, 4, ip, port);
+		if (!connection) return;
+		//socket.sendAll((const void*)&id, 4, ip, port);
 		socket.send(packet, ip, port);
 	}
 	UDPSocket& UDPClient::getSocket()

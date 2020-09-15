@@ -6,9 +6,6 @@ namespace swl
 	{
 		handle = NewHandle;
 	}
-	Socket::~Socket()
-	{
-	}
 	Socket::Status Socket::bind(const IPEndpoint& ip, const uint16_t& port)
 	{
 		sockaddr_in *addr = new sockaddr_in();
@@ -38,10 +35,14 @@ namespace swl
 		if (ioctlsocket(handle, FIONBIO, &b))
 			return getErrorStatus();
 		return Socket::Done;
-	}
+	} 
 	Socket::Status Socket::getErrorStatus()
 	{
-		switch (WSAGetLastError())
+		UINT ErrCode = WSAGetLastError();
+		fprintf(stderr, "Function...\nFile %s\n%s: On Line %s\nSays: failed with error %d: %s\n", __FILE__, __FUNCTION__,
+			std::to_string(__LINE__).c_str(), WSAGetLastError(), DecodeError(WSAGetLastError()));
+
+		switch (ErrCode)
 		{
 		case WSAEWOULDBLOCK:  return Socket::NotReady;
 		case WSAEALREADY:     return Socket::NotReady;

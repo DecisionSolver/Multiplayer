@@ -7,12 +7,12 @@ namespace swl
 	{
 	public:
 		UDPSocket();
-		~UDPSocket();
-		Status send(const void* data, const uint32_t& numberBytes, uint32_t& bytesSent, const IPEndpoint& ip, const uint16_t& port);
-		Status sendAll(const void* data, const uint32_t& numberBytes, const IPEndpoint& ip, const uint16_t& port);
-		Status receive(void* destination, const uint32_t& numberBytes, uint32_t& bytesRecived, IPEndpoint& ip, uint16_t& port);
-		Status receiveAll(void* destination, const uint32_t& numberBytes, IPEndpoint& ip, uint16_t& port);
-		Status send(Packet& packet, const IPEndpoint& ip, const uint16_t& port);
-		Status receive(Packet& packet, IPEndpoint& ip, uint16_t& port);
+		~UDPSocket() {}
+		Status send(const char* data, const uint32_t& numberBytes, uint32_t& bytesSent, const IPEndpoint& ip, const uint16_t& port);
+		Status sendAll(const char* data, const uint32_t& numberBytes, const IPEndpoint& ip, const uint16_t& port);
+		Status receive(char* destination, const uint32_t& numberBytes, uint32_t& bytesRecived, IPEndpoint& ip, uint16_t& port);
+		Status receiveAll(char* destination, const uint32_t& numberBytes, IPEndpoint& ip, uint16_t& port);
+		Status send(std::shared_ptr<swl::Packet> packet, const IPEndpoint& ip, const uint16_t& port);
+		Status receive(std::shared_ptr<swl::Packet> packet, IPEndpoint& ip, uint16_t& port);
 	};
 }

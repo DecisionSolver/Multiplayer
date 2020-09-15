@@ -16,8 +16,8 @@ namespace swl
 			Disconnected,
 			Error
 		};
-		SocketSelector();
-		~SocketSelector();
+		SocketSelector() {}
+		~SocketSelector() {}
 		void add(Socket& socket);
 		void remove(Socket& socket);
 		bool wait(int32_t millisecond = -1);

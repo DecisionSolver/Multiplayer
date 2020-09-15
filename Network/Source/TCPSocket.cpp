@@ -12,10 +12,6 @@ namespace swl
 		char value = 1;
 		setsockopt(handle, IPPROTO_TCP, TCP_NODELAY, &value, 1);
 	}
-	TCPSocket::~TCPSocket()
-	{
-
-	}
 	Socket::Status TCPSocket::listen(const int& backlog)
 	{
 		if (::listen(handle, backlog))
@@ -40,82 +36,76 @@ namespace swl
 		addr->sin_addr.S_un.S_addr = ip.toInteger();
 		addr->sin_port = htons(port);
 		if (::bind(handle, (sockaddr*)addr, sizeof(sockaddr_in)))
-		if (::WSAConnect(handle, (sockaddr*)addr, sizeof(sockaddr_in), nullptr, nullptr, nullptr, nullptr))
-			return getErrorStatus();
+		{
+			if (::WSAConnect(handle, (sockaddr*)addr, sizeof(sockaddr_in), nullptr, nullptr, nullptr, nullptr))
+				return getErrorStatus();
+		}
+		else
+				return getErrorStatus();
+
 		return Status::Done;
 	}
-	Socket::Status TCPSocket::send(const void* data, const uint32_t& numberBytes, uint32_t& bytesSent)
+	Socket::Status TCPSocket::send(const char* data, const uint32_t& numberBytes, uint32_t& bytesSent, SOCKET sock)
 	{
-		bytesSent = ::send(handle, (const char*)data, numberBytes, 0);
+		const_cast<char *>(data)[numberBytes] = '\0';
+		bytesSent = ::send(sock != -1 ? sock : handle, (const char*)data, numberBytes, 0);
 		if (bytesSent > 2147483647)
 			return getErrorStatus();
+
+#if defined (_SERVER) && defined (_CONSOLE)
+		std::cout << "\nSocket: " << (sock ? sock : handle) << " Sent:\nData: " << data
+			 << ", numBytes: "<< numberBytes <<", bytesSent: " << bytesSent << "\n";
+#endif
 		return Status::Done;
 	}
-	Socket::Status TCPSocket::sendAll(const void* data, const uint32_t& numberBytes)
+	Socket::Status TCPSocket::receive(char* destination, const uint32_t& numberBytes, uint32_t& bytesRecived)
 	{
-		uint32_t totalBytesSent = 0;
-		while (totalBytesSent < numberBytes)
-		{
-			uint32_t bytesRemainig = numberBytes - totalBytesSent;
-			uint32_t bytesSent = 0;
-			char* bufferOffset = (char*)data + totalBytesSent;
-			Socket::Status status = send(bufferOffset, bytesRemainig, bytesSent);
-			totalBytesSent += bytesSent;
-			if (status != Status::Done)
-				return getErrorStatus();
-		}
-		return Status::Done;
-	}
-	Socket::Status TCPSocket::receive(void* destination, const uint32_t& numberBytes, uint32_t& bytesRecived)
-	{
-		bytesRecived = ::recv(handle, (char*)destination, numberBytes, 0);
+		bytesRecived = ::recv(handle, destination, numberBytes, 0);
 		if (bytesRecived > 2147483647)
 			return getErrorStatus();
+		destination[bytesRecived] = '\0';
+
+#if defined (_SERVER) && defined (_CONSOLE)
+		std::cout << "\nServer Got New Packet:\nData: " << (const char*)destination
+			<< ", numBytes: " << numberBytes << ", bytesRecived: " << bytesRecived << "\n";
+#endif
 		return Status::Done;
 	}
-	Socket::Status TCPSocket::receiveAll(void* destination, const uint32_t& numberBytes)
-	{
-		uint32_t totalBytesReceived = 0;
-		while (totalBytesReceived < numberBytes)
-		{
-			uint32_t bytesRemainig = numberBytes - totalBytesReceived;
-			uint32_t bytesReceived = 0;
-			char* bufferOffset = (char*)destination + totalBytesReceived;
-			Socket::Status status = receive(bufferOffset, bytesRemainig, bytesReceived);
-			totalBytesReceived += bytesReceived;
-			if (status != Status::Done)
-				return getErrorStatus();
-		}
-		return Status::Done;
-	}
-	Socket::Status TCPSocket::send(Packet& packet)
+	Socket::Status TCPSocket::send(std::shared_ptr<Packet> packet)
 	{
 		//ToDo
-		uint32_t packetSize = 0;
-		const void* data = packet.onSend(packetSize);
-		packetSize = htonl(packetSize);
-		if (sendAll((const void*)&packetSize, sizeof(uint32_t)))
-			return getErrorStatus();
-		packetSize = ntohl(packetSize);
-		if (sendAll(data, packetSize))
+		uint32_t packetSize = packet->getSize();
+		//packetSize = htonl(packetSize);
+		//if (sendAll((const void*)&packetSize, sizeof(uint32_t)))
+		//	return getErrorStatus();
+		//packetSize = ntohl(packetSize);
+		if (send(packet->getData(), packetSize, packetSize))
 			return getErrorStatus();
 		return Status::Done;
 	}
-	Socket::Status TCPSocket::receive(Packet& packet)
+	Socket::Status TCPSocket::SendTo(SOCKET Where, std::shared_ptr<Packet> packet)
 	{
-		packet.clear();
+		uint32_t packetSize;
+
+		if (send(packet->onSend(packetSize), packetSize, packetSize, Where))
+			return getErrorStatus();
+		return Status::Done;
+	}
+	Socket::Status TCPSocket::receive(std::shared_ptr<Packet> packet)
+	{
+		packet->clear();
 		uint32_t packetSize = 0;
 		//ToDo("Think it over!");
-		if (receiveAll((void*)&packetSize, sizeof(uint32_t)))
-			return getErrorStatus();
-		packetSize = ntohl(packetSize);
-		char* data = new char[packetSize];
-		if (receiveAll((void*)data, packetSize))
+		//if (receiveAll((void*)&packetSize, sizeof(uint32_t)))
+		//	return getErrorStatus();
+		//packetSize = ntohl(packetSize);
+		char* data = new char[2048];
+		if (receive(data, 2048, packetSize))
 		{
 			delete[] data;
 			return getErrorStatus();
 		}
-		packet.onReceive(data, packetSize);
+		packet->onReceive(data, packetSize);
 		delete[] data;
 		return Status::Done;
 	}

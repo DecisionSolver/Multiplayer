@@ -2,18 +2,11 @@
 
 namespace swl
 {
-	SocketSelector::SocketSelector() : sockets{}
-	{
-
-	}
-	SocketSelector::~SocketSelector()
-	{
-	}
 	void SocketSelector::add(Socket& socket)
 	{
 		SOCKET handle = socket.getHandle();
 		if (handle != INVALID_SOCKET)
-			sockets.push_back(pollfd{ handle, POLLRDNORM | POLLWRNORM | POLLERR | POLLHUP });
+			sockets.push_back(pollfd{ handle, POLLRDNORM | POLLWRNORM /*| POLLERR | POLLHUP*/ });
 	}
 	void SocketSelector::remove(Socket& socket)
 	{
@@ -22,7 +15,7 @@ namespace swl
 		{
 			for (size_t i = 0; i < sockets.size(); i++)
 			{
-				if (sockets[i].fd == handle)
+				if (sockets.at(i).fd == handle)
 				{
 					sockets.erase(sockets.begin() + i);
 					break;
@@ -32,7 +25,11 @@ namespace swl
 	}
 	bool SocketSelector::wait(int32_t millisecond)
 	{
-		int count = WSAPoll(sockets.data(), sockets.size(), millisecond);
+		int count = ::WSAPoll(&sockets.front(), sockets.size(), millisecond);
+		UINT Err = GetLastError();
+		if (Err > 0)
+			fprintf(stderr, "Function...\nFile %s\n%s: On Line %s\nSays: failed with error %d: %s\n", __FILE__, __FUNCTION__,
+				std::to_string(__LINE__).c_str(), WSAGetLastError(), DecodeError(WSAGetLastError()));
 		return count > 0;
 	}
 	SocketSelector::Status SocketSelector::isReady(Socket& _socket)
@@ -44,14 +41,17 @@ namespace swl
 			{
 				if (socket.fd == handle)
 				{
-					if (socket.revents & POLLRDNORM)
+					switch (socket.revents)
+					{
+					case POLLRDNORM:
 						return Status::Read;
-					else if (socket.revents & POLLWRNORM)
+					case POLLWRNORM:
 						return Status::Write;
-					else if (socket.revents & POLLERR)
+					case POLLERR:
 						return Status::Error;
-					else if (socket.revents & POLLHUP)
+					case POLLHUP:
 						return Status::Disconnected;
+					}
 				}
 			}
 		}

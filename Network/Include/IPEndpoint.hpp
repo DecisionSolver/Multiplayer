@@ -24,4 +24,7 @@ namespace swl
 	private:
 		in_addr ip;
 	};
+
+// Utilities!
+	LPSTR DecodeError(int ErrorCode);
 }

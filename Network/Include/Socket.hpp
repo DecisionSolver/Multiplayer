@@ -22,7 +22,7 @@ namespace swl
 			SOLinger
 		};
 		Socket(SOCKET NewHandle);
-		virtual ~Socket();
+		virtual ~Socket() {}
 		Status bind(const IPEndpoint& ip, const uint16_t& port);
 		Status close();
 		SOCKET getHandle();

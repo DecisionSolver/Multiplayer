@@ -5,22 +5,19 @@ namespace swl
 	UDPSocket::UDPSocket() : Socket{ socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP) }
 	{
 	}
-	UDPSocket::~UDPSocket()
-	{
-	}
-	Socket::Status UDPSocket::send(const void* data, const uint32_t& numberBytes, uint32_t& bytesSent,
+	Socket::Status UDPSocket::send(const char* data, const uint32_t& numberBytes, uint32_t& bytesSent,
 		const IPEndpoint& ip, const uint16_t& port)
 	{
 		sockaddr_in *addr = new sockaddr_in();
 		addr->sin_family = AF_INET;
 		addr->sin_addr.S_un.S_addr = ip.toInteger();
 		addr->sin_port = htons(port);
-		bytesSent = ::sendto(handle, (const char*)data, numberBytes, 0, (sockaddr*)addr, sizeof(sockaddr_in));
+		bytesSent = ::sendto(handle, data, numberBytes, 0, (sockaddr*)addr, sizeof(sockaddr_in));
 		if (bytesSent > 2147483647)
 			return getErrorStatus();
 		return Status::Done;
 	}
-	Socket::Status UDPSocket::sendAll(const void* data, const uint32_t& numberBytes, const IPEndpoint& ip,
+	Socket::Status UDPSocket::sendAll(const char* data, const uint32_t& numberBytes, const IPEndpoint& ip,
 		const uint16_t& port)
 	{
 		uint32_t totalBytesSent = 0;
@@ -28,15 +25,14 @@ namespace swl
 		{
 			uint32_t bytesRemainig = numberBytes - totalBytesSent;
 			uint32_t bytesSent = 0;
-			char* bufferOffset = (char*)data + totalBytesSent;
-			Socket::Status status = send(bufferOffset, bytesRemainig, bytesSent, ip, port);
+			Socket::Status status = send(const_cast<char *>(data) + totalBytesSent, bytesRemainig, bytesSent, ip, port);
 			totalBytesSent += bytesSent;
 			if (status != Status::Done)
 				return getErrorStatus();
 		}
 		return Status::Done;
 	}
-	Socket::Status UDPSocket::receive(void* destination, const uint32_t& numberBytes, uint32_t& bytesRecived,
+	Socket::Status UDPSocket::receive(char* destination, const uint32_t& numberBytes, uint32_t& bytesRecived,
 		IPEndpoint& ip, uint16_t& port)
 	{
 		sockaddr_in addr{};
@@ -48,7 +44,7 @@ namespace swl
 		port = addr.sin_port;
 		return Status::Done;
 	}
-	Socket::Status UDPSocket::receiveAll(void* destination, const uint32_t& numberBytes, IPEndpoint& ip,
+	Socket::Status UDPSocket::receiveAll(char* destination, const uint32_t& numberBytes, IPEndpoint& ip,
 		uint16_t& port)
 	{
 		uint32_t totalBytesReceived = 0;
@@ -64,26 +60,26 @@ namespace swl
 		}
 		return Status::Done;
 	}
-	Socket::Status UDPSocket::send(Packet& packet, const IPEndpoint& ip, const uint16_t& port)
+	Socket::Status UDPSocket::send(std::shared_ptr<swl::Packet> packet, const IPEndpoint& ip, const uint16_t& port)
 	{
 		uint32_t packetSize = 0;
-		const void* data = packet.onSend(packetSize);
-		if (sendAll(&packetSize, sizeof(uint32_t), ip, port))
-			return getErrorStatus();
+		const char* data = packet->onSend(packetSize);
+		//if (sendAll(&packetSize, sizeof(uint32_t), ip, port))
+		//	return getErrorStatus();
 		if (sendAll(data, packetSize, ip, port))
 			return getErrorStatus();
 		return Status::Done;
 	}
-	Socket::Status UDPSocket::receive(Packet& packet, IPEndpoint& ip, uint16_t& port)
+	Socket::Status UDPSocket::receive(std::shared_ptr<swl::Packet> packet, IPEndpoint& ip, uint16_t& port)
 	{
-		packet.clear();
+		packet->clear();
 		uint32_t packetSize = 0;
-		if (receiveAll(&packetSize, sizeof(uint32_t), ip, port))
-			return getErrorStatus();
-		void* data = new char[packetSize];
+		//if (receiveAll(&packetSize, sizeof(uint32_t), ip, port))
+		//	return getErrorStatus();
+		char* data = new char[packetSize];
 		if (receiveAll(data, packetSize, ip, port))
 			return getErrorStatus();
-		packet.onReceive(data, packetSize);
+		packet->onReceive(data, packetSize);
 		delete[] data;
 		return Status::Done;
 	}
