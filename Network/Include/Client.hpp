@@ -17,18 +17,20 @@ namespace swl
 	public:
 		Client() {}
 		virtual ~Client() {}
+		
 		virtual Socket::Status connect(const IPEndpoint& ip, const uint16_t& port) = 0;
 		virtual void disconnect() = 0;
+		
 		virtual void send(std::shared_ptr<Packet> packet, uint32_t id) = 0;
 		void setSettingsSend(const bool& encrypt, const bool& zip);
+		
 		Packet getLastPacket(uint32_t& id);
+		
 		bool isConnected() const;
 	protected:
-		bool encrypt = false;
-		bool zip = false;
-		bool connection = false;
+		bool encrypt = false, zip = false, connection = false;
 		uint32_t packetId = 0u;
-		std::queue<std::pair<Packet, uint32_t>> packets;
+		std::list<std::pair<Packet, uint32_t>> packets;
 	};
 	class TCPClient : public Client
 	{

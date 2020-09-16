@@ -155,7 +155,6 @@ int main()
 		while (true)
 		{
 			// To Do A MySQL Login And Password If It's Correctly Then We'll be able to move forward
-			std::shared_ptr<swl::Packet> packet = std::make_shared<swl::Packet>();
 			if (!Client->isConnected())
 				Client->connect(IP, PORT);
 			while (!IsLogging)
@@ -170,10 +169,12 @@ int main()
 
 				if (!Login.empty() && !Pass.empty())
 				{
+					std::shared_ptr<swl::Packet> NewPacket = std::make_shared<swl::Packet>();
 					MySQL_Request["data"].at("body").at("_0") = Login;
 					MySQL_Request["data"].at("body").at("_1") = Pass;
-					packet->FillIn(swl::Packet::Header(swl::Packet::Type::MySQL, 0), MySQL_Request);
-					Client->send(packet, 0);
+					NewPacket->FillIn(swl::Packet::Header(swl::Packet::Type::MySQL, 0), MySQL_Request);
+					Client->send(NewPacket, 0);
+					NewPacket.~shared_ptr();
 
 					while (true)
 					{
@@ -183,53 +184,61 @@ int main()
 							return;
 						}
 
-						swl::Packet NewPacket = Client->getLastPacket(ID);
-						if (NewPacket && NewPacket.getHeader().type == swl::Packet::Type::Answer)
+						swl::Packet packet = Client->getLastPacket(ID);
+						if (packet && packet.operator bool() &&
+							packet.getHeader().type == swl::Packet::Type::Answer)
 						{
-							json Hash = json::parse(NewPacket.getData());
-							if (NewPacket.getHeader().type == swl::Packet::Answer && !Hash.empty() &&
+							json Hash = json::parse(packet.ToString());
+							if (packet.getHeader().type == swl::Packet::Answer && !Hash.empty() &&
 								Hash["data"]["body"]["_0"].get<std::string>() == "OK")
 							{
+								system("cls");
 								printf("Here we go!\n");
+								printf("\nTry to type something interesting!\n");
 								IsLogging = true;
 								break;
 							}
 							else
+							{
+								system("cls");
 								printf("Something is wrong, try again later!\n");
+							}
 						}
 					}
 				}
 			}
 
-			while (true)
+			swl::Packet packet = swl::Packet();
+			//while (true)
+			//{
+			//if (temp.empty())
+			//{
+			if (!Client->isConnected())
 			{
-				packet->clear();
-				if (!Client->isConnected())
-				{
-					printf("Something is wrong with Connect To Server, try again later!\n");
-					return;
-				}
-
 				system("cls");
-				printf("\nTry to type something interesting!\n");
-
-				std::cin >> temp;
-
-				if (!temp.empty())
-				{
-					Message["data"].at("body").at("_0") = temp;
-					packet->FillIn(swl::Packet::Header(swl::Packet::Type::Chat, 0), Message);
-					Client->send(packet, 0);
-				}
-
-				packet.reset(&Client->getLastPacket(ID));
-				if (packet->operator bool() && packet->getHeader().type == swl::Packet::Type::Chat)
-				{
-					temp = json::parse(packet->getData()).at("_0").get<std::string>();
-					if (!temp.empty())
-						printf("\nFrom Client: %s", temp.c_str());
-				}
+				printf("Something is wrong with Connect To Server, try again later!\n");
+				return;
 			}
+
+			packet = Client->getLastPacket(ID);
+			if (packet.operator bool() && packet.getHeader().type == swl::Packet::Type::Chat)
+			{
+				temp = json::parse(packet.ToString())["data"].at("body").at("_0").get<std::string>();
+				if (!temp.empty())
+					printf("\nFrom Client: %s\n", temp.c_str());
+			}
+
+			std::cin >> temp;
+
+			if (!temp.empty())
+			{
+				Message["data"].at("body").at("_0") = temp;
+				packet.FillIn(swl::Packet::Header(swl::Packet::Type::Chat, 0), Message);
+				Client->send(std::make_shared<swl::Packet>(packet), 0);
+				temp.clear();
+			}
+				//}
+			//}
 
 			this_thread::sleep_for(10ms);
 		}

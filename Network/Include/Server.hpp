@@ -33,13 +33,19 @@ namespace swl
 		TCPServer();
 		~TCPServer() override;
 		void run(const IPEndpoint& ip, uint16_t port) override;
-		void core();
 		void stop() override;
 		void SendTo(SOCKET sock, const std::shared_ptr<Packet> packet);
-		std::vector<std::pair<TCPSocket, uint32_t>> getClients() { return clients; }
 	private:
+		struct Client
+		{
+			static void PacketHandler_TCP(TCPServer *server, std::pair<TCPSocket, uint32_t> client);
+			static SocketSelector selector;
+
+			std::thread Handler; // For PacketHandler And Will Be Detached!
+			std::pair<TCPSocket, uint32_t> TCP;
+		};
 		TCPSocket socket;
-		std::vector<std::pair<TCPSocket, uint32_t>> clients;
+		std::vector<Client> clients;
 	};
 
 	class UDPServer : public Server
@@ -47,12 +53,19 @@ namespace swl
 	public:
 		UDPServer();
 		~UDPServer() override;
-		void run(const IPEndpoint& ip, uint16_t port) override;
+		//void run(const IPEndpoint& ip, uint16_t port) override;
 		void stop() override;
 		//void SendTo(const size_t id, Packet packet);
 	private:
+		struct Client
+		{
+			//static void PacketHandler_UDP(std::shared_ptr<UDPServer> server);
+
+			std::thread Handler; // For PacketHandler And Will Be Detached!
+			std::tuple<UDPSocket, IPEndpoint, uint16_t, uint32_t> UPD;
+		};
 		UDPSocket socket;
-		std::vector<std::tuple<UDPSocket, IPEndpoint, uint16_t, uint32_t>> clients;
+		std::vector<Client> clients;
 		//std::map<std::pair<IPEndpoint, uint16_t>, std::pair<UDPClient, uint32_t>> clients;
 	};
 }

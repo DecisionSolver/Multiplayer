@@ -10,16 +10,17 @@ namespace swl
 	}
 	Packet Client::getLastPacket(uint32_t& id)
 	{
-		Packet packet = swl::Packet();
+		Packet packet = Packet();
 		id = 0;
 		if (!packets.empty())
 		{
 			packet = packets.front().first;
 			id = packets.front().second;
-			packets.pop();
+			packets.pop_front();
 		}
 		return packet;
 	}
+
 	bool Client::isConnected() const
 	{
 		return connection;
@@ -57,7 +58,7 @@ namespace swl
 					connection = false;
 					break;
 				}
-				packets.push(std::make_pair(*packet, id));
+				packets.push_back(std::make_pair(*packet, id));
 			}
 		}).detach();
 		return Socket::Done;
@@ -116,7 +117,7 @@ namespace swl
 					connection = false;
 					break;
 				}
-				packets.push(std::make_pair(*packet, id));
+				packets.push_back(std::make_pair(*packet, id));
 			}
 		}).detach();
 		return Socket::Done;

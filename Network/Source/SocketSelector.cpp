@@ -47,6 +47,7 @@ namespace swl
 						return Status::Read;
 					case POLLWRNORM:
 						return Status::Write;
+					case POLLNVAL:
 					case POLLERR:
 						return Status::Error;
 					case POLLHUP:

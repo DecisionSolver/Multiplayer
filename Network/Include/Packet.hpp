@@ -38,7 +38,13 @@ namespace swl
 		};
 		//
 		Packet(): readPos(0) {}
-		~Packet() {}
+		Packet(const Packet& from)
+		{
+			readPos = 0;
+			data = from.data;
+			_H = from._H;
+		}
+		virtual ~Packet() {}
 
 		void clear();
 		void resize(const uint32_t& size);
@@ -74,7 +80,7 @@ namespace swl
 		void onReceive(const char* _data, const std::uint32_t& size);
 	private:
 		uint32_t readPos = 0;
-		std::vector<char> data;
+		std::string data;
 		Header _H;
 	};
 }

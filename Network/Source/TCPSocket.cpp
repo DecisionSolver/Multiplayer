@@ -73,7 +73,6 @@ namespace swl
 	}
 	Socket::Status TCPSocket::send(std::shared_ptr<Packet> packet)
 	{
-		//ToDo
 		uint32_t packetSize = packet->getSize();
 		//packetSize = htonl(packetSize);
 		//if (sendAll((const void*)&packetSize, sizeof(uint32_t)))

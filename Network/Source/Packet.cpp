@@ -56,16 +56,16 @@ namespace swl
 	}
 	char *Packet::getData()
 	{
-		return const_cast<char *>(ToString());
+		return data.data();
 	}
 	const char *Packet::ToString()
 	{
 		if (data.empty())
 			return "";
 
-		char *NewString = data.data();
-		NewString[data.size()] = '\0';
-		return NewString;
+		//char *NewString = data.data();
+		//NewString[data.size()] = '\0';
+		return data.c_str();
 	}
 	void Packet::append(const char* _data, const uint32_t& size)
 	{
@@ -134,11 +134,9 @@ namespace swl
 		try
 		{
 			if (_data[0] == '\n' || size == 0) return;
-			json js = json::parse((char*)_data);
+			json js = json::parse(_data);
 			if (js.empty())
 				DebugBreak();
-
-			std::cout << js << std::endl;
 
 			_H.Settings = js["header"].at("_s").get<uint8_t>();
 			_H.OrigSize = _H.Settings & Header::TypeSettings::IsCompressed

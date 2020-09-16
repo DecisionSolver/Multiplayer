@@ -39,8 +39,9 @@ namespace swl
 	Socket::Status Socket::getErrorStatus()
 	{
 		UINT ErrCode = WSAGetLastError();
-		fprintf(stderr, "Function...\nFile %s\n%s: On Line %s\nSays: failed with error %d: %s\n", __FILE__, __FUNCTION__,
-			std::to_string(__LINE__).c_str(), WSAGetLastError(), DecodeError(WSAGetLastError()));
+		fprintf(stderr, "Function...\nFile %s\n%s: On Line %s\nSays: failed with error WSA(%d) and %d: %s\n",
+			__FILE__, __FUNCTION__, std::to_string(__LINE__).c_str(), WSAGetLastError(),
+			GetLastError(), DecodeError(WSAGetLastError()));
 
 		switch (ErrCode)
 		{
