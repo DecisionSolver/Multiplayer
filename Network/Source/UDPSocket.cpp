@@ -60,26 +60,26 @@ namespace swl
 		}
 		return Status::Done;
 	}
-	Socket::Status UDPSocket::send(std::shared_ptr<swl::Packet> packet, const IPEndpoint& ip, const uint16_t& port)
+	Socket::Status UDPSocket::send(swl::Packet packet, const IPEndpoint& ip, const uint16_t& port)
 	{
 		uint32_t packetSize = 0;
-		const char* data = packet->onSend(packetSize);
+		const char* data = packet.onSend(packetSize);
 		//if (sendAll(&packetSize, sizeof(uint32_t), ip, port))
 		//	return getErrorStatus();
 		if (sendAll(data, packetSize, ip, port))
 			return getErrorStatus();
 		return Status::Done;
 	}
-	Socket::Status UDPSocket::receive(std::shared_ptr<swl::Packet> packet, IPEndpoint& ip, uint16_t& port)
+	Socket::Status UDPSocket::receive(swl::Packet &packet, IPEndpoint& ip, uint16_t& port)
 	{
-		packet->clear();
+		packet.clear();
 		uint32_t packetSize = 0;
 		//if (receiveAll(&packetSize, sizeof(uint32_t), ip, port))
 		//	return getErrorStatus();
 		char* data = new char[packetSize];
 		if (receiveAll(data, packetSize, ip, port))
 			return getErrorStatus();
-		packet->onReceive(data, packetSize);
+		packet.onReceive(data, packetSize);
 		delete[] data;
 		return Status::Done;
 	}

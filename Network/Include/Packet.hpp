@@ -33,10 +33,9 @@ namespace swl
 			Type type;
 			size_t OrigSize = 0;
 
-			Header(Type NewType, uint8_t NewSettings) : type(NewType), Settings(NewSettings) {}
+			Header(Type NewType, uint8_t NewSettings): type(NewType), Settings(NewSettings) {}
 			Header() {}
 		};
-		//
 		Packet(): readPos(0) {}
 		Packet(const Packet& from)
 		{
@@ -80,7 +79,7 @@ namespace swl
 		void onReceive(const char* _data, const std::uint32_t& size);
 	private:
 		uint32_t readPos = 0;
-		std::string data;
+		std::vector<char> data;
 		Header _H;
 	};
 }

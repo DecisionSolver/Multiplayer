@@ -45,7 +45,7 @@ namespace swl
 		connection = true;
 		std::thread([&]()
 		{
-			std::shared_ptr<Packet> packet = std::make_shared<Packet>();
+			Packet packet = Packet();
 			uint32_t id = 0;
 			Socket::Status status;
 			while (connection)
@@ -58,7 +58,7 @@ namespace swl
 					connection = false;
 					break;
 				}
-				packets.push_back(std::make_pair(*packet, id));
+				packets.push_back(std::make_pair(packet, id));
 			}
 		}).detach();
 		return Socket::Done;
@@ -69,7 +69,7 @@ namespace swl
 		if (socket.getHandle() != INVALID_SOCKET)
 			socket.close();
 	}
-	void TCPClient::send(std::shared_ptr<Packet> packet, uint32_t id)
+	void TCPClient::send(Packet packet)
 	{
 		if (!connection) return;
 		swl::Socket::Status ST;
@@ -99,8 +99,8 @@ namespace swl
 		connection = true;
 		ip = NewIP;
 		port = NewPort;
-		uint32_t conn = 0x7FFFFFFF;
-		std::shared_ptr<Packet> pconn = std::make_shared<Packet>(), packet = std::make_shared<Packet>();
+		//uint32_t conn = 0x7FFFFFFF;
+		Packet pconn = Packet(), packet = Packet();
 		//socket.sendAll((void*)&conn, 4, ip, port);
 		socket.send(pconn, ip, port);
 		std::thread([&]()
@@ -117,19 +117,19 @@ namespace swl
 					connection = false;
 					break;
 				}
-				packets.push_back(std::make_pair(*packet, id));
+				packets.push_back(std::make_pair(packet, id));
 			}
 		}).detach();
 		return Socket::Done;
 	}
 	void UDPClient::disconnect()
 	{
-		std::shared_ptr<swl::Packet> packet = std::make_shared<Packet>();
-		send(packet, 0x7FFFFFFF);
+		swl::Packet packet = Packet();
+		send(packet/*, 0x7FFFFFFF*/);
 		connection = false;
 		socket.close();
 	}
-	void UDPClient::send(std::shared_ptr<Packet> packet, uint32_t id)
+	void UDPClient::send(Packet packet/*, uint32_t id*/)
 	{
 		if (!connection) return;
 		//socket.sendAll((const void*)&id, 4, ip, port);

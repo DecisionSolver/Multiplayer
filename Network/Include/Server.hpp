@@ -34,7 +34,7 @@ namespace swl
 		~TCPServer() override;
 		void run(const IPEndpoint& ip, uint16_t port) override;
 		void stop() override;
-		void SendTo(SOCKET sock, const std::shared_ptr<Packet> packet);
+		void SendTo(SOCKET sock, const Packet packet);
 	private:
 		struct Client
 		{

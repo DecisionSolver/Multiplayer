@@ -21,7 +21,7 @@ namespace swl
 		virtual Socket::Status connect(const IPEndpoint& ip, const uint16_t& port) = 0;
 		virtual void disconnect() = 0;
 		
-		virtual void send(std::shared_ptr<Packet> packet, uint32_t id) = 0;
+		virtual void send(Packet packet) = 0;
 		void setSettingsSend(const bool& encrypt, const bool& zip);
 		
 		Packet getLastPacket(uint32_t& id);
@@ -39,7 +39,8 @@ namespace swl
 		~TCPClient() override;
 		Socket::Status connect(const IPEndpoint& ip, const uint16_t& port) override;
 		void disconnect() override;
-		void send(std::shared_ptr<Packet> packet, uint32_t id) override;
+		// Send Packet To Server
+		void send(Packet packet) override;
 		TCPSocket& getSocket();
 	private:
 		TCPSocket socket;
@@ -51,7 +52,8 @@ namespace swl
 		~UDPClient() override;
 		Socket::Status connect(const IPEndpoint& NewIP, const uint16_t& NewPort) override;
 		void disconnect() override;
-		void send(std::shared_ptr<Packet> packet, uint32_t id) override;
+		// Send Packet To Server
+		void send(Packet packet) override;
 		UDPSocket& getSocket();
 	private:
 		IPEndpoint ip;

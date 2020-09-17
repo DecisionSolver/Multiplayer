@@ -20,7 +20,7 @@ namespace swl
 	}
 	Socket::Status TCPSocket::accept(TCPSocket& socket)
 	{
-		sockaddr_in addr{};
+		sockaddr_in addr = sockaddr_in();
 		int len = sizeof(addr);
 		SOCKET acceptedHandle = ::WSAAccept(handle, (sockaddr*)(&addr), &len, nullptr, 0);
 		if (acceptedHandle == INVALID_SOCKET)
@@ -41,14 +41,13 @@ namespace swl
 				return getErrorStatus();
 		}
 		else
-				return getErrorStatus();
+			return getErrorStatus();
 
 		return Status::Done;
 	}
 	Socket::Status TCPSocket::send(const char* data, const uint32_t& numberBytes, uint32_t& bytesSent, SOCKET sock)
 	{
-		const_cast<char *>(data)[numberBytes] = '\0';
-		bytesSent = ::send(sock != -1 ? sock : handle, (const char*)data, numberBytes, 0);
+		bytesSent = ::send(sock != INVALID_SOCKET ? sock : handle, (const char*)data, numberBytes, 0);
 		if (bytesSent > 2147483647)
 			return getErrorStatus();
 
@@ -71,40 +70,40 @@ namespace swl
 #endif
 		return Status::Done;
 	}
-	Socket::Status TCPSocket::send(std::shared_ptr<Packet> packet)
+	Socket::Status TCPSocket::send(Packet packet)
 	{
-		uint32_t packetSize = packet->getSize();
+		uint32_t packetSize = packet.getSize();
 		//packetSize = htonl(packetSize);
 		//if (sendAll((const void*)&packetSize, sizeof(uint32_t)))
 		//	return getErrorStatus();
 		//packetSize = ntohl(packetSize);
-		if (send(packet->getData(), packetSize, packetSize))
+		if (send(packet.ToString(), packetSize, packetSize))
 			return getErrorStatus();
 		return Status::Done;
 	}
-	Socket::Status TCPSocket::SendTo(SOCKET Where, std::shared_ptr<Packet> packet)
+	Socket::Status TCPSocket::SendTo(SOCKET Where, Packet packet)
 	{
-		uint32_t packetSize;
+		uint32_t packetSize = packet.getSize();
 
-		if (send(packet->onSend(packetSize), packetSize, packetSize, Where))
+		if (send(packet.onSend(packetSize), packetSize, packetSize, Where))
 			return getErrorStatus();
 		return Status::Done;
 	}
-	Socket::Status TCPSocket::receive(std::shared_ptr<Packet> packet)
+	Socket::Status TCPSocket::receive(Packet &packet)
 	{
-		packet->clear();
+		packet.clear();
 		uint32_t packetSize = 0;
 		//ToDo("Think it over!");
 		//if (receiveAll((void*)&packetSize, sizeof(uint32_t)))
 		//	return getErrorStatus();
 		//packetSize = ntohl(packetSize);
 		char* data = new char[2048];
-		if (receive(data, 2048, packetSize))
+		if (receive(data, 2048, packetSize) != swl::Socket::Status::Done)
 		{
 			delete[] data;
 			return getErrorStatus();
 		}
-		packet->onReceive(data, packetSize);
+		packet.onReceive(data, packetSize);
 		delete[] data;
 		return Status::Done;
 	}

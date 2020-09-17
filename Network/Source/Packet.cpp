@@ -63,9 +63,13 @@ namespace swl
 		if (data.empty())
 			return "";
 
-		//char *NewString = data.data();
-		//NewString[data.size()] = '\0';
-		return data.c_str();
+		char *NewString = new char[data.size()];
+		for (size_t i = 0; i < data.size(); i++)
+		{
+			NewString[i] = data.at(i);
+		}
+		NewString[data.size()] = '\0';
+		return NewString;
 	}
 	void Packet::append(const char* _data, const uint32_t& size)
 	{
@@ -133,7 +137,7 @@ namespace swl
 	{
 		try
 		{
-			if (_data[0] == '\n' || size == 0) return;
+			if (_data == "" || _data[0] == '\0' || size == 0) return;
 			json js = json::parse(_data);
 			if (js.empty())
 				DebugBreak();

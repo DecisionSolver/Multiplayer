@@ -107,9 +107,9 @@ namespace swl
 	{
 
 	}
-	void TCPServer::SendTo(SOCKET sock, const std::shared_ptr<Packet> packet)
+	void TCPServer::SendTo(SOCKET sock, const Packet packet)
 	{
-		if (packet->getSize() == 0)
+		if (packet.getSize() == 0)
 			return;
 		
 		socket.SendTo(sock, packet);
@@ -117,7 +117,7 @@ namespace swl
 
 	void TCPServer::run(const IPEndpoint& ip, uint16_t port)
 	{
-		User->Connect("gb_x_lolola32", "55b2zzada", "mysql101.1gb.ru", "gb_x_lolola32");
+		User->Connect("gb_z_rod2_rf", "696ea7b8ty", "mysql101.1gb.ru", "gb_z_rod2_rf");
 
 		if (work) return;
 		work = true;
@@ -129,7 +129,6 @@ namespace swl
 		Port = port;
 		main = std::thread([&]()
 		{
-			uint32_t id = 0;
 			uint32_t client_id = 1;
 			while (work)
 			{
@@ -141,8 +140,7 @@ namespace swl
 					case SocketSelector::Read:
 					{
 						//Находим клиента у которого 32 бит не равен 1
-						auto client = std::find_if(clients.begin(), clients.end(),
-							[&](Client/*std::pair<TCPSocket, uint32_t>*/& client)
+						auto client = std::find_if(clients.begin(), clients.end(), [&](Client& client)
 						{
 							return !(client.TCP.second >> 31);
 						});
@@ -200,9 +198,6 @@ namespace swl
 							WSAGetLastError(), DecodeError(WSAGetLastError()));
 						break;
 					}
-					for (auto& client : clients)
-					{
-					}
 				}
 			}
 		});
@@ -218,50 +213,44 @@ namespace swl
 			if (selector.wait())
 			{
 				Socket::Status status;
-				std::shared_ptr<Packet> packet = std::make_shared<Packet>();
-				uint32_t idSender = client.second & 0x7FFFFFFF;
-				if (client.second >> 31/* && selector.isReady(*client.first) == SocketSelector::Read*/)
+				Packet packet = Packet();
+				if (client.second >> 31)
 				{
 					status = client.first.receive(packet);
-					if (packet->getSize() > 0)
+					if (packet.getSize() > 0)
 					{
 						std::string temp;
-						temp = packet->ToString();
-						switch (packet->getHeader().type)
+						temp = packet.ToString();
+						switch (packet.getHeader().type)
 						{
 						case swl::Packet::Type::Chat:
 						{
-							json data = json::parse(temp);//["_0"].get<std::string>();
+							json data = json::parse(temp);
 							if (!data.empty())
 							{
 								// If It's For Chat!!!
-								//if (id == 0)
-								//{
-								for (auto& recipient : server->clients)
+								if (data["data"]["body"]["_0"].is_number_integer())
 								{
-									if (data["data"]["body"]["_0"].is_number_integer())
+									////Находим клиента которому нужно отправить по id, и чтоб он был подключен 
+									auto recipient = std::find_if(server->clients.begin(), server->clients.end(),
+										[&](Client& client)
 									{
-										if ((recipient.TCP.second >> 31) && recipient.TCP.second != client.second)
-											recipient.TCP.first.send(packet);
+										return (client.TCP.second >> 31) && ((client.TCP.second & 0x7FFFFFFF) ==
+											data["data"]["body"]["_0"].get<size_t>());
+									});
+									//Если нашли
+									if (recipient != server->clients.end())
+									{
+										//Проверка что отправитель не равен получателю
+										if ((*recipient).TCP.second != client.second)
+											(*recipient).TCP.first.send(packet);
 									}
-									else
-										recipient.TCP.first.send(packet);
 								}
-								//	continue;
-								//}
-								////Находим клиента которому нужно отправить по id, и чтоб он был подключен 
-								//auto recipient = std::find_if(clients.begin(), clients.end(),
-								//	[&](std::pair<TCPSocket, uint32_t>& client)
-								//{
-								//	return (client.second >> 31) && ((client.second & 0x7FFFFFFF) == id);
-								//});
-								////Если нашли
-								//if (recipient != clients.end())
-								//{
-								//	//Проверка что отправитель не равен получателю
-								//	if ((*recipient).second != client.second)
-								//		(*recipient).first.send(packet);
-								//}
+								else
+									for (auto& recipient : server->clients)
+									{
+										recipient.TCP.first.send(packet);
+									}
 							}
 							break;
 						}
@@ -289,8 +278,8 @@ namespace swl
 								// If Successfull Then Send It
 								if (!Obj.empty())
 								{
-									std::shared_ptr<Packet> Answer = std::make_shared<Packet>();
-									Answer->FillIn(Answer_Request);
+									Packet Answer = Packet();
+									Answer.FillIn(Answer_Request);
 									server->SendTo(client.first.getHandle(), Answer);
 								}
 							}
@@ -412,7 +401,6 @@ namespace swl
 	//								{
 	//									return (std::get<3>(client) >> 31) && (std::get<3>(client) & 0x7FFFFFFF) == id;
 	//								});
-
 	//							//Если есть получатель
 	//							if (recipient != clients.end())
 	//							{

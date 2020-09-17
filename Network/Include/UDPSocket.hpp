@@ -12,7 +12,7 @@ namespace swl
 		Status sendAll(const char* data, const uint32_t& numberBytes, const IPEndpoint& ip, const uint16_t& port);
 		Status receive(char* destination, const uint32_t& numberBytes, uint32_t& bytesRecived, IPEndpoint& ip, uint16_t& port);
 		Status receiveAll(char* destination, const uint32_t& numberBytes, IPEndpoint& ip, uint16_t& port);
-		Status send(std::shared_ptr<swl::Packet> packet, const IPEndpoint& ip, const uint16_t& port);
-		Status receive(std::shared_ptr<swl::Packet> packet, IPEndpoint& ip, uint16_t& port);
+		Status send(swl::Packet packet, const IPEndpoint& ip, const uint16_t& port);
+		Status receive(swl::Packet &packet, IPEndpoint& ip, uint16_t& port);
 	};
 }

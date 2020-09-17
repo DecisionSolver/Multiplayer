@@ -169,12 +169,11 @@ int main()
 
 				if (!Login.empty() && !Pass.empty())
 				{
-					std::shared_ptr<swl::Packet> NewPacket = std::make_shared<swl::Packet>();
+					swl::Packet NewPacket = swl::Packet();
 					MySQL_Request["data"].at("body").at("_0") = Login;
 					MySQL_Request["data"].at("body").at("_1") = Pass;
-					NewPacket->FillIn(swl::Packet::Header(swl::Packet::Type::MySQL, 0), MySQL_Request);
-					Client->send(NewPacket, 0);
-					NewPacket.~shared_ptr();
+					NewPacket.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL, 0), MySQL_Request);
+					Client->send(NewPacket);
 
 					while (true)
 					{
@@ -232,9 +231,10 @@ int main()
 
 			if (!temp.empty())
 			{
+				packet.clear();
 				Message["data"].at("body").at("_0") = temp;
 				packet.FillIn(swl::Packet::Header(swl::Packet::Type::Chat, 0), Message);
-				Client->send(std::make_shared<swl::Packet>(packet), 0);
+				Client->send(packet);
 				temp.clear();
 			}
 				//}
