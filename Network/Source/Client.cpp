@@ -1,6 +1,5 @@
 #include "Client.hpp"
 
-ToDo("Add Catcher Message And Store Them In Massive (With Thread)");
 namespace swl
 {
 	void Client::setSettingsSend(const bool& _encrypt, const bool& _zip)
@@ -16,7 +15,24 @@ namespace swl
 		{
 			packet = packets.front().first;
 			id = packets.front().second;
-			packets.pop_front();
+			packets.erase(packets.begin());
+		}
+		return packet;
+	}
+	Packet Client::getLastPacket(uint32_t& id, Packet::Type TypePacket)
+	{
+		Packet packet = Packet();
+		id = 0;
+		if (!packets.empty())
+		{
+			for (size_t i = 0; i < packets.size(); i++)
+			{
+				packet = packets.at(i).first;
+				if (packet.getHeader().type == TypePacket)
+					break;
+			}
+			id = packets.front().second;
+			packets.erase(packets.begin());
 		}
 		return packet;
 	}
@@ -30,7 +46,8 @@ namespace swl
 		connection = false;
 		socket.close();
 	}
-	Socket::Status TCPClient::connect(const IPEndpoint& ip, const uint16_t& port)
+	Socket::Status TCPClient::connect(const IPEndpoint& ip, const uint16_t& port,
+		const std::string Login, const std::string Password)
 	{
 		if (connection) return Socket::Done;
 		if (socket.getHandle() == INVALID_SOCKET)
@@ -40,25 +57,43 @@ namespace swl
 			socket.close();
 			socket = TCPSocket();
 		}
-		if (socket.connect(ip, port))
+		if (socket.connect(ip, port) != Socket::Done)
 			return Socket::Error;
 		connection = true;
+
+		swl::Packet NewPacket = swl::Packet();
+		json pack = NewPacket.CreateMySQL();
+		pack["data"].at("body").at("_0") = Login;
+		pack["data"].at("body").at("_1") = Password;
+		NewPacket.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL, 0), pack);
+		socket.send(NewPacket);
+
 		std::thread([&]()
 		{
 			Packet packet = Packet();
 			uint32_t id = 0;
-			Socket::Status status;
 			while (connection)
 			{
-				ToDo("Reformatting everything is here!");
-				//status = socket.receiveAll((void*)&id, 4);
-				status = socket.receive(packet);
+				Socket::Status status = socket.receive(packet);
 				if (status == Socket::Disconnected)
 				{
 					connection = false;
 					break;
 				}
-				packets.push_back(std::make_pair(packet, id));
+				if (packet.getHeader().type & (swl::Packet::Type::Answer << swl::Packet::Type::MySQL))
+				{
+					json Hash = json::parse(packet.ToString());
+					if (!Hash.empty() && Hash["data"]["body"]["_0"].get<std::string>() == "OK")
+						OutputDebugStringA("\nMultiplayer::SWL (Client connected)\n");
+					else if (!Hash.empty() && Hash["data"]["body"]["_0"].get<std::string>() == "NotFound")
+					{
+						OutputDebugStringA("\nMultiplayer::SWL ERROR (Incorrect Login Or Password)\n");
+						disconnect();
+						throw std::exception("Incorrect Login Or Password!!!");
+					}
+				}
+				if (packet)
+					packets.push_back(std::make_pair(packet, id));
 			}
 		}).detach();
 		return Socket::Done;
@@ -90,7 +125,8 @@ namespace swl
 		connection = false;
 		socket.close();
 	}
-	Socket::Status UDPClient::connect(const IPEndpoint& NewIP, const uint16_t& NewPort)
+	Socket::Status UDPClient::connect(const IPEndpoint& NewIP, const uint16_t& NewPort,
+		const std::string Login, const std::string Password)
 	{
 		if (connection) return Socket::Done;
 		if (socket.getHandle() == INVALID_SOCKET)

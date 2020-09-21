@@ -39,9 +39,12 @@ namespace swl
 	Socket::Status Socket::getErrorStatus()
 	{
 		UINT ErrCode = WSAGetLastError();
-		fprintf(stderr, "Function...\nFile %s\n%s: On Line %s\nSays: failed with error WSA(%d) and %d: %s\n",
+
+		char *NewData = new char[2048];
+		sprintf(NewData, "Function...\nFile %s\n%s: On Line %s\nSays: failed with error WSA(%d) and %d: %s\n",
 			__FILE__, __FUNCTION__, std::to_string(__LINE__).c_str(), WSAGetLastError(),
 			GetLastError(), DecodeError(WSAGetLastError()));
+		OutputDebugStringA(NewData);
 
 		switch (ErrCode)
 		{
@@ -52,6 +55,7 @@ namespace swl
 		case WSAETIMEDOUT:    return Socket::Disconnected;
 		case WSAENETRESET:    return Socket::Disconnected;
 		case WSAENOTCONN:     return Socket::Disconnected;
+		case 0:
 		case WSAEISCONN:      return Socket::Done; // when connecting a non-blocking socket
 		default:              return Socket::Error;
 		}

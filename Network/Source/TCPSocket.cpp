@@ -35,9 +35,11 @@ namespace swl
 		addr->sin_family = AF_INET;
 		addr->sin_addr.S_un.S_addr = ip.toInteger();
 		addr->sin_port = htons(port);
-		if (::bind(handle, (sockaddr*)addr, sizeof(sockaddr_in)))
+
+		int err = 0;
+		if (err = ::bind(handle, (sockaddr*)addr, sizeof(sockaddr_in)))
 		{
-			if (::WSAConnect(handle, (sockaddr*)addr, sizeof(sockaddr_in), nullptr, nullptr, nullptr, nullptr))
+			if (err = ::WSAConnect(handle, (sockaddr*)addr, sizeof(sockaddr_in), nullptr, nullptr, nullptr, nullptr))
 				return getErrorStatus();
 		}
 		else

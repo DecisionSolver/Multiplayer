@@ -51,7 +51,7 @@ namespace mysql
 			if (OnlyRead)
 				isReadOnly = true;
 
-			if(!DB.empty())
+			if (!DB.empty())
 				AddDatabase(DB);
 			return Impl::Status::Done;
 		}

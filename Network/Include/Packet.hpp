@@ -27,7 +27,7 @@ namespace swl
 		{
 			enum TypeSettings
 			{
-				IsCompressed = 1,
+				Compressed = 1,
 			};
 			uint8_t Settings = 0; // IsCompressed etc...
 			Type type;
@@ -54,11 +54,8 @@ namespace swl
 
 		// Filling data
 		void FillIn(const json NewData);
-		void FillIn(Header NewHeader, const void *NewData);
 		void FillIn(Header NewHeader, const json NewData);
 		void append(const char* _data, const uint32_t& size);
-	//	template <typename T>
-	//	Packet& operator <<(const T& _data);
 		template <typename T>
 		Packet& operator >>(T& _data);
 		template <typename T>
@@ -72,6 +69,10 @@ namespace swl
 		operator bool() { return !data.empty(); }
 
 		Header getHeader() { return _H; }
+
+		json CreateAnswer();
+		json CreateMessage();
+		json CreateMySQL();
 	protected:
 		friend TCPSocket;
 		friend UDPSocket;
@@ -81,5 +82,6 @@ namespace swl
 		uint32_t readPos = 0;
 		std::vector<char> data;
 		Header _H;
+		json Message, MySQL_Request, Answer_Request;
 	};
 }

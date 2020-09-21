@@ -4,12 +4,6 @@
 
 namespace swl
 {
-	//template <typename T>
-	//Packet& Packet::operator <<(const T& data)
-	//{
-	//	append(const_cast<const void *>(data), sizeof(T));
-	//	return *this;
-	//}
 	template <typename T>
 	Packet& Packet::operator >>(T& _data)
 	{
@@ -81,7 +75,7 @@ namespace swl
 	}
 	Packet& Packet::operator <<(const std::string& _data)
 	{
-		*this << (uint32_t)_data.size();
+		//*this << (uint32_t)_data.size();
 		append(_data.data(), _data.size());
 		return *this;
 	}
@@ -105,7 +99,7 @@ namespace swl
 	Packet& Packet::operator <<(swl::File& file)
 	{
 		*this << file.getFileName();
-		*this << file.getDataSize();
+		//*this << file.getDataSize();
 		append(file.getFileData(), file.getDataSize());
 		return *this;
 	}
@@ -121,32 +115,153 @@ namespace swl
 	}
 
 #include "LZ4/lz4.h"
+	json Packet::CreateAnswer()
+	{
+		return
+		{
+			{"header",
+				{
+					{ "_s",0}, // Settings
+					{"_t",3}, // Was 2 // Type Of Packet
+					{"_R",0} // ID Recipient
+				}
+			},
+			{"data",
+				{
+					// The Property Of Following Data
+					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+
+					{"body", // All Data Is Here
+						{
+							{"_0",""},
+							//{"_0","PBAX"},
+							//{"_1","_SUCKMYDICK_"}, // Needs To Be In MD5 (If It's A Password!)
+						}
+					}
+				}
+			}
+		};
+	}
+	json Packet::CreateMessage()
+	{
+		return
+		{
+			{"header",
+				{
+					{ "_s",0}, // Settings
+					{"_t",0}, // Was 2 // Type Of Packet
+					{"_R",0} // ID Recipient
+				}
+			},
+			{"data",
+				{
+					// The Property Of Following Data
+					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+
+					{"body", // All Data Is Here
+						{
+							{"_0","!"},
+						}
+					}
+				}
+			}
+		};
+	}
+	json Packet::CreateMySQL()
+	{
+		return 
+		{
+			{"header",
+				{
+					{ "_s",0}, // Settings
+					{"_t",2}, // Was 2 // Type Of Packet
+					{"_R",0} // ID Recipient
+				}
+			},
+			{"data",
+				{
+					// The Property Of Following Data
+					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+
+					{"body", // All Data Is Here
+						{
+							{"_0",""},
+							{"_1",""}, // Needs To Be In MD5 (If It's A Password!)
+						}
+					}
+				}
+			}
+		};
+	}
 	const char* Packet::onSend(std::uint32_t& size)
 	{
+		const char *outData = getData();
 		size = getSize();
-		//json j = getData();
-		return getData();
-		//char* outData = new char[getSize() + 2];
-		//size = LZ4_compress_default((const char*)getData(), outData, getSize(), getSize() + 2);
-		//return outData;
+		if (size >= 1024)
+		{
+			// Parse All Packet (Include Header!)
+			json js = json::parse(getData());
+			std::string Data = js["data"]["body"].dump();
 
-		//std::cout << j << std::endl;
-		//return j.get_ptr<json::object_t*>();
+			// Compute Size ONLY Data From Our JSON
+			size_t NewSize = Data.size();
+
+			// Compress ONLY Data Or Body
+			outData = new char[NewSize + 2];
+			size = LZ4_compress_default(Data.c_str(), const_cast<char *>(outData), NewSize, NewSize + 2);
+
+			if (size > 0)
+			{
+				// Original Data Size To Decompress
+				js["data"]["_o"] = NewSize;
+
+				// Set Flag That It Was Compressed
+				js["header"]["_s"] = (js["header"]["_s"].get<uint8_t>() & Packet::Header::Compressed);
+
+				// Put It Back
+				js["data"]["body"] = outData;
+
+				// Return Packet JSON With Compressed Data Block
+				outData = js.dump().c_str();
+			}
+			else
+			{
+				printf("Something Is Wrong With Compress Data!");
+				return nullptr;
+			}
+		}
+		return outData;
 	}
 	void Packet::onReceive(const char* _data, const std::uint32_t& size)
 	{
 		try
 		{
 			if (_data == "" || _data[0] == '\0' || size == 0) return;
-			json js = json::parse(_data);
-			if (js.empty())
-				DebugBreak();
+			json js = _data;
+		
+			if (!js.is_structured() || js.empty()) return;
 
 			_H.Settings = js["header"].at("_s").get<uint8_t>();
-			_H.OrigSize = _H.Settings & Header::TypeSettings::IsCompressed
+			_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
 				? js["data"].at("_o").get<size_t>()
 				: 0u;
 			_H.type = (Type)js["header"].at("_t").get<size_t>();
+
+			if (_H.Settings & Header::TypeSettings::Compressed)
+			{
+				size_t Size = js["data"]["body"].dump().size();
+				const char *Data = js["data"]["body"].dump().c_str();
+
+				char* outData = new char[_H.OrigSize * 2];
+				uint32_t outSize = LZ4_decompress_safe(Data, outData, /*_H.OrigSize*/Size, _H.OrigSize * 2);
+				outData[outSize] = '\0';
+
+				js["data"]["body"] = outData;
+			}
+
 			append(js.dump().c_str(), js.dump().size());
 		}
 		catch (const json::parse_error& err)
@@ -163,8 +278,6 @@ namespace swl
 		//h = OBJ._s;
 		//if (h & (1 << 2)) 
 		//{
-			//char* outData = new char[size * 2];
-			//uint32_t outSize = LZ4_decompress_safe((const char*)NewData, outData, size, size * 2);
 		//}
 		////////////////////////////////////////////////////
 	}
@@ -175,7 +288,7 @@ namespace swl
 			return;
 
 		_H.Settings = NewData["header"].at("_s").get<uint8_t>();
-		_H.OrigSize = _H.Settings & Header::TypeSettings::IsCompressed
+		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
 			? NewData["data"].at("_o").get<size_t>()
 			: 0u;
 		_H.type = (Type)NewData["header"].at("_t").get<size_t>();
@@ -191,45 +304,5 @@ namespace swl
 
 		auto NewPacket = NewData.dump();
 		append(NewPacket.c_str(), NewPacket.size());
-	}
-	void Packet::FillIn(Header NewHeader, const void *NewData)
-	{
-		if (!NewData || !NewHeader.type)
-			return;
-
-		_H = NewHeader;
-
-		json RequestJSON = (char *)NewData;
-		if (!RequestJSON.is_structured())
-		{
-			RequestJSON =
-			{
-				{"header",
-				   {
-					   { "_s",NewHeader.Settings}, // Settings
-					   {"type",NewHeader.type} // Type Of Packet
-				   }
-				},
-				{"data",
-					{
-						{ // The Main Data
-							{"id","trgffdsfh"}, // Id Of Packet (Needs To Be In MD5)
-							{"_o",NewHeader.Settings & Header::TypeSettings::IsCompressed 
-							? NewHeader.OrigSize
-							: 0}, // Orig Size To Decompress
-						},
-						{"body", // All Data Is Here
-							{
-								{"_0","Login: PBAX"},
-								{"_1", "Pass: _SUCKMYDICK_"}, // Needs To Be In MD5 (If It's A Password!)
-							}
-						}
-					}
-				}
-			};
-		}
-
-		//auto NewPacket = json::to_msgpack(RequestJSON);
-		//append(NewPacket.data(), NewPacket.size());
 	}
 }

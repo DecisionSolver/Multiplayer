@@ -2,90 +2,8 @@
 #include <future>
 
 
-#include "LZ4/lz4.h"
-#include "nlohmann/json.hpp"
-
-
 #include "MySQL_Client.h"
 #include "MySQL_Impl.h"
-
-// for convenience
-using json = nlohmann::json;
-
-json Message =
-{
-	{"header",
-		{
-			{ "_s",1}, // Settings
-			{"_t",0}, // Was 2 // Type Of Packet
-			{"_R",0} // ID Recipient
-		}
-	},
-	{"data",
-		{
-	// The Property Of Following Data
-	{"_i","trgffdsfh"}, // Id Of Packet (Needs To Be In MD5)
-	{"_o",500}, // Orig Size To Decompress (If Was Decompressed)
-
-	{"body", // All Data Is Here
-		{
-			{"_0","Hello!"},
-			//{"_0","Login: PBAX"},
-			//{"_1","Pass: _SUCKMYDICK_"}, // Needs To Be In MD5 (If It's A Password!)
-		}
-	}
-}
-}
-},
-MySQL_Request =
-{
-	{"header",
-		{
-			{ "_s",0}, // Settings
-			{"_t",2}, // Was 2 // Type Of Packet
-			{"_R",0} // ID Recipient
-		}
-	},
-	{"data",
-		{
-	// The Property Of Following Data
-	{"_i","nvchjfgjhfgf"}, // Id Of Packet (Needs To Be In MD5)
-	{"_o",500}, // Orig Size To Decompress (If Was Decompressed)
-
-	{"body", // All Data Is Here
-		{
-			{"_0","PBAX"},
-			{"_1","_SUCKMYDICK_"}, // Needs To Be In MD5 (If It's A Password!)
-		}
-	}
-}
-}
-},
-Answer_Request =
-{
-	{"header",
-		{
-			{ "_s",0}, // Settings
-			{"_t",3}, // Was 2 // Type Of Packet
-			{"_R",0} // ID Recipient
-		}
-	},
-	{"data",
-		{
-	// The Property Of Following Data
-	{"_i","fewdadzff"}, // Id Of Packet (Needs To Be In MD5)
-	{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
-
-	{"body", // All Data Is Here
-		{
-			{"_0","OK"},
-			//{"_0","PBAX"},
-			//{"_1","_SUCKMYDICK_"}, // Needs To Be In MD5 (If It's A Password!)
-		}
-	}
-}
-}
-};
 
 namespace swl
 {
@@ -149,14 +67,14 @@ namespace swl
 						{
 							clients.push_back(Client());
 							clients.back().TCP = { TCPSocket(), client_id++ | 0x80000000 };
+							clients.back().Handler = std::thread(Client::PacketHandler_TCP,
+								this, clients.back().TCP);
+							clients.back().Handler.detach();
 							socket.accept(clients.back().TCP.first);
 							selector.add(clients.back().TCP.first);
 #if defined (_SERVER) && defined (_CONSOLE)
-							printf("The New Client Was Connected To This Server\nNow Count: %d", clients.size());
+							printf("\nThe New Client Was Connected To This Server\nNow Count: %d\n", clients.size());
 #endif
-							clients.back().Handler = std::thread(Client::PacketHandler_TCP, 
-								this, clients.back().TCP);
-							clients.back().Handler.detach();
 						}
 						else
 						{
@@ -165,12 +83,11 @@ namespace swl
 							socket.accept((*client).TCP.first);
 							selector.add((*client).TCP.first);
 #if defined (_SERVER) && defined (_CONSOLE)
-							printf("The New Client Was Connected To This Server\nNow Count: %d", clients.size());
+							printf("\nThe New Client Was Connected To This Server\nNow Count: %d\n", clients.size());
 #endif
 							(*client).Handler = std::thread(Client::PacketHandler_TCP, this, (*client).TCP);
 							(*client).Handler.detach();
 						}
-						// If Needs To Send By ID
 						break;
 					}
 					case SocketSelector::NotReady:
@@ -186,7 +103,7 @@ namespace swl
 								client.TCP.first.close();
 								client.TCP.second = idSender;
 #if defined (_SERVER) && defined (_CONSOLE)
-								printf("The Client Was Disconnected From This Server\nNow Count: %d", clients.size());
+								printf("\nThe Client Was Disconnected From This Server\nNow Count: %d\n", clients.size());
 #endif
 							}
 						};
@@ -199,6 +116,7 @@ namespace swl
 						break;
 					}
 				}
+				Sleep(10);
 			}
 		});
 		main.detach();
@@ -217,6 +135,10 @@ namespace swl
 				if (client.second >> 31)
 				{
 					status = client.first.receive(packet);
+					if (status != Socket::Status::Done)
+						if (selector.isReady(client.first) == SocketSelector::Error ||
+							selector.isReady(client.first) == SocketSelector::Disconnected)
+							break;
 					if (packet.getSize() > 0)
 					{
 						std::string temp;
@@ -263,25 +185,23 @@ namespace swl
 
 								auto Obj = User->TrySelectValues("Local", { "_0", "_1" }, " WHERE _0 = '" + Login
 									+ "' AND _1 = '" + Pass + "'");
-								printf(("\nsize: " + std::to_string(Obj.size()) + "\n").c_str());
-								//size_t I = 0;
-								//for (size_t i = 0; i < Obj.size(); i++)
-								//{
-								//	printf(("[" + std::to_string(i) + "] = " + Obj.at(i).first + "\n").c_str());
-
-								//	for (auto It : Obj.at(i).second)
-								//	{
-								//		printf(("\t\t[" + std::to_string(I) + "] = " + It + "\n").c_str());
-								//	}
-								//}
+								//printf(("\nsize: " + std::to_string(Obj.size()) + "\n").c_str());
 
 								// If Successfull Then Send It
-								if (!Obj.empty())
-								{
-									Packet Answer = Packet();
-									Answer.FillIn(Answer_Request);
-									server->SendTo(client.first.getHandle(), Answer);
-								}
+								Packet Answer = Packet();
+								json pack = Answer.CreateAnswer();
+								if (!Obj.empty() && !Obj.front().second.empty())
+									pack["data"]["body"]["_0"] = "OK";
+								else
+									pack["data"]["body"]["_0"] = "NotFound";
+								uint8_t newType = pack["header"]["_t"].get<uint8_t>();
+								newType |= (swl::Packet::Type::Answer << swl::Packet::Type::MySQL);
+								pack["header"]["_t"] = newType;
+								Answer.FillIn(pack);
+								server->SendTo(client.first.getHandle(), Answer);
+								
+								if (pack["data"]["body"]["_0"] == "NotFound")
+									client.first.close();
 							}
 							break;
 						}
@@ -296,6 +216,7 @@ namespace swl
 			else if (selector.isReady(client.first) == SocketSelector::Error ||
 				selector.isReady(client.first) == SocketSelector::Disconnected)
 				break;
+			Sleep(10);
 		}
 		selector.remove(client.first);
 	}

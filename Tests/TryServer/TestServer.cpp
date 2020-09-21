@@ -21,8 +21,8 @@ int main()
 	setlocale(LC_ALL, "UTF8");
 	if (Network::initialize())
 	{
-		std::string IP = IPEndpoint::getLocalAddress().toString(), NewIP, buffer;
-		uint16_t Port = 25566, NewPort = 0;
+		std::string IP = IPEndpoint/*::getLocalAddress()*/("127.0.0.1").toString(), NewIP, buffer;
+		uint16_t Port = 1234, NewPort = 0;
 
 		//printf("New IP And Port (By Default It's IP == LocalAddress, Port == 25565)\n"\
 		//	"Enter IP ('NO' Sets By Default Values): ");
