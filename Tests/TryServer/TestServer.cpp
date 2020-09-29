@@ -55,7 +55,7 @@ int main()
 //							if (!buffer.empty())
 //								printf("\n%s\n", buffer.c_str());
 //							break;
-///*						case swl::Packet::Type::MySQL:
+//						case swl::Packet::Type::MySQL:
 //						{
 //							if (!buffer.empty())
 //							{

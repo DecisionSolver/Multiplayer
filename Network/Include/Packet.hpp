@@ -1,6 +1,5 @@
 #pragma once
 #include <WinSock2.h>
-#include "File.hpp"
 #include <vector>
 #include <string>
 #include "nlohmann/json.hpp"
@@ -20,7 +19,8 @@ namespace swl
 			File,
 			//Audio,
 			MySQL,
-			Answer
+			Answer,
+			Connection
 		};
 
 		struct Header
@@ -64,8 +64,6 @@ namespace swl
 		Packet& operator >>(std::vector<T>& _data);
 		Packet& operator <<(const std::string& _data);
 		Packet& operator >>(std::string& _data);
-		Packet& operator <<(swl::File& file);
-		Packet& operator >>(swl::File& file);
 		operator bool() { return !data.empty(); }
 
 		Header getHeader() { return _H; }

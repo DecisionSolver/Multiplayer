@@ -29,8 +29,19 @@ namespace swl
 	{
 		if (packet.getSize() == 0)
 			return;
-		
+		if (sock == INVALID_SOCKET)
+			throw std::exception("INVALID_SOCKET");
+
 		socket.SendTo(sock, packet);
+	}
+	void TCPServer::SendTo(TCPSocket sock, const Packet packet)
+	{
+		if (packet.getSize() == 0)
+			return;
+		if (sock.getHandle() == INVALID_SOCKET)
+			throw std::exception("INVALID_SOCKET");
+
+		socket.SendTo(sock.getHandle(), packet);
 	}
 
 	void TCPServer::run(const IPEndpoint& ip, uint16_t port)
@@ -57,37 +68,72 @@ namespace swl
 					case SocketSelector::Write:
 					case SocketSelector::Read:
 					{
-						//Находим клиента у которого 32 бит не равен 1
-						auto client = std::find_if(clients.begin(), clients.end(), [&](Client& client)
+						std::thread([&]()
 						{
-							return !(client.TCP.second >> 31);
-						});
-						//Если такого нету то
-						if (client == clients.end())
-						{
-							clients.push_back(Client());
-							clients.back().TCP = { TCPSocket(), client_id++ | 0x80000000 };
-							clients.back().Handler = std::thread(Client::PacketHandler_TCP,
-								this, clients.back().TCP);
-							clients.back().Handler.detach();
-							socket.accept(clients.back().TCP.first);
-							selector.add(clients.back().TCP.first);
+							//Находим клиента у которого 32 бит не равен 1
+							auto client = std::find_if(clients.begin(), clients.end(), [&](Client& client)
+							{
+								return !(client.TCP.second >> 31);
+							});
+							Packet packet = Packet();
+							json data = packet.CreateAnswer();
+							data["header"]["_t"] = swl::Packet::Type::Connection;
+							data["data"]["body"]["_0"] = "OK";
+
+							uint8_t newType = data["header"]["_t"].get<uint8_t>();
+							newType |= (swl::Packet::Type::Answer << swl::Packet::Type::Connection);
+							data["header"]["_t"] = newType;
+
+							packet.FillIn(data);
+							//Если такого нету то
+							if (client == clients.end())
+							{
+								clients.push_back(Client());
+								clients.back().TCP = { TCPSocket(), client_id++ | 0x80000000 };
+								socket.accept(clients.back().TCP.first);
+								selector.add(clients.back().TCP.first);
 #if defined (_SERVER) && defined (_CONSOLE)
-							printf("\nThe New Client Was Connected To This Server\nNow Count: %d\n", clients.size());
+								printf("\nThe New Client Was Connected To This Server\nNow Count: %d\n",
+									clients.size());
 #endif
-						}
-						else
-						{
-							(*client).TCP.first = TCPSocket();
-							(*client).TCP.second |= 0x80000000;
-							socket.accept((*client).TCP.first);
-							selector.add((*client).TCP.first);
+								clients.back().Handler = std::thread(Client::PacketHandler_TCP,
+									this, clients.back().TCP);
+								clients.back().Handler.detach();
+
+								std::this_thread::sleep_for(std::chrono::milliseconds(4000));
+								SendTo(clients.back().TCP.first, packet);
+							}
+							else
+							{
+								(*client).TCP.first = TCPSocket();
+								(*client).TCP.second |= 0x80000000;
+								socket.accept((*client).TCP.first);
+								selector.add((*client).TCP.first);
 #if defined (_SERVER) && defined (_CONSOLE)
-							printf("\nThe New Client Was Connected To This Server\nNow Count: %d\n", clients.size());
+								printf("\nThe New Client Was Connected To This Server\nNow Count: %d\n",
+									clients.size());
 #endif
-							(*client).Handler = std::thread(Client::PacketHandler_TCP, this, (*client).TCP);
-							(*client).Handler.detach();
-						}
+								(*client).Handler = std::thread(Client::PacketHandler_TCP, this, (*client).TCP);
+								(*client).Handler.detach();
+
+								std::this_thread::sleep_for(std::chrono::milliseconds(4000));
+								clients.back().TCP.first.send(packet);
+							}
+							//packet.clear();
+							//data.clear();
+							//data = packet.CreateMessage();
+							//data["header"]["_t"] = swl::Packet::Type::Chat;
+							//data["data"]["body"]["_0"] = "SERVER: The New Client Has Been Connected!";
+							//newType = 0;
+							//newType = data["header"]["_t"].get<uint8_t>();
+							//newType |= (swl::Packet::Type::Answer << swl::Packet::Type::Chat);
+							//data["header"]["_t"] = newType;
+							//packet.FillIn(data);
+							//for (auto& client : clients)
+							//{
+							//	SendTo(client.TCP.first, packet);
+							//}
+						}).detach();
 						break;
 					}
 					case SocketSelector::NotReady:
@@ -103,8 +149,21 @@ namespace swl
 								client.TCP.first.close();
 								client.TCP.second = idSender;
 #if defined (_SERVER) && defined (_CONSOLE)
-								printf("\nThe Client Was Disconnected From This Server\nNow Count: %d\n", clients.size());
+								printf("\nThe Client Was Disconnected From This Server\nNow Count: %d\n",
+									clients.size());
 #endif
+								//Packet packet = Packet();
+								//json data = packet.CreateMessage();
+								//data["header"]["_t"] = swl::Packet::Type::Chat;
+								//data["data"]["body"]["_0"] = "SERVER: The Client Was Disconnected!";
+								//uint8_t newType = data["header"]["_t"].get<uint8_t>();
+								//newType |= (swl::Packet::Type::Answer << swl::Packet::Type::Chat);
+								//data["header"]["_t"] = newType;
+								//packet.FillIn(data);
+								//for (auto& client : clients)
+								//{
+								//	SendTo(client.TCP.first, packet);
+								//}
 							}
 						};
 						break;
@@ -116,7 +175,7 @@ namespace swl
 						break;
 					}
 				}
-				Sleep(10);
+				std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			}
 		});
 		main.detach();
@@ -147,32 +206,34 @@ namespace swl
 						{
 						case swl::Packet::Type::Chat:
 						{
-							json data = json::parse(temp);
-							if (!data.empty())
+							if (!temp.empty())
 							{
+								json data = json::parse(temp);
 								// If It's For Chat!!!
-								if (data["data"]["body"]["_0"].is_number_integer())
-								{
-									////Находим клиента которому нужно отправить по id, и чтоб он был подключен 
-									auto recipient = std::find_if(server->clients.begin(), server->clients.end(),
-										[&](Client& client)
-									{
-										return (client.TCP.second >> 31) && ((client.TCP.second & 0x7FFFFFFF) ==
-											data["data"]["body"]["_0"].get<size_t>());
-									});
-									//Если нашли
-									if (recipient != server->clients.end())
-									{
-										//Проверка что отправитель не равен получателю
-										if ((*recipient).TCP.second != client.second)
-											(*recipient).TCP.first.send(packet);
-									}
-								}
-								else
+								//if (data["header"]["_R"].is_number_integer())
+								//{
+								//	////Находим клиента которому нужно отправить по id, и чтоб он был подключен 
+								//	auto recipient = std::find_if(server->clients.begin(), server->clients.end(),
+								//		[&](Client& client)
+								//	{
+								//		return (client.TCP.second >> 31) && ((client.TCP.second & 0x7FFFFFFF) ==
+								//			data["header"]["_R"].get<size_t>());
+								//	});
+								//	//Если нашли
+								//	if (recipient != server->clients.end())
+								//	{
+								//		//Проверка что отправитель не равен получателю
+								//		if ((*recipient).TCP.second != client.second)
+								//			(*recipient).TCP.first.send(packet);
+								//	}
+								//}
+								//else
+								//{
 									for (auto& recipient : server->clients)
 									{
 										recipient.TCP.first.send(packet);
 									}
+								//}
 							}
 							break;
 						}
@@ -198,13 +259,98 @@ namespace swl
 								newType |= (swl::Packet::Type::Answer << swl::Packet::Type::MySQL);
 								pack["header"]["_t"] = newType;
 								Answer.FillIn(pack);
-								server->SendTo(client.first.getHandle(), Answer);
+								server->SendTo(client.first, Answer);
 								
 								if (pack["data"]["body"]["_0"] == "NotFound")
 									client.first.close();
 							}
 							break;
 						}
+						case swl::Packet::Type::File:
+						{
+							if (!temp.empty())
+							{
+								json data = json::parse(temp);
+								if (data["data"]["_i"] <= 255)
+								{
+									// If It's For All
+									if (data["header"]["_R"].is_number_integer())
+									{	
+										////Находим клиента которому нужно отправить по id, и чтоб он был подключен 
+										auto recipient = std::find_if(server->clients.begin(), server->clients.end(),
+											[&](Client& client)
+										{
+											return (client.TCP.second >> 31) && ((client.TCP.second & 0x7FFFFFFF) ==
+												data["header"]["_R"].get<size_t>());
+										});
+										//Если нашли
+										if (recipient != server->clients.end())
+										{
+											//Проверка что отправитель не равен получателю
+											if ((*recipient).TCP.second == client.second)
+											{
+												std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+												
+												swl::Packet AnswerPacket = swl::Packet();
+												json dataJSON = AnswerPacket.CreateMessage();
+												dataJSON["data"]["body"]["_1"] = "OK";
+												uint8_t newType = dataJSON["header"]["_t"].get<uint8_t>();
+												newType |= (swl::Packet::Type::Answer << swl::Packet::Type::File);
+												dataJSON["header"]["_t"] = newType;
+												AnswerPacket.FillIn(dataJSON);
+
+												(*recipient).TCP.first.send(packet);
+												continue;
+											}
+
+											std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+											json dataJSON = json::parse(packet.ToString());
+											dataJSON["data"]["body"]["_1"] = "OK";
+											uint8_t newType = dataJSON["header"]["_t"].get<uint8_t>();
+											newType |= (swl::Packet::Type::Answer << swl::Packet::Type::File);
+											dataJSON["header"]["_t"] = newType;
+											packet.FillIn(dataJSON);
+
+											(*recipient).TCP.first.send(packet);
+										}
+									}
+									else
+									{
+										for (auto& recipient : server->clients)
+										{
+											if (recipient.TCP.second == client.second)
+											{
+												std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+												swl::Packet AnswerPacket = swl::Packet();
+												json dataJSON = AnswerPacket.CreateMessage();
+												dataJSON["data"]["body"]["_1"] = "OK";
+												uint8_t newType = dataJSON["header"]["_t"].get<uint8_t>();
+												newType |= (swl::Packet::Type::Answer << swl::Packet::Type::File);
+												dataJSON["header"]["_t"] = newType;
+												AnswerPacket.FillIn(dataJSON);
+
+												recipient.TCP.first.send(AnswerPacket);
+												continue;
+											}
+
+											std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+											json dataJSON = json::parse(packet.ToString());
+											dataJSON["data"]["body"]["_1"] = "OK";
+											uint8_t newType = dataJSON["header"]["_t"].get<uint8_t>();
+											newType |= (swl::Packet::Type::Answer << swl::Packet::Type::File);
+											dataJSON["header"]["_t"] = newType;
+
+											packet.clear();
+											packet.FillIn(dataJSON);
+
+											recipient.TCP.first.send(packet);
+										}
+									}
+								}
+							}
+						}
+						break;
 						default:
 							printf(("Unknown type of packet was: " + std::string(__FILE__) + "\n" + (__FUNCTION__) +
 								" on line " + std::to_string(__LINE__)).c_str());

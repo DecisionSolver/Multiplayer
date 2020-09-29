@@ -1,5 +1,8 @@
 #include "Client.hpp"
 
+#include <chrono>
+#include <direct.h>
+
 namespace swl
 {
 	void Client::setSettingsSend(const bool& _encrypt, const bool& _zip)
@@ -61,36 +64,80 @@ namespace swl
 			return Socket::Error;
 		connection = true;
 
-		swl::Packet NewPacket = swl::Packet();
-		json pack = NewPacket.CreateMySQL();
-		pack["data"].at("body").at("_0") = Login;
-		pack["data"].at("body").at("_1") = Password;
-		NewPacket.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL, 0), pack);
-		socket.send(NewPacket);
+		std::thread([&]()
+		{
+			Packet packet = Packet();
+			//		Log In PART!!!
+			//
+			// Waiting For "OK" Answer From Server
+			//
+			Sleep(1500);
+			Socket::Status status = socket.receive(packet);
+			if (status == Socket::Disconnected ||
+				status == Socket::NotReady ||
+				status == Socket::Error)
+			{
+				connection = false;
+				disconnect(); // Failed!
+				return status;
+			}
+			if (packet && json::parse(packet.ToString())["data"]["body"]["_0"].get<std::string>() == "OK" &&
+				packet.getHeader().type & (swl::Packet::Type::Answer << swl::Packet::Type::Connection))
+			{
+				packet.clear();
+				json pack = packet.CreateMySQL();
+				pack["data"].at("body").at("_0") = Login;
+				pack["data"].at("body").at("_1") = Password;
+				packet.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL, 0), pack);
+				socket.send(packet);
+
+				status = socket.receive(packet);
+				if (status == Socket::Disconnected ||
+					status == Socket::NotReady ||
+					status == Socket::Error)
+				{
+					connection = false;
+					disconnect(); // Failed!
+					return status;
+				}
+
+				pack = json::parse(packet.ToString());
+				if (!pack.empty() && pack["data"]["body"]["_0"].get<std::string>() == "OK")
+				{
+					OutputDebugStringA("\nMultiplayer::SWL (Client connected)\n");
+					return Socket::Done; // Success
+				}
+				else if (!pack.empty() && pack["data"]["body"]["_0"].get<std::string>() == "NotFound")
+				{
+					OutputDebugStringA("\nMultiplayer::SWL ERROR (Incorrect Login Or Password)\n");
+					disconnect(); // Failed!
+					throw std::exception("Incorrect Login Or Password!!!");
+					return Socket::Disconnected;
+				}
+			}
+		}).join();
 
 		std::thread([&]()
 		{
 			Packet packet = Packet();
 			uint32_t id = 0;
+			swl::FileTransfer NewFile = swl::FileTransfer();
 			while (connection)
 			{
 				Socket::Status status = socket.receive(packet);
-				if (status == Socket::Disconnected)
+				if (status == Socket::Disconnected ||
+					status == Socket::NotReady ||
+					status == Socket::Error)
 				{
 					connection = false;
+					disconnect(); // Failed!
 					break;
 				}
-				if (packet.getHeader().type & (swl::Packet::Type::Answer << swl::Packet::Type::MySQL))
+				if (packet && packet.getHeader().type & (swl::Packet::Type::File))
 				{
-					json Hash = json::parse(packet.ToString());
-					if (!Hash.empty() && Hash["data"]["body"]["_0"].get<std::string>() == "OK")
-						OutputDebugStringA("\nMultiplayer::SWL (Client connected)\n");
-					else if (!Hash.empty() && Hash["data"]["body"]["_0"].get<std::string>() == "NotFound")
-					{
-						OutputDebugStringA("\nMultiplayer::SWL ERROR (Incorrect Login Or Password)\n");
-						disconnect();
-						throw std::exception("Incorrect Login Or Password!!!");
-					}
+					std::string FilePath = _getcwd(nullptr, 1024);
+					NewFile.Save(FilePath + "\\NewFile.cpp", packet, this);
+					packet.clear(); // Delete Useless Used Packet!
 				}
 				if (packet)
 					packets.push_back(std::make_pair(packet, id));

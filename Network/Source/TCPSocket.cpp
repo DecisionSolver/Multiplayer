@@ -74,18 +74,18 @@ namespace swl
 	}
 	Socket::Status TCPSocket::send(Packet packet)
 	{
-		uint32_t packetSize = packet.getSize();
+		uint32_t packetSize = 0;
 		//packetSize = htonl(packetSize);
 		//if (sendAll((const void*)&packetSize, sizeof(uint32_t)))
 		//	return getErrorStatus();
 		//packetSize = ntohl(packetSize);
-		if (send(packet.ToString(), packetSize, packetSize))
+		if (send(packet.onSend(packetSize), packetSize, packetSize))
 			return getErrorStatus();
 		return Status::Done;
 	}
 	Socket::Status TCPSocket::SendTo(SOCKET Where, Packet packet)
 	{
-		uint32_t packetSize = packet.getSize();
+		uint32_t packetSize = 0;
 
 		if (send(packet.onSend(packetSize), packetSize, packetSize, Where))
 			return getErrorStatus();
@@ -99,13 +99,14 @@ namespace swl
 		//if (receiveAll((void*)&packetSize, sizeof(uint32_t)))
 		//	return getErrorStatus();
 		//packetSize = ntohl(packetSize);
-		char* data = new char[2048];
-		if (receive(data, 2048, packetSize) != swl::Socket::Status::Done)
+		char* data = new char[2048 * 2];
+		if (receive(data, 2048 * 2, packetSize) != swl::Socket::Status::Done)
 		{
 			delete[] data;
 			return getErrorStatus();
 		}
 		packet.onReceive(data, packetSize);
+
 		delete[] data;
 		return Status::Done;
 	}

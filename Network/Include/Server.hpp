@@ -35,6 +35,7 @@ namespace swl
 		void run(const IPEndpoint& ip, uint16_t port) override;
 		void stop() override;
 		void SendTo(SOCKET sock, const Packet packet);
+		void SendTo(TCPSocket sock, const Packet packet);
 	private:
 		struct Client
 		{

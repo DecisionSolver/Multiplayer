@@ -127,7 +127,6 @@
     <ClCompile Include="Source\SocketSelector.cpp" />
     <ClCompile Include="Source\TCPSocket.cpp" />
     <ClCompile Include="Source\UDPSocket.cpp" />
-    <ClCompile Include="Source\ZipPacket.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Client.hpp" />
@@ -146,7 +145,6 @@
     <ClInclude Include="Include\SocketSelector.hpp" />
     <ClInclude Include="Include\TCPSocket.hpp" />
     <ClInclude Include="Include\UDPSocket.hpp" />
-    <ClInclude Include="Include\ZipPacket.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -8,6 +8,7 @@
 #include "Packet.hpp"
 #include "LZ4/lz4.h"
 #include "nlohmann/json.hpp"
+#include "File.hpp"
 
 #define MacroStr(x) #x
 #define MacroStr2(x) MacroStr(x)

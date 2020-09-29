@@ -57,9 +57,6 @@
     <ClCompile Include="Source\UDPSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ZipPacket.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\MySQL\MySQL_Client.cpp">
       <Filter>Source Files\MySQL</Filter>
     </ClCompile>
@@ -99,9 +96,6 @@
       <Filter>Include Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\UDPSocket.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\ZipPacket.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\LZ4\lz4.h">

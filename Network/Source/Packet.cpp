@@ -96,23 +96,6 @@ namespace swl
 		}
 		return *this;
 	}
-	Packet& Packet::operator <<(swl::File& file)
-	{
-		*this << file.getFileName();
-		//*this << file.getDataSize();
-		append(file.getFileData(), file.getDataSize());
-		return *this;
-	}
-	Packet& Packet::operator >>(swl::File& file)
-	{
-		std::string tempName;
-		std::vector<char> tempData;
-		*this >> tempName;
-		file.setFileName(tempName);
-		*this >> tempData;
-		file.setFileData(tempData);
-		return *this;
-	}
 
 #include "LZ4/lz4.h"
 	json Packet::CreateAnswer()
@@ -129,14 +112,12 @@ namespace swl
 			{"data",
 				{
 					// The Property Of Following Data
-					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+					{"_i",""}, // Id Of Packet
 					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
 
 					{"body", // All Data Is Here
 						{
 							{"_0",""},
-							//{"_0","PBAX"},
-							//{"_1","_SUCKMYDICK_"}, // Needs To Be In MD5 (If It's A Password!)
 						}
 					}
 				}
@@ -162,7 +143,7 @@ namespace swl
 
 					{"body", // All Data Is Here
 						{
-							{"_0","!"},
+							{"_0",""},
 						}
 					}
 				}
@@ -198,51 +179,52 @@ namespace swl
 	}
 	const char* Packet::onSend(std::uint32_t& size)
 	{
-		const char *outData = getData();
+		const char *outData = ToString();
 		size = getSize();
-		if (size >= 1024)
-		{
-			// Parse All Packet (Include Header!)
-			json js = json::parse(getData());
-			std::string Data = js["data"]["body"].dump();
+		//if (size >= 1024)
+		//{
+		//	// Parse All Packet (Include Header!)
+		//	json js = json::parse(getData());
+		//	std::string Data = js["data"]["body"].dump();
 
-			// Compute Size ONLY Data From Our JSON
-			size_t NewSize = Data.size();
+		//	// Compute Size ONLY Data From Our JSON
+		//	size_t NewSize = Data.size();
 
-			// Compress ONLY Data Or Body
-			outData = new char[NewSize + 2];
-			size = LZ4_compress_default(Data.c_str(), const_cast<char *>(outData), NewSize, NewSize + 2);
+		//	// Compress ONLY Data Or Body
+		//	outData = new char[NewSize + 2];
+		//	size = LZ4_compress_default(Data.c_str(), const_cast<char *>(outData), NewSize, NewSize + 2);
 
-			if (size > 0)
-			{
-				// Original Data Size To Decompress
-				js["data"]["_o"] = NewSize;
+		//	if (size > 0)
+		//	{
+		//		// Original Data Size To Decompress
+		//		js["data"]["_o"] = NewSize;
 
-				// Set Flag That It Was Compressed
-				js["header"]["_s"] = (js["header"]["_s"].get<uint8_t>() & Packet::Header::Compressed);
+		//		// Set Flag That It Was Compressed
+		//		js["header"]["_s"] = (js["header"]["_s"].get<uint8_t>() & Packet::Header::Compressed);
 
-				// Put It Back
-				js["data"]["body"] = outData;
+		//		// Put It Back
+		//		js["data"]["body"] = outData;
 
-				// Return Packet JSON With Compressed Data Block
-				outData = js.dump().c_str();
-			}
-			else
-			{
-				printf("Something Is Wrong With Compress Data!");
-				return nullptr;
-			}
-		}
+		//		// Return Packet JSON With Compressed Data Block
+		//		outData = js.dump().c_str();
+		//	}
+		//	else
+		//	{
+		//		printf("Something Is Wrong With Compress Data!");
+		//		return nullptr;
+		//	}
+		//}
 		return outData;
 	}
 	void Packet::onReceive(const char* _data, const std::uint32_t& size)
 	{
 		try
 		{
-			if (_data == "" || _data[0] == '\0' || size == 0) return;
-			json js = _data;
+			if (std::string(_data).find("header") == std::string::npos
+				|| _data == "" || _data[0] == '\0' || size == 0) return;
+			json js = json::parse(_data);
 		
-			if (!js.is_structured() || js.empty()) return;
+			if (js.empty()) return;
 
 			_H.Settings = js["header"].at("_s").get<uint8_t>();
 			_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed

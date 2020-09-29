@@ -12,73 +12,25 @@
 #include "Server.hpp"
 #include "Client.hpp"
 
-//New
 #include <conio.h>
+#include <File.hpp>
 
 using namespace std;
 
 shared_ptr<swl::TCPServer> Server = make_shared<swl::TCPServer>();
 shared_ptr<swl::TCPClient> Client = make_shared<swl::TCPClient>();
 
-#define PORT 12980//12548
+#define PORT 17272
 #define IP swl::IPEndpoint/*::getLocalAddress()*/("2.tcp.ngrok.io")
 int main()
 {
 	if (!swl::Network::initialize()) return -1;
-
-	//size_t Choice = 0;
-	//printf("Please enter one number:\n0 - Only Client\nMore Than 1 - Only Sever + MYSQL... ");
-	//cin >> Choice;
-
-	//if (Choice > 0)
-	//{
-	//	Server->run(IP, PORT);
-	//}
-
-	//if (Choice > 0)
-	//{
-	//	thread([&]()
-	//	{
-	//		uint32_t id;
-	//		string temp;
-	//		shared_ptr<swl::Packet> CameUpPacket = make_shared<swl::Packet>();
-	//		while (Server->isWork())
-	//		{
-	//			//if (Client->isConnected())
-	//			//{
-	//			//	packet->clear();
-	//			//	packet->FillIn(swl::Packet::Header(swl::Packet::Type::MySQL, 0), MySQL_Request);
-	//			//	Client->send(packet, 0);
-	//			//	size_t id = 0;
-	//			//	string temp;
-	//			//	if (Client->getSocket()->receive(packet) == swl::Socket::Status::Done && packet->operator bool())
-	//			//	{
-	//			//		temp = packet->ToString();
-	//			//		if (!temp.empty())
-	//			//			printf("\nFrom Client:\n%s", temp.c_str());
-	//			//	}
-	//			//	this_thread::sleep_for(10ms);
-	//			//	CameUpPacket = Client->getLastPacket(id);
-	//			//	if (CameUpPacket && CameUpPacket->operator bool())
-	//			//	{
-	//			//		packet->clear();
-	//			//		temp = CameUpPacket->ToString();
-	//			//		printf("\nSent Some Data: %s", temp.c_str());
-	//			//	}
-	//			//}
-	//			//else
-	//			//	Client->connect(IP, PORT);
-	//		}
-	//	}).join();
-	//	Server->stop();
-	//}
-	//else
-	//{
 	thread([&]()
 	{
 		bool IsLogging = false;
 		size_t ID = 0;
 		string Login, Pass, temp;
+		swl::FileTransfer File = swl::FileTransfer();
 		while (true)
 		{
 			// To Do A MySQL Login And Password If It's Correctly Then We'll be able to move forward
@@ -114,10 +66,6 @@ int main()
 			}
 
 			swl::Packet packet = swl::Packet();
-			//while (true)
-			//{
-			//if (temp.empty())
-			//{
 			if (!Client->isConnected())
 			{
 				system("cls");
@@ -138,23 +86,36 @@ int main()
 				cout << endl;
 				temp.push_back(getch());
 				cout << temp.c_str() << endl;
+
 				if (!temp.empty() && GetAsyncKeyState(VK_RETURN))
 				{
-					packet.clear();
-					packet.FillIn(swl::Packet::Header(swl::Packet::Type::Chat, 0),
-						(packet.CreateMessage()["data"].at("body").at("_0") = temp));
-					Client->send(packet);
-					temp.clear();
-					system("cls");
+					// Take One Of File From $(ProjectDir) -- (It's $(ProjectDir)Temp) And Transfer To ALL To Server
+					if (temp.find("/StartTransfer") != std::string::npos)
+					{
+						packet.clear();
+						if (File.SeparateFileIntoPackets("TrySomething.cpp")) // If It's Done Then Send File
+							File.Worker(Client);
+
+						temp.clear();
+						system("cls");
+					}
+					else
+					{
+						packet.clear();
+
+						json data = packet.CreateMessage();
+						data["data"].at("body").at("_0") = temp;
+						packet.FillIn(swl::Packet::Header(swl::Packet::Type::Chat, 0), data);
+						Client->send(packet);
+						temp.clear();
+						system("cls");
+					}
 				}
 			}
-			//}
-			//}
 
 			this_thread::sleep_for(10ms);
 		}
 	}).join();
 	if (Client->isConnected())
 		Client->disconnect();
-	//	}
 }

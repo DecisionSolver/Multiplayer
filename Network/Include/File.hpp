@@ -1,32 +1,22 @@
 #pragma once
 #include <vector>
 #include <string>
-
+#include <list>
 namespace swl
 {
-	class File
+	class Client;
+	class Packet;
+	class TCPSocket;
+	class FileTransfer
 	{
 	private:
-		std::string filePath;
-		std::string fileName;
-		std::vector<char> data;
-
+		std::list<Packet> packets;
+		std::vector<char> dataFile;
 	public:
-		File();
-		File(std::string path);
-		
-		std::string& getFilePath();
-		std::string& getFileName();
-		uint32_t getDataSize();
-		char* getFileData();
-
-		void setFileName(const std::string& name);
-		void setFileData(const std::vector<char>& _data);
-
-		bool readFile();
-
-		void saveFile();
-
+		bool SeparateFileIntoPackets(std::string FileName, size_t HowManyParts = 1,
+			int ID_Recipient = -1 /*it means everyone*/);
+		void Worker(std::shared_ptr<swl::Client> this_client);
+		void Save(std::string FileName, Packet Packet, swl::Client *this_client);
 	};
 }
 
