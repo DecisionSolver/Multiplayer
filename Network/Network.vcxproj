@@ -58,7 +58,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);CPPCONN_LIB_BUILD;MYSQLCLIENT_STATIC_BINDING;_SERVER;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);CPPCONN_LIB_BUILD;MYSQLCLIENT_STATIC_BINDING;_SERVER;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;ASIO_STANDALONE;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -66,7 +66,9 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include\MySQL;G:\DecisionSolver\submodules;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;G:\DecisionSolver\submodules;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -75,7 +77,7 @@
     </Link>
     <Lib>
       <AdditionalDependencies>liblz4_static.lib;mysqlcppconn8-2-vs14.lib;jdbc.lib;common.lib;libmysql.lib;Dnsapi.lib;libcrypto.lib;libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Network\Submodules\MySQL Connection\Lib\$(Configuration);$(SolutionDir)Network\Submodules\LZ4\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Network\Submodules\MySQL Connection\Lib\$(Configuration);$(SolutionDir)Network\Submodules\LZ4\Lib\$(Configuration);$(SolutionDir)Network\Submodules\Boost\Libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/Ignore:4006 /Ignore:4221 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Xdcmake>
@@ -88,7 +90,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);CPPCONN_LIB_BUILD;_SERVER;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);CPPCONN_LIB_BUILD;_SERVER;_CRT_SECURE_NO_WARNINGS;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;ASIO_STANDALONE;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING;BOOST_ALL_NO_LIB=1</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DebugInformationFormat>None</DebugInformationFormat>
@@ -96,7 +98,9 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include\MySQL;G:\DecisionSolver\submodules;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;G:\DecisionSolver\submodules;$(SolutionDir)Network\Submodules\boost\asio\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,21 +119,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\Client.cpp" />
+    <ClCompile Include="Source\Connection.cpp" />
+    <ClCompile Include="Source\ConnMan.cpp" />
     <ClCompile Include="Source\File.cpp" />
     <ClCompile Include="Source\IPEndpoint.cpp" />
     <ClCompile Include="Source\MySQL\MySQL_Client.cpp" />
     <ClCompile Include="Source\MySQL\MySQL_Database.cpp" />
     <ClCompile Include="Source\MySQL\MySQL_Impl.cpp" />
-    <ClCompile Include="Source\Network.cpp" />
     <ClCompile Include="Source\Packet.cpp" />
+    <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Server.cpp" />
     <ClCompile Include="Source\Socket.cpp" />
-    <ClCompile Include="Source\SocketSelector.cpp" />
-    <ClCompile Include="Source\TCPSocket.cpp" />
-    <ClCompile Include="Source\UDPSocket.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Client.hpp" />
+    <ClInclude Include="Include\ConnMan.h" />
     <ClInclude Include="Include\File.hpp" />
     <ClInclude Include="Include\IPEndpoint.hpp" />
     <ClInclude Include="Include\LZ4\lz4.h" />
@@ -138,13 +142,10 @@
     <ClInclude Include="Include\MySQL\MySQL_Client.h" />
     <ClInclude Include="Include\MySQL\MySQL_Config.h" />
     <ClInclude Include="Include\MySQL\MySQL_Database.h" />
-    <ClInclude Include="Include\Network.hpp" />
     <ClInclude Include="Include\Packet.hpp" />
+    <ClInclude Include="Include\pch.h" />
     <ClInclude Include="Include\Server.hpp" />
     <ClInclude Include="Include\Socket.hpp" />
-    <ClInclude Include="Include\SocketSelector.hpp" />
-    <ClInclude Include="Include\TCPSocket.hpp" />
-    <ClInclude Include="Include\UDPSocket.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

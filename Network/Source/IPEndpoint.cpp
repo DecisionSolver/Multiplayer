@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "IPEndpoint.hpp"
 
 namespace swl
@@ -77,7 +78,7 @@ namespace swl
 	{
 		sockaddr addr{};
 		addr.sa_family = AF_INET;
-		memcpy(addr.sa_data+2, &ip.S_un.S_addr, 4);
+		memcpy(addr.sa_data + 2, &ip.S_un.S_addr, 4);
 		char buffer[20];
 		unsigned long size = 16;
 		WSAAddressToStringA(&addr, sizeof(sockaddr), 0, buffer, &size);
@@ -86,21 +87,5 @@ namespace swl
 	uint32_t IPEndpoint::toInteger() const
 	{
 		return ip.S_un.S_addr;
-	}
-	LPSTR DecodeError(int ErrorCode)
-	{
-		static char Message[1024];
-		// If this program was multi-threaded, we'd want to use
-		// FORMAT_MESSAGE_ALLOCATE_BUFFER instead of a static buffer here.
-		// (And of course, free the buffer when we were done with it)
-		FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS |
-			FORMAT_MESSAGE_MAX_WIDTH_MASK,
-			NULL, ErrorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPSTR)Message, 1024, NULL);
-
-#if defined (_CONSOLE)
-		setlocale(LC_ALL, "Russian");
-#endif
-		return Message;
 	}
 }

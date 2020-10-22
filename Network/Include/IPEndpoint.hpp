@@ -1,9 +1,5 @@
 #pragma once
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <WS2tcpip.h>
+#include "pch.h"
 
 namespace swl
 {
@@ -24,7 +20,4 @@ namespace swl
 	private:
 		in_addr ip;
 	};
-
-// Utilities!
-	LPSTR DecodeError(int ErrorCode);
 }

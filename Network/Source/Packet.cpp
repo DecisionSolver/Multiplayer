@@ -1,130 +1,28 @@
+#include "pch.h"
 #include "Packet.hpp"
 #include <fstream>
 #include <iostream>
+#include "LZ4/lz4.h"
 
 namespace swl
 {
-	template <typename T>
-	Packet& Packet::operator >>(T& _data)
-	{
-		if (readPos + sizeof(T) <= data.size())
-		{
-			_data = *reinterpret_cast<T*>(&data[readPos]);
-			readPos += sizeof(T);
-		}
-		return *this;
-	}
-	template <typename T>
-	Packet& Packet::operator <<(const std::vector<T>& _data)
-	{
-		*this << _data.size();
-		append(_data.data(), sizeof(T) * _data.size());
-		return *this;
-	}
-	template <typename T>
-	Packet& Packet::operator >>(std::vector<T>& _data)
-	{
-		uint32_t size = 0;
-		*this >> size;
-		if (readPos + sizeof(T)*size <= data.size())
-		{
-			_data.resize(size);
-			memcpy(_data.data(), data.data() + readPos, sizeof(T) * size);
-			readPos += sizeof(T)* size;
-		}
-		return *this;
-	}
 	void Packet::clear()
 	{
 		if (!data.empty())
 			data.clear();
 		readPos = 0;
 	}
-	void Packet::resize(const uint32_t& size)
-	{
-		data.resize(size);
-	}
 	size_t Packet::getSize() const
 	{
 		return data.size();
 	}
-	char *Packet::getData()
+	std::string Packet::getData() const
 	{
-		return data.data();
-	}
-	const char *Packet::ToString()
-	{
-		if (data.empty())
-			return "";
-
-		char *NewString = new char[data.size()];
-		for (size_t i = 0; i < data.size(); i++)
-		{
-			NewString[i] = data.at(i);
-		}
-		NewString[data.size()] = '\0';
-		return NewString;
-	}
-	void Packet::append(const char* _data, const uint32_t& size)
-	{
-		for (size_t i = 0; i < size; i++)
-		{
-			data.push_back(_data[i]);
-		}
-		//data.insert(data.end(), _data, _data + size);
-	}
-	Packet& Packet::operator <<(const std::string& _data)
-	{
-		//*this << (uint32_t)_data.size();
-		append(_data.data(), _data.size());
-		return *this;
-	}
-	Packet& Packet::operator >>(std::string& _data)
-	{
-		if (data.empty())
-			return *this;
-		if (readPos + sizeof(uint32_t) <= data.size())
-		{
-			uint32_t stringSize = 0;
-			*this >> stringSize;
-			if (readPos + stringSize <= data.size())
-			{
-				_data.reserve(stringSize);
-				_data.assign(&data[readPos], stringSize);
-				readPos += stringSize;
-			}
-		}
-		return *this;
+		if (data.empty()) return "";
+		return data;
 	}
 
-#include "LZ4/lz4.h"
-	json Packet::CreateAnswer()
-	{
-		return
-		{
-			{"header",
-				{
-					{ "_s",0}, // Settings
-					{"_t",3}, // Was 2 // Type Of Packet
-					{"_R",0} // ID Recipient
-				}
-			},
-			{"data",
-				{
-					// The Property Of Following Data
-					{"_i",""}, // Id Of Packet
-					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
-
-					{"body", // All Data Is Here
-						{
-							{"_0",""},
-						}
-					}
-				}
-			}
-		};
-	}
-	json Packet::CreateMessage()
+	json Packet::CreateAnswer() const
 	{
 		return
 		{
@@ -137,50 +35,100 @@ namespace swl
 			},
 			{"data",
 				{
-					// The Property Of Following Data
-					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
-					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+			// The Property Of Following Data
+			{"_i",""}, // Id Of Packet
+			{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
 
-					{"body", // All Data Is Here
-						{
-							{"_0",""},
-						}
-					}
+			{"body", // All Data Is Here
+				{
+					{"_0",""},
 				}
 			}
+		}
+	}
 		};
 	}
-	json Packet::CreateMySQL()
+	json Packet::CreateMessage() const
 	{
-		return 
+		return
 		{
 			{"header",
 				{
 					{ "_s",0}, // Settings
-					{"_t",2}, // Was 2 // Type Of Packet
+					{"_t",0}, // Was 2 // Type Of Packet
 					{"_R",0} // ID Recipient
 				}
 			},
 			{"data",
 				{
-					// The Property Of Following Data
-					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
-					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+			// The Property Of Following Data
+			{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+			{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
 
-					{"body", // All Data Is Here
-						{
-							{"_0",""},
-							{"_1",""}, // Needs To Be In MD5 (If It's A Password!)
-						}
-					}
+			{"body", // All Data Is Here
+				{
+					{"_0",""},
 				}
 			}
+		}
+	}
 		};
 	}
-	const char* Packet::onSend(std::uint32_t& size)
+	json Packet::CreateMySQL() const
 	{
-		const char *outData = ToString();
-		size = getSize();
+		return
+		{
+			{"header",
+				{
+					{ "_s",0}, // Settings
+					{"_t",0}, // Was 2 // Type Of Packet
+					{"_R",0} // ID Recipient
+				}
+			},
+			{"data",
+				{
+			// The Property Of Following Data
+			{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+			{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+
+			{"body", // All Data Is Here
+				{
+					{"_0",""},
+					{"_1",""}, // Needs To Be In MD5 (If It's A Password!)
+				}
+			}
+		}
+	}
+		};
+	}
+	json Packet::CreateDisconnect() const
+	{
+		return
+		{
+			{"header",
+				{
+					{ "_s",0}, // Settings
+					{"_t",0}, // Was 2 // Type Of Packet
+					{"_R",0} // ID Recipient
+				}
+			},
+			{"data",
+				{
+			// The Property Of Following Data
+			{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+			{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+
+			{"body", // All Data Is Here
+				{
+					{"_0",""},
+				}
+			}
+		}
+	}
+		};
+	}
+	std::string Packet::onSend()
+	{
 		//if (size >= 1024)
 		//{
 		//	// Parse All Packet (Include Header!)
@@ -214,17 +162,20 @@ namespace swl
 		//		return nullptr;
 		//	}
 		//}
-		return outData;
+		return getData();
 	}
-	void Packet::onReceive(const char* _data, const std::uint32_t& size)
+	Packet *Packet::onReceive(const char *_data)
 	{
 		try
 		{
-			if (std::string(_data).find("header") == std::string::npos
-				|| _data == "" || _data[0] == '\0' || size == 0) return;
-			json js = json::parse(_data);
-		
-			if (js.empty()) return;
+			std::string NewData = _data;
+			if (NewData.empty() || NewData.find("header") == std::string::npos ||
+				NewData.rfind('#') == std::string::npos) return this;
+
+			NewData.pop_back(); // Remove '#' From Back!
+			json js = json::parse(NewData);
+
+			if (js.empty()) return this;
 
 			_H.Settings = js["header"].at("_s").get<uint8_t>();
 			_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
@@ -244,47 +195,87 @@ namespace swl
 				js["data"]["body"] = outData;
 			}
 
-			append(js.dump().c_str(), js.dump().size());
+			data = js["data"]["body"].dump();
 		}
-		catch (const json::parse_error& err)
+		catch (const json::parse_error &err)
 		{
 			std::cout << err.what() << std::endl;
 		}
 
-		//ToDo("Decompress here");
-		////////////////////////////////////////////////////
-		//Decompression Prototype
-		////////////////////////////////////////////////////
-		//void* NewData = const_cast<void*>(_data);
-		//auto OBJ = JSON.Parse(NewData);
-		//h = OBJ._s;
-		//if (h & (1 << 2)) 
-		//{
-		//}
-		////////////////////////////////////////////////////
+		return this;
 	}
 
-	void Packet::FillIn(const json NewData)
+	void Packet::FillIn(json NewData)
 	{
 		if (NewData.empty())
 			return;
 
-		_H.Settings = NewData["header"].at("_s").get<uint8_t>();
-		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
-			? NewData["data"].at("_o").get<size_t>()
-			: 0u;
-		_H.type = (Type)NewData["header"].at("_t").get<size_t>();
+		NewData["header"]["_s"] = _H.Settings;
+		NewData["data"]["_o"] = _H.OrigSize;
+		NewData["header"]["_t"] = _H.type;
 
-		auto NewPacket = NewData.dump();
-		append(NewPacket.c_str(), NewPacket.size());
+		data = NewData.dump() + '#';
 	}
-	void Packet::FillIn(Header NewHeader, const json NewData)
+	void Packet::FillIn(Header NewHeader, json NewData)
 	{
 		if (NewData.empty())
 			return;
 		_H = NewHeader;
 
-		auto NewPacket = NewData.dump();
-		append(NewPacket.c_str(), NewPacket.size());
+		NewData["header"]["_s"] = _H.Settings;
+		NewData["data"]["_o"] = _H.OrigSize;
+		NewData["header"]["_t"] = _H.type;
+
+		data = NewData.dump() + '#';
 	}
+
+//	void Packet::send(std::shared_ptr<TCPSocket> socket)
+//	{
+//		if (!socket) return;
+//		send(socket->getSocket());
+//	}
+//	void Packet::send(tcp::socket &socket)
+//	{
+//		std::size_t length = socket.write_some(asio::buffer(data, data.length()));
+//#if defined (_SERVER) && defined (_CONSOLE)
+//		std::cout << " Sent:\nData: " << data << ", numBytes: " << length << "\n";
+//#endif
+//	}
+//	void Packet::receive(std::shared_ptr<TCPSocket> socket)
+//	{
+//		if (!socket) return;
+//		receive(socket->getSocket());
+//	}
+//
+//	void Packet::receive(tcp::socket &socket)
+//	{
+//		char *newdata = new char[2048 * 5];
+//		std::error_code ec;
+//		std::size_t length = 0;
+//		length = socket.read_some(asio::buffer(newdata, 2048 * 5), ec);
+//		newdata[length] = '\0';
+//
+//		if (ec)
+//		{
+//			if (ec != asio::error::eof)
+//			{
+//				std::cerr << "read_until error: " << ec.message() << std::endl;
+//				socket.close();
+//			}
+//#ifndef NDEBUG
+//			else
+//			{
+//				std::cout << "Control connection closed by client." << std::endl;
+//				socket.close();
+//			}
+//#endif // !NDEBUG
+//			std::cerr << ec.message() << std::endl;
+//			socket.close();
+//			return;
+//		}
+//		onReceive(newdata);
+//#if defined (_SERVER) && defined (_CONSOLE)
+//		std::cout << "\nServer Got New Packet:\nData: " << (const char*)newdata << ", numBytes: " << length << "\n";
+//#endif
+//	}
 }

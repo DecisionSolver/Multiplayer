@@ -1,34 +1,18 @@
 #pragma once
-#include <WinSock2.h>
+#include "pch.h"
 #include "IPEndpoint.hpp"
-#include "Packet.hpp"
 
 namespace swl
 {
-	class Socket
+	class Socket: public std::enable_shared_from_this<Socket>
 	{
 	public:
-		enum Status
-		{
-			Done,
-			NotReady,
-			Partial,
-			Disconnected,
-			Error
-		};
-		enum Option
-		{
-			TCPNoDelay,
-			SOLinger
-		};
-		Socket(SOCKET NewHandle);
+		Socket(asio::io_service &io_service, tcp::socket handle);
 		virtual ~Socket() {}
-		Status bind(const IPEndpoint& ip, const uint16_t& port);
-		Status close();
-		SOCKET getHandle();
-		Status setBlocking(const bool& blocking);
+		void close();
+		tcp::socket &getSocket();
 	protected:
-		SOCKET handle;
-		Status getErrorStatus();
+		tcp::socket handle;
+		asio::io_service &io_service;
 	};
 }

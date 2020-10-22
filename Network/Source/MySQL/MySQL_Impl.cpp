@@ -1,9 +1,10 @@
+#include "pch.h"
 ///////////////////////////////////////
 // Headers                           //
 ///////////////////////////////////////
 									 //
-#include "MySQL_Database.h"			 //
-#include "MySQL_Impl.h"				 //
+#include "MySQL/MySQL_Database.h"	 //
+#include "MySQL/MySQL_Impl.h"		 //
 									 //
 #include <string>					 //
 									 //
@@ -99,11 +100,41 @@ namespace mysql
 
 		return nullptr;
 	}
+	void Impl::Exec(const std::string& query)
+	{
+		try
+		{
+			if (!connection)
+				throw sql::SQLException("Not Connected!");
+			if (!wasSelectedDB)
+				throw sql::SQLException("Database Was Not Selected!");
+			else
+			{
+				std::string NewQuery = query;
+				if (NewQuery.back() != ';')
+					NewQuery.push_back(';');
+				else if (std::count(NewQuery.begin(), NewQuery.end(), ';') > 2)
+					NewQuery.erase(NewQuery.find(';', 1));
+
+				sql::Statement *stmt = nullptr;
+				stmt = connection->createStatement();
+				stmt->execute(NewQuery);
+			}
+		}
+		catch (sql::SQLException &e)
+		{
+			std::cout << "# ERR: SQLException in " << __FILE__;
+			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
+			std::cout << "# ERR: " << e.what();
+			std::cout << " (MySQL error code: " << e.getErrorCode();
+			std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+		}
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////
 	void Impl::CreateDatabase(const std::string& name)								  //
 	{
-		Query(std::string("CREATE DATABASE " + name).c_str());
+		Exec(std::string("CREATE DATABASE " + name).c_str());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
@@ -124,20 +155,14 @@ namespace mysql
 			current_database = databases.find(name)->second;
 
 		connection->setSchema(name);
-		//if (!current_database)
-		//{
-		//	current_database = new Database();
 		current_database->SetNewDatabase(connection);
-		//}
-		//else
-		//	current_database->SetNewDatabase(connection, current_database);
 	}
 
 
 	////////////////////////////////////////////////////////////////////////////////////
 	void Impl::DeleteDatabase(const std::string& name)								  //
 	{
-		Query(std::string("DROP DATABASE " + name).c_str());
+		Exec(std::string("DROP DATABASE " + name).c_str());
 	}
 
 
@@ -149,56 +174,21 @@ namespace mysql
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Impl::TryInsertValues(const std::string & name_table, const std::vector<std::string>& name_columns,		//
-		const std::vector<std::string>& values)																		//
+		const std::vector<std::string>& values, const std::vector<std::string>& condition)										//
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
 
-		ToDo("A Request To Server About Inserting New Values!");
-		std::vector<std::string> value;
-		std::string values_string;
-		size_t iV = 0;
-		if (!values.empty())
-		{
-			for (size_t iC = 0; iC < name_columns.size(); iC++)
-			{
-				for (; iV < values.size();)
-				{
-					value.push_back(name_columns.at(iC));
-					if (isReadOnly)
-						value.back() += " = " + ("'" + values.at(iV) + "'") + ",";
-					else
-						value.front() += "(" + ("'" + values.at(iV) + "'") + ",";
-					if (!isReadOnly)
-					{
-						value.back().push_back(')');
-						value.back().push_back(',');
-					}
-					iV++;
-					break;
-				}
-			}
-			values_string = std::accumulate(value.begin(), value.end(), std::string{});
-			values_string.pop_back();
-			if (isReadOnly)
-				Query("UPDATE " + name_table + " SET " + values_string + ";");
-			else
-			{
-				std::string which_columns, what_values;
-				for (const auto &piece : name_columns) which_columns += piece + ",";
-				for (const auto &piece : values) what_values += piece + ",";
-				Query("INSERT " + name_table + "(" + which_columns + ")" + " VALUES" + "(" + what_values + ")" + ";");
-			}
-		}
-		else
-			throw sql::SQLException("Nothing Insert!");
-		//else if (!isReadOnly)
-		//	Query("INSERT " + name_table + "() VALUES()");
+		if (!wasSelectedDB)
+			throw sql::SQLException("Database Was Not Selected!");
+		else if (!current_database)
+			throw sql::SQLException("Not Ready Current Database!");
+		current_database->UpdateValues(name_table, name_columns, values, condition);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	std::vector<std::pair<std::string, std::vector<std::string>>> Impl::TrySelectValues(const std::string & name_table,	 //
-		const std::vector<std::string>& name_columns, const std::string & condition)									 //
+		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)						 //
 	{
 		if (!wasSelectedDB)
 			throw sql::SQLException("Database Was Not Selected!");
@@ -243,7 +233,7 @@ namespace mysql
 
 			attribute << attributes.back();
 
-			Query("CREATE TABLE " + name_table + "(" + name_column + " " + type + "(" + value + ")" +
+			Exec("CREATE TABLE " + name_table + "(" + name_column + " " + type + "(" + value + ")" +
 				attribute.str() + ") DEFAULT CHARSET utf8;");
 		}
 	}
@@ -269,7 +259,7 @@ namespace mysql
 				attribute << attributes.back();
 			}
 
-			Query("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
+			Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
 				attribute.str() + ";");
 		}
 	}
@@ -295,7 +285,7 @@ namespace mysql
 				attribute << attributes.back();
 			}
 
-			Query("ALTER TABLE " + name_table + "\nMODIFY COLUMN " + name_column + " " + type + "(" + value + ")" +
+			Exec("ALTER TABLE " + name_table + "\nMODIFY COLUMN " + name_column + " " + type + "(" + value + ")" +
 				attribute.str() + ";");
 		}
 	}
@@ -336,36 +326,35 @@ namespace mysql
 				temp[0] = name_column.str();
 				temp[1] = value.str().replace(value.str().back(), 1, ";");
 
-				Query("INSERT " + name_table + "(" + temp[0] + ")" + "VALUES" + temp[1]);
+				Exec("INSERT " + name_table + "(" + temp[0] + ")" + "VALUES" + temp[1]);
 			}
 			else
-				Query("INSERT " + name_table + "() VALUES()");
+				Exec("INSERT " + name_table + "() VALUES()");
 		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Impl::DeleteValues(const std::string& name_table, const std::string& condition)			  //
 	{
-		Query("DELETE FROM " + name_table + "\nWHERE " + condition + ";");
+		Exec("DELETE FROM " + name_table + "\nWHERE " + condition + ";");
 	}
 
 
 	////////////////////////////////////////////////////////////////////////////////////
 	void Impl::DeleteTable(const std::string& name_table)							  //
 	{
-		Query("DROP TABLE " + name_table);
+		Exec("DROP TABLE " + name_table);
 	}
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Impl::DeleteColumn(const std::string& name_table, const std::string& name_column)			    //
 	{
-		Query("ALTER TABLE " + name_table + "\nDROP COLUMN " + name_column);
+		Exec("ALTER TABLE " + name_table + "\nDROP COLUMN " + name_column);
 	}
 
 
 	void Impl::Destroy()
 	{
-		//delete stmt;
 	}
 } // namespace mysql

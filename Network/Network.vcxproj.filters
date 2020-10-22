@@ -22,9 +22,6 @@
     <Filter Include="Include Files\MySQL">
       <UniqueIdentifier>{e4990491-1169-4824-937c-a69514f83895}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Include Files\MySQL\Network">
-      <UniqueIdentifier>{6395685c-c05b-471d-b1dd-f256a5dbcd8a}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Client.cpp">
@@ -36,9 +33,6 @@
     <ClCompile Include="Source\IPEndpoint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Network.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Packet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -46,15 +40,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Socket.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SocketSelector.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\TCPSocket.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\UDPSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\MySQL\MySQL_Client.cpp">
@@ -65,6 +50,15 @@
     </ClCompile>
     <ClCompile Include="Source\MySQL\MySQL_Impl.cpp">
       <Filter>Source Files\MySQL</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Connection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ConnMan.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -77,9 +71,6 @@
     <ClInclude Include="Include\IPEndpoint.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Network.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
     <ClInclude Include="Include\Packet.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
@@ -87,15 +78,6 @@
       <Filter>Include Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Socket.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\SocketSelector.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\TCPSocket.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\UDPSocket.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\LZ4\lz4.h">
@@ -107,14 +89,20 @@
     <ClInclude Include="Include\LZ4\lz4hc.h">
       <Filter>Include Files\LZ4</Filter>
     </ClInclude>
-    <ClInclude Include="Include\MySQL\MySQL_Database.h">
-      <Filter>Include Files\MySQL\Network</Filter>
+    <ClInclude Include="Include\pch.h">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ConnMan.h">
+      <Filter>Include Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\MySQL\MySQL_Config.h">
-      <Filter>Include Files\MySQL\Network</Filter>
+      <Filter>Include Files\MySQL</Filter>
     </ClInclude>
     <ClInclude Include="Include\MySQL\MySQL_Client.h">
-      <Filter>Include Files\MySQL\Network</Filter>
+      <Filter>Include Files\MySQL</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\MySQL\MySQL_Database.h">
+      <Filter>Include Files\MySQL</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
