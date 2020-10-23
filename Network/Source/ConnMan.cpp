@@ -53,7 +53,7 @@ void ConnectionManager::StopSystem()
 
 	m_connections.clear();
 
-	if (_Type == TypeWorking::Client&&one_connection)
+	if (_Type == TypeWorking::Client && one_connection && (one_connection->get_stopped() || one_connection->IsConnected()))
 	{
 		one_connection->Stop();
 		one_connection.reset();
@@ -82,6 +82,8 @@ void ConnectionManager::ConnectToServer()
 	if (_Type == TypeWorking::Server || (one_connection && one_connection->IsConnected()))
 		return;
 
+	Sleep(500);
+
 	// Set up the variable that receives the result of the asynchronous
 	// operation. The error code is set to would_block to signal that the
 	// operation is incomplete. Asio guarantees that its asynchronous
@@ -103,12 +105,6 @@ void ConnectionManager::ConnectToServer()
 	// check whether the socket is still open before deciding if we succeeded
 	// or failed.
 	
-	if (one_connection && (one_connection->IsConnected() || !one_connection->get_stopped()))
-	{
-		one_connection->Stop();
-		one_connection.reset();
-	}
-
 	// Create the connection from the connected socket
 	one_connection = Connection::Create(this, *m_Socket);
 	if (!ec || m_Socket->is_open())
@@ -228,7 +224,7 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection)
 	
 	if (_Type == TypeWorking::Client)
 	{
-		connection->success.notify_all();
+		connection->successConn.notify_all();
 		if (connection)
 			connection.reset();
 
@@ -280,7 +276,7 @@ Connection::SharedPtr ConnectionManager::GetConnect()
 std::condition_variable &ConnectionManager::IsWait()
 {
 	if (_Type == TypeWorking::Client && one_connection)
-		return one_connection->success;
+		return one_connection->successConn;
 }
 
 //------------------------------------------------------------------------------
@@ -320,6 +316,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						{
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
+							
 							m_connections.erase(itConnection);
 						}
 
@@ -327,7 +324,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					}
 				}
 
-				if (!connection->GetApproved())
+				if (connection && (!connection->GetApproved()))
 				{
 					if (_Type == TypeWorking::Server)
 					{
@@ -409,7 +406,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							if (!dataJSON.empty() && dataJSON["_1"] == "OK")
 							{
 								connection->SetConnected(true);
-								connection->success.notify_all();
+								connection->successConn.notify_all();
 								Callback_OnLoggin(connection);
 							}
 						}
@@ -449,7 +446,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 				if (_Type == TypeWorking::Client && one_connection)
 				{
 					std::scoped_lock<std::mutex> lock(m_main_handler);
-					while (one_connection && one_connection->getIsError() && !one_connection->get_error_queue().empty())
+					while (one_connection && (one_connection->getIsError() && !one_connection->get_error_queue().empty()))
 					{
 						if (Callback_OnError)
 						{
@@ -467,6 +464,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						}
 					}
 					Lambd(one_connection);
+
+					if (one_connection)
+						one_connection->waiterDisconnection.notify_all();
 				}
 
 				if (_Type == TypeWorking::Server)
@@ -478,13 +478,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 						if (!connection->get_stopped())
 							Lambd(connection);
-						
-						if (_Type == TypeWorking::Client)
-						{
-							std::condition_variable waiter_disconnect;
-							waiter_disconnect.wait_for(lock, std::chrono::seconds(25),
-								[&] { return !connection->get_stopped(); });
-						}
+					
+						if (one_connection)
+							one_connection->waiterDisconnection.notify_all();
 					}
 				}
 			}

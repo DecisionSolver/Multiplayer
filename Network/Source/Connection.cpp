@@ -75,7 +75,7 @@ void Connection::Start()
 //--------------------------------------------------------------------
 void Connection::Stop()
 {
-	std::scoped_lock<std::mutex> lock(m_disconnect);
+	std::unique_lock<std::mutex> lock(m_disconnect);
 	// The entire connection class is only kept alive, because it is a shared pointer and always has a ref count
 	// as a consequence of the outstanding async receive call that gets posted every time we receive.
 	// Once we stop posting another receive in the receive handler and once our owner release any references to
@@ -93,7 +93,9 @@ void Connection::Stop()
 	SetConnected(false);
 	isApproved = false;
 
-	success.notify_all();
+	successConn.notify_all();
+
+	waiterDisconnection.wait(lock);
 }
 
 //--------------------------------------------------------------------

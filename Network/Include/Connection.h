@@ -52,7 +52,7 @@ public:
 	std::condition_variable &get_cv_error() { return error; }
 	std::deque<asio::error_code> &get_error_queue() { return error_queue; }
 
-	std::condition_variable success;
+	std::condition_variable successConn, waiterDisconnection;
 	std::atomic<bool> &get_stopped() { return m_stopped; }
 
 	void SetMetaDB_User(int ID) { UserID_MetaDB = ID; }

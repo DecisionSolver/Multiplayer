@@ -16,6 +16,7 @@ using namespace swl;
 int main()
 {
 	setlocale(LC_ALL, "Russian");
+
 	IPEndpoint IP = IPEndpoint("127.0.0.1");
 	uint16_t Port = 1234;
 	std::shared_ptr<Server> server = std::make_shared<Server>(IP, Port);
@@ -26,7 +27,7 @@ int main()
 	{
 		while (server->IsWorking())
 		{
-			Sleep(1000);
+			Sleep(500);
 		}
 	}).join();
 
