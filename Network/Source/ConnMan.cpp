@@ -19,12 +19,16 @@ ConnectionManager::ConnectionManager(TypeWorking _Type, std::string IP, UINT por
 //------------------------------------------------------------------------------
 ConnectionManager::~ConnectionManager()
 {
-	StopSystem();
+	if (IsWorking)
+		StopSystem();
 }
 
 //------------------------------------------------------------------------------
 void ConnectionManager::StartSystem(std::function<void(Connection::SharedPtr)> Func)
 {
+	if (_Type == TypeWorking::Client && one_connection && one_connection->getIsError())
+		return;
+
 	if (m_io_service.stopped())
 		m_io_service.reset();
 
@@ -63,9 +67,11 @@ void ConnectionManager::StopSystem()
 	//        Because remember they have outstanding ref count to thier shared_ptr in the async handlers
 	m_io_service.stop();
 
-	//Callback_Accept = nullptr;
-	//Callback_OnClientHandler = nullptr;
-	//Callback_OnLoggin = nullptr;
+	if (User)
+	{
+		User->Disconnect();
+		User.reset();
+	}
 
 	for (auto &thread: m_threads)
 	{
@@ -124,6 +130,8 @@ void ConnectionManager::ConnectToServer()
 		one_connection->getIsError() = true;
 		one_connection->get_error_queue().push_back(ec ? ec : asio::error::operation_aborted);
 		one_connection->get_cv_error().notify_one();
+
+		StopSystem();
 	}
 }
 
@@ -205,8 +213,13 @@ void ConnectionManager::DoAccept()
 
 		std::scoped_lock<std::mutex> lock(m_do_accept);
 		// Create the connection from the connected socket
-
 		Connection::SharedPtr connection = Connection::Create(this, *newConn);
+		
+#if !defined(_DEBUG)
+		if (connection->get_socket().local_endpoint().address().to_string() == "127.0.0.1")
+			connection->SetApproved();
+#endif
+
 		m_connections.push_back(connection);
 
 		if (Callback_Accept)
@@ -282,14 +295,14 @@ std::condition_variable &ConnectionManager::IsWait()
 //------------------------------------------------------------------------------
 void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 {
-	if (!m_io_service.stopped())
+	if (!m_io_service.stopped() && !isUpdate)
 	{
 		if (Func)
 			Callback_OnClientHandler = Func;
 		
 		std::thread([&]
 		{
-			auto Lambd = [&](auto &connection)
+			auto Lambd = [&](Connection::SharedPtr &connection)
 			{
 				if (!connection)
 				{
@@ -316,10 +329,27 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						{
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
-							
+
 							m_connections.erase(itConnection);
 						}
 
+						return;
+					}
+
+					// Updating FTP Server
+					connection->GetPacket(packet, swl::Packet::Type::ClosedServerByUpdate);
+					if (packet && connection->get_socket().local_endpoint().address().to_string() == "127.0.0.1")
+					{
+						swl::Packet Answer = swl::Packet();
+						json pack = Answer.CreateAnswer();
+						Answer.FillIn(swl::Packet::Header((swl::Packet::Type)
+							(swl::Packet::Type::Answer << swl::Packet::Type::ClosedServerByUpdate)), pack);
+						connection->Send(Answer);
+						
+						isUpdate = true;
+						auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
+						if (itConnection != m_connections.end())
+							m_connections.erase(itConnection);
 						return;
 					}
 				}
@@ -337,7 +367,6 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								std::string Login = temp["_0"].get<std::string>(),
 									Pass = temp["_1"].get<std::string>();
 
-								bool _IsOnline = false;
 								auto Obj = User->TrySelectValues("Local", { "*" },
 									{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
 
@@ -350,9 +379,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								{
 									pack["data"]["body"]["_0"] = "OK";
 
-									connection->SetMetaDB_User(atoi(Obj.front().second.back().c_str()));
+									connection->SetMetaDB_User((int)Obj.back().second["_N"].get<json::value_t>());
 
-									if (Obj.back().second[0] == "1")
+									if ((int)Obj.back().second["_2"].get<json::value_t>() == 1)
 										pack["data"]["body"]["_0"] = "AlreadyOnl";
 								}
 								else
@@ -438,7 +467,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					Callback_OnClientHandler(connection);
 			};
 
-			while (!m_io_service.stopped() || IsRunning())
+			while ((!m_io_service.stopped() || IsRunning()) && !isUpdate)
 			{
 				if (_Type == TypeWorking::Server)
 					Sleep(500);
@@ -453,14 +482,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							std::mutex New;
 							std::unique_lock<std::mutex> OnErrorLock(New);
 
-							//one_connection->get_cv_error().wait(OnErrorLock);
-
 							Sleep(1000);
 							Callback_OnError(one_connection->get_error_queue().back());
 							return;
-							//one_connection->get_error_queue().pop_back();
-
-							//one_connection->getIsError() = false;
 						}
 					}
 					Lambd(one_connection);
@@ -479,8 +503,8 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						if (!connection->get_stopped())
 							Lambd(connection);
 					
-						if (one_connection)
-							one_connection->waiterDisconnection.notify_all();
+						if (connection)
+							connection->waiterDisconnection.notify_all();
 					}
 				}
 			}

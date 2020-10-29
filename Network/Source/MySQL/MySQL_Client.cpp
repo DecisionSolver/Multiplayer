@@ -60,7 +60,7 @@ namespace mysql
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::vector<std::pair<std::string, std::vector<std::string>>> Client::TrySelectValues(const std::string & name_table,	//
+	std::list<std::pair<std::string, nlohmann::json>> Client::TrySelectValues(const std::string & name_table,				//
 		const std::vector<std::string>& name_columns, const std::vector<std::string> & condition)							//
 	{
 		return impl->TrySelectValues(name_table, name_columns, condition);
@@ -77,6 +77,8 @@ namespace mysql
 	////////////////////////////////////////////////////////////////////////////////////
 	void Client::Disconnect()														  //
 	{
-		impl.~shared_ptr();
+		if (impl)
+			impl->Destroy();
+		impl.reset();
 	}
 } // namespace mysql

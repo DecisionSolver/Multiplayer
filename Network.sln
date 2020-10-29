@@ -15,6 +15,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestServer", "Tests\TryServ
 		{011F9682-7D6F-47DE-B521-29D1F1152F3B} = {011F9682-7D6F-47DE-B521-29D1F1152F3B}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FTP", "Network\Submodules\FTP\FTP.vcxproj", "{6C0F743C-BCDB-47E3-9248-3F5302390E41}"
+	ProjectSection(ProjectDependencies) = postProject
+		{011F9682-7D6F-47DE-B521-29D1F1152F3B} = {011F9682-7D6F-47DE-B521-29D1F1152F3B}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +46,14 @@ Global
 		{CE7F1EB5-2CA8-4AFD-AA9F-7C99C9D0E9C9}.Release|x64.ActiveCfg = Release|Win32
 		{CE7F1EB5-2CA8-4AFD-AA9F-7C99C9D0E9C9}.Release|x86.ActiveCfg = Release|Win32
 		{CE7F1EB5-2CA8-4AFD-AA9F-7C99C9D0E9C9}.Release|x86.Build.0 = Release|Win32
+		{6C0F743C-BCDB-47E3-9248-3F5302390E41}.Debug|x64.ActiveCfg = Debug|x64
+		{6C0F743C-BCDB-47E3-9248-3F5302390E41}.Debug|x64.Build.0 = Debug|x64
+		{6C0F743C-BCDB-47E3-9248-3F5302390E41}.Debug|x86.ActiveCfg = Debug|Win32
+		{6C0F743C-BCDB-47E3-9248-3F5302390E41}.Debug|x86.Build.0 = Debug|Win32
+		{6C0F743C-BCDB-47E3-9248-3F5302390E41}.Release|x64.ActiveCfg = Release|x64
+		{6C0F743C-BCDB-47E3-9248-3F5302390E41}.Release|x64.Build.0 = Release|x64
+		{6C0F743C-BCDB-47E3-9248-3F5302390E41}.Release|x86.ActiveCfg = Release|Win32
+		{6C0F743C-BCDB-47E3-9248-3F5302390E41}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

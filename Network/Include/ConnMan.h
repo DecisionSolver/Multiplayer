@@ -54,7 +54,8 @@ public:
 
 	// Only SERVER!
 	std::vector<Connection::SharedPtr> GetAllConnections();
-	
+	std::atomic_bool &isInUpdate() { return isUpdate; };
+
 	// Only CLIENT!
 	Connection::SharedPtr GetConnect();
 	
@@ -70,9 +71,12 @@ protected:
 	std::vector<std::thread> m_threads;
 
 	mutable std::mutex m_connectionsMutex, m_onconn_close, m_get_allconn,
-		m_main_handler, m_do_accept, m_stop_sys;
+		m_main_handler, m_do_accept, m_stop_sys, m_wait_done;
 	std::vector<Connection::SharedPtr> m_connections;
 	Connection::SharedPtr one_connection;
+
+	std::atomic_bool isUpdate = false;
+	std::condition_variable waiter_update;
 
 	void IoServiceThreadProc();
 

@@ -50,7 +50,7 @@ namespace mysql
 		void Connect(const std::string& user, const std::string& password, const std::string& host,
 			const std::string DB = "", const unsigned short& port = 3306, const std::string charset = "utf8");
 
-		std::vector<std::pair<std::string, std::vector<std::string>>> TrySelectValues(const std::string& name_table,
+		std::list<std::pair<std::string, nlohmann::json>> TrySelectValues(const std::string& name_table,
 			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {});
 
 		void TryInsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,

@@ -30,7 +30,13 @@ namespace net
 		{
 			Server::OnPacketHandler(connection);
 		});
-		User->Connect("gb_z_rod2_rf", "696ea7b8ty", "mysql101.1gb.ru", "gb_z_rod2_rf");
+		User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+#if defined(_DEBUG)
+			"188.210.240.246"
+#else
+			"192.168.1.2"
+#endif
+			, "gb_z_rod2_rf");
 	
 		// Set All Users To Offline
 		User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _2 = '1'" } });

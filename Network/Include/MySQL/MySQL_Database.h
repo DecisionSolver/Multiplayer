@@ -42,7 +42,7 @@ namespace mysql
 		// Methods                                   //
 		///////////////////////////////////////////////
 
-		std::vector<std::pair<std::string, std::vector<std::string>>> SelectValues(const std::string& name_table,
+		std::list<std::pair<std::string, nlohmann::json>> SelectValues(const std::string& name_table,
 			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {});
 
 		void UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,

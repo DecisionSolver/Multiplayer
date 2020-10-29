@@ -57,9 +57,11 @@ public:
 
 	void SetMetaDB_User(int ID) { UserID_MetaDB = ID; }
 	int GetMetaDB_User() { return UserID_MetaDB; }
+
+	asio::ip::tcp::socket &get_socket() { return m_socket; }
 private:
 	static size_t m_nextClientId;
-	size_t m_clientId;
+	size_t m_clientId = 0;
 	ConnectionManager *m_owner = nullptr;
 	asio::ip::tcp::socket m_socket;
 	std::atomic<bool> m_stopped;

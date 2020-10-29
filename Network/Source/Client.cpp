@@ -3,7 +3,7 @@
 
 namespace net
 {
-	void Client::Connect(const swl::IPEndpoint& ip, const uint16_t& port, const std::string Login, const std::string Password)
+	void Client::Connect(const swl::IPEndpoint& ip, const uint16_t& port)
 	{
 		if (_IP.empty())
 			SetIP(ip.toString());

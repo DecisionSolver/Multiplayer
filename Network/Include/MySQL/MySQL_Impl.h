@@ -67,7 +67,7 @@ namespace mysql
 		void TryInsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
 			const std::vector<std::string>& values, const std::vector<std::string>& condition = {});
 
-		std::vector<std::pair<std::string, std::vector<std::string>>> TrySelectValues(const std::string& name_table,
+		std::list<std::pair<std::string, nlohmann::json>> TrySelectValues(const std::string& name_table,
 			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {});
 
 		const std::vector<std::string> GetDatabaseNames() const;

@@ -8,7 +8,7 @@
 									 //
 ///////////////////////////////////////
 
-
+using json = nlohmann::json;
 namespace mysql
 {
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,14 +32,11 @@ namespace mysql
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
 
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::vector<std::pair<std::string, std::vector<std::string>>> Database::SelectValues(const std::string& name_table,	 //
-		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)						 //
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////
+	std::list<std::pair<std::string, json>> Database::SelectValues(const std::string& name_table,			//
+		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)			//
 	{
 		std::string temp;
-
-		ToDo("Add Condition To Check If Columns Are Present");
-
 		size_t ID = 0;
 
 		if (name_columns.empty())
@@ -79,33 +76,25 @@ namespace mysql
 		else
 			ResultExec = impl->Query("SELECT " + temp + " FROM " + name_table + ";");
 
-		std::vector<std::pair<std::string, std::vector<std::string>>> result;
+		std::list<std::pair<std::string, json>> result;
 		if (!ResultExec)
 			return result;
 		try
 		{
-			ResultExec->first();
-			while (true)
-			{
-				sql::ResultSetMetaData *MD;
-				MD = ResultExec->getMetaData();
-				size_t StartWith = 1;
+			//ResultExec->first();
 				// Get Count Columns
 
 				//printf("\nCount Columns: %d", MD->getColumnCount());
 				//printf("\nCount Rows: %d", ResultExec->rowsCount());
-
-				for (size_t id_column = 1; id_column < MD->getColumnCount() + 1; id_column++)
-				{
-					result.push_back({ MD->getColumnLabel(id_column), {} });
-					do
-					{
-						result.back().second.push_back(ResultExec->getString(StartWith));
-						StartWith++;
-					} while (StartWith < ResultExec->rowsCount() + 1);
-				}
-				if (!ResultExec->next())
-					break;
+			while (ResultExec->next())
+			{
+				json js;
+				js["_N"] = ResultExec->getInt("_N");
+				js["_0"] = ResultExec->getString("_0");
+				js["_1"] = ResultExec->getString("_1");
+				js["_2"] = ResultExec->getInt("_2");
+				js["_3"] = ResultExec->getInt("_3");
+				result.push_back({ std::to_string((int)js["_N"].get<json::value_t>()), js });
 			}
 		}
 		catch (sql::SQLException &e)

@@ -12,26 +12,32 @@
 
 using namespace net;
 using namespace swl;
+#include <conio.h>
 
 int main()
 {
 	setlocale(LC_ALL, "Russian");
 
-	IPEndpoint IP = IPEndpoint("127.0.0.1");
-	uint16_t Port = 1234;
+	IPEndpoint IP = IPEndpoint(
+#if defined(_DEBUG)
+		"127.0.0.1"
+#else
+		"192.168.1.2"
+#endif
+	);
+	uint16_t Port = 20675;
 	std::shared_ptr<Server> server = std::make_shared<Server>(IP, Port);
 
 	server->Start();
 
 	std::thread([&]()
 	{
-		while (server->IsWorking())
+		while (server->IsWorking() && !server->isInUpdate())
 		{
 			Sleep(500);
 		}
 	}).join();
 
 	server->StopSystem();
-	system("pause");
-	return -1;
+	return 0;
 }

@@ -19,6 +19,7 @@
 #include "mysql_driver.h"				//
 #include "mysql_error.h"				//
 #include "cppconn/statement.h"			//
+#include "nlohmann/json.hpp"			//
 										//
 //////////////////////////////////////////
 

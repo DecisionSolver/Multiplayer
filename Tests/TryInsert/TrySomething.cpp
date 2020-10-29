@@ -1,6 +1,6 @@
 ﻿#include <iostream>
-#include "MySQL_Client.h"
-#include "MySQL_Impl.h"
+#include "MySQL/MySQL_Client.h"
+#include "MySQL/MySQL_Impl.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -8,7 +8,6 @@
 #include "nlohmann/json.hpp"
 
 #include "Packet.hpp"
-#include "Server.hpp"
 #include "Client.hpp"
 
 #include <conio.h>
@@ -48,8 +47,8 @@ int main()
 			{
 				if (!Client->IsRunning())
 				{
-					Client->Connect(IP, PORT, Login, Pass);
-					Client->Start([&](Connection::SharedPtr &Connection)
+					Client->Connect(IP, PORT);
+					Client->StartSystem([&](Connection::SharedPtr Connection)
 					{
 						if (Connection && !Connection->GetApproved())
 						{
@@ -61,7 +60,7 @@ int main()
 							Connection->Send(packet);
 							packet.clear();
 
-							Connection->GetLastPacket(packet);
+							Connection->GetPacket(packet, swl::Packet::Type::MySQL);
 
 							if (packet)
 							{
@@ -116,10 +115,10 @@ int main()
 			}
 			
 			swl::Packet packet = swl::Packet();
-			connection->GetLastPacket(packet);
+			connection->GetPacket(packet, swl::Packet::Type::Chat);
 
 			string temp;
-			if (packet && packet.getHeader().type == swl::Packet::Type::Chat)
+			if (packet)
 			{
 				temp = json::parse(packet.getData())["_0"].get<string>();
 				if (!temp.empty())
@@ -159,6 +158,5 @@ int main()
 			this_thread::sleep_for(10ms);
 		}
 	}).join();
-	if (Client->IsRunning())
-		Client->Stop();
+	Client->StopSystem();
 }

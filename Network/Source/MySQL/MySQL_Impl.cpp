@@ -187,8 +187,8 @@ namespace mysql
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::vector<std::pair<std::string, std::vector<std::string>>> Impl::TrySelectValues(const std::string & name_table,	 //
-		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)						 //
+	std::list<std::pair<std::string, nlohmann::json>> Impl::TrySelectValues(const std::string & name_table,	 //
+		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)				 //
 	{
 		if (!wasSelectedDB)
 			throw sql::SQLException("Database Was Not Selected!");
@@ -356,5 +356,10 @@ namespace mysql
 
 	void Impl::Destroy()
 	{
+		if (connection)
+		{
+			connection->close();
+			connection.reset();
+		}
 	}
 } // namespace mysql

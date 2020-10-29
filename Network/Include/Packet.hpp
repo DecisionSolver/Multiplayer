@@ -18,6 +18,9 @@ namespace swl
 			Answer,
 			Connection,
 			Disconnection,
+
+			// Server
+			ClosedServerByUpdate
 		};
 
 		struct Header

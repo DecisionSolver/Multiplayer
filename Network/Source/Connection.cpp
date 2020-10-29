@@ -65,9 +65,6 @@ Connection::~Connection()
 //--------------------------------------------------------------------
 void Connection::Start()
 {
-	//if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client && !m_owner->IsRunning())
-	//	DoReceive();
-	//else if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server)
 	DoReceive();
 	Curr = std::chrono::high_resolution_clock::now();
 }
@@ -126,7 +123,6 @@ void Connection::Send(const swl::Packet &packet)
 
 bool Connection::GetApproved()
 {
-	//Curr = std::chrono::high_resolution_clock::now();
 	return isApproved;
 }
 bool Connection::GetTimer()
@@ -244,10 +240,6 @@ void Connection::DoReceive()
 			}
 
 			self->SetConnected(false);
-
-			// Notify our masters that we are ready to be destroyed
-			//if (self && self->m_owner)
-			//	self->m_owner->OnConnectionClosed(self);
 
 			// An error occured
 			return;
