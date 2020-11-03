@@ -10,7 +10,9 @@ namespace swl
 	{
 		if (!data.empty())
 			data.clear();
-		readPos = 0;
+		_H.OrigSize = 0;
+		_H.Settings = 0;
+		_H.type = Type::Chat;
 	}
 	size_t Packet::getSize() const
 	{
@@ -35,17 +37,17 @@ namespace swl
 			},
 			{"data",
 				{
-			// The Property Of Following Data
-			{"_i",""}, // Id Of Packet
-			{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+					// The Property Of Following Data
+					{"_i",""}, // Id Of Packet
+					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
 
-			{"body", // All Data Is Here
-				{
-					{"_0",""},
+					{"body", // All Data Is Here
+						{
+							{"_0",""},
+						}
+					}
 				}
 			}
-		}
-	}
 		};
 	}
 	json Packet::CreateMessage() const
@@ -61,17 +63,17 @@ namespace swl
 			},
 			{"data",
 				{
-			// The Property Of Following Data
-			{"_i",""}, // Id Of Packet (Needs To Be In MD5)
-			{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+					// The Property Of Following Data
+					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
 
-			{"body", // All Data Is Here
-				{
-					{"_0",""},
+					{"body", // All Data Is Here
+						{
+							{"_0",""},
+						}
+					}
 				}
 			}
-		}
-	}
 		};
 	}
 	json Packet::CreateMySQL() const
@@ -87,18 +89,18 @@ namespace swl
 			},
 			{"data",
 				{
-			// The Property Of Following Data
-			{"_i",""}, // Id Of Packet (Needs To Be In MD5)
-			{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+					// The Property Of Following Data
+					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
 
-			{"body", // All Data Is Here
-				{
-					{"_0",""},
-					{"_1",""}, // Needs To Be In MD5 (If It's A Password!)
+					{"body", // All Data Is Here
+						{
+							{"_0",""},
+							{"_1",""}, // Needs To Be In MD5 (If It's A Password!)
+						}
+					}
 				}
 			}
-		}
-	}
 		};
 	}
 	json Packet::CreateDisconnect() const
@@ -114,17 +116,17 @@ namespace swl
 			},
 			{"data",
 				{
-			// The Property Of Following Data
-			{"_i",""}, // Id Of Packet (Needs To Be In MD5)
-			{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
+					// The Property Of Following Data
+					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
+					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
 
-			{"body", // All Data Is Here
-				{
-					{"_0",""},
+					{"body", // All Data Is Here
+						{
+							{"_0",""},
+						}
+					}
 				}
 			}
-		}
-	}
 		};
 	}
 	std::string Packet::onSend()

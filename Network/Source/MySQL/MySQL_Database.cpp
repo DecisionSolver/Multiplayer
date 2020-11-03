@@ -47,6 +47,8 @@ namespace mysql
 
 		if (name_columns.back().back() != '*')
 		{
+			if (name_columns.front().find("_N") == std::string::npos)
+				temp += " _N AS '_N', ";
 			for (const auto &piece: name_columns)
 			{
 				temp += piece + " AS " + "'_" + std::to_string(ID) + "',";
@@ -89,11 +91,16 @@ namespace mysql
 			while (ResultExec->next())
 			{
 				json js;
-				js["_N"] = ResultExec->getInt("_N");
-				js["_0"] = ResultExec->getString("_0");
-				js["_1"] = ResultExec->getString("_1");
-				js["_2"] = ResultExec->getInt("_2");
-				js["_3"] = ResultExec->getInt("_3");
+				if (ResultExec->findColumn("_N") > 0)
+					js["_N"] = ResultExec->getInt("_N");
+				if (ResultExec->findColumn("_0") > 0)
+					js["_0"] = ResultExec->getString("_0");
+				if (ResultExec->findColumn("_1") > 0)
+					js["_1"] = ResultExec->getString("_1");
+				if (ResultExec->findColumn("_2") > 0)
+					js["_2"] = ResultExec->getInt("_2");
+				if (ResultExec->findColumn("_3") > 0)
+					js["_3"] = ResultExec->getInt("_3");
 				result.push_back({ std::to_string((int)js["_N"].get<json::value_t>()), js });
 			}
 		}

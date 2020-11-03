@@ -62,7 +62,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;MYSQLCLIENT_STATIC_BINDING;ASIO_STANDALONE;ASIO_HAS_IOCP;_WIN32_WINDOWS;ASIO_HAS_BOOST_DATE_TIME;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)Network\Submodules\LZ4\Include;G:\fineftp-server\thirdparty\asio\asio\include;$(SolutionDir)Network\Submodules\json\include;G:\DecisionSolver\submodules;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\json\include;G:\DecisionSolver\submodules;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>

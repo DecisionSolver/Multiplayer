@@ -18,9 +18,12 @@ namespace swl
 			Answer,
 			Connection,
 			Disconnection,
+			PlaySound,
 
 			// Server
-			ClosedServerByUpdate
+			ClosedServerByUpdate,
+			// From Server
+			GetListUsersOnline
 		};
 
 		struct Header
@@ -38,10 +41,9 @@ namespace swl
 			Header() {}
 		};
 
-		Packet(): readPos(0) {}
+		Packet() {}
 		Packet(const Packet& from)
 		{
-			readPos = 0;
 			data = from.data;
 			_H = from._H;
 		}
@@ -74,7 +76,6 @@ namespace swl
 		friend UDPSocket;
 		std::string onSend();
 	private:
-		uint32_t readPos = 0;
 		Header _H;
 		std::string data;
 

@@ -329,7 +329,6 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						{
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
-
 							m_connections.erase(itConnection);
 						}
 
@@ -349,7 +348,10 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						isUpdate = true;
 						auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
 						if (itConnection != m_connections.end())
+						{
+							connection->get_socket().close();
 							m_connections.erase(itConnection);
+						}
 						return;
 					}
 				}
@@ -396,8 +398,10 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								{
 									auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
 									if (itConnection != m_connections.end())
+									{
+										connection->get_socket().close();
 										m_connections.erase(itConnection);
-
+									}
 									return;
 								}
 								if (pack["data"]["body"]["_0"] == "OK")
@@ -417,6 +421,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								{
 									User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 										std::to_string(connection->GetMetaDB_User()) + "'" } });
+									connection->get_socket().close();
 									m_connections.erase(itConnection);
 								}
 
@@ -449,6 +454,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						}
 					}
 
+					// If Wasn't MySQL Packet And Timer Is Done
 					if (_Type == TypeWorking::Server && connection->GetTimer())
 					{
 						auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
@@ -456,6 +462,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						{
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
+							connection->get_socket().close();
 							m_connections.erase(itConnection);
 						}
 
@@ -479,9 +486,6 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					{
 						if (Callback_OnError)
 						{
-							std::mutex New;
-							std::unique_lock<std::mutex> OnErrorLock(New);
-
 							Sleep(1000);
 							Callback_OnError(one_connection->get_error_queue().back());
 							return;
@@ -497,14 +501,22 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 				{
 					for (auto &connection: m_connections)
 					{
-						std::unique_lock<std::mutex> lock(m_main_handler);
+						std::scoped_lock<std::mutex> lock(m_main_handler);
 						if (!connection) continue;
 
 						if (!connection->get_stopped())
 							Lambd(connection);
-					
+
 						if (connection)
+						{
+							if (connection->getIsError() && !connection->get_error_queue().empty())
+							{
+								User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
+								std::to_string(connection->GetMetaDB_User()) + "'" } });
+								connection->get_error_queue().pop_front();
+							}
 							connection->waiterDisconnection.notify_all();
+						}
 					}
 				}
 			}
