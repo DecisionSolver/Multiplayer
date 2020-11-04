@@ -1,9 +1,10 @@
+#include <pch.h>
 ///////////////////////////////////////
 // Headers                           //
 ///////////////////////////////////////
 									 //
-#include "MySQL_Impl.h"				 //
-#include "MySQL_Client.h"			 //
+#include "MySQL/MySQL_Impl.h"		 //
+#include "MySQL/MySQL_Client.h"		 //
 									 //
 ///////////////////////////////////////
 
@@ -59,23 +60,25 @@ namespace mysql
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::vector<std::pair<std::string, std::vector<std::string>>> Client::TrySelectValues(const std::string & name_table,	//
-		const std::vector<std::string>& name_columns, const std::string & condition)										//
+	std::list<std::pair<std::string, nlohmann::json>> Client::TrySelectValues(const std::string & name_table,				//
+		const std::vector<std::string>& name_columns, const std::vector<std::string> & condition)							//
 	{
 		return impl->TrySelectValues(name_table, name_columns, condition);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::TryInsertValues(const std::string & name_table, const std::vector<std::string>& name_columns,			//
-		const std::vector<std::string>& values)																			//
+		const std::vector<std::string>& values, const std::vector<std::string>& condition)								//
 	{
-		return impl->TryInsertValues(name_table, name_columns, values);
+		impl->TryInsertValues(name_table, name_columns, values, condition);
 	}
 
 
 	////////////////////////////////////////////////////////////////////////////////////
 	void Client::Disconnect()														  //
 	{
-		impl.~shared_ptr();
+		if (impl)
+			impl->Destroy();
+		impl.reset();
 	}
 } // namespace mysql

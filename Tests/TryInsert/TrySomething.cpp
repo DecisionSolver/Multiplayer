@@ -1,121 +1,164 @@
 ﻿#include <iostream>
-#include "MySQL_Client.h"
-#include "MySQL_Impl.h"
+#include "MySQL/MySQL_Client.h"
+#include "MySQL/MySQL_Impl.h"
 #include <vector>
 #include <string>
 #include <memory>
 #include "LZ4/lz4.h"
 #include "nlohmann/json.hpp"
 
-#include "Network.hpp"
 #include "Packet.hpp"
-#include "Server.hpp"
 #include "Client.hpp"
 
 #include <conio.h>
 #include <File.hpp>
 
+#include "asio/ssl/impl/src.hpp"
+#include "asio/ssl.hpp"
+
 using namespace std;
+using namespace net;
 
-shared_ptr<swl::TCPServer> Server = make_shared<swl::TCPServer>();
-shared_ptr<swl::TCPClient> Client = make_shared<swl::TCPClient>();
+using namespace asio::ssl;
 
-#define PORT 17272
-#define IP swl::IPEndpoint/*::getLocalAddress()*/("2.tcp.ngrok.io")
-int main()
+enum { max_length = 1024 };
+
+class client
 {
-	if (!swl::Network::initialize()) return -1;
-	thread([&]()
+public:
+	client(asio::io_service& io_service,
+		asio::ssl::context& context,
+		asio::ip::tcp::resolver::iterator endpoint_iterator)
+		: socket_(io_service, context)
 	{
-		bool IsLogging = false;
-		size_t ID = 0;
-		string Login, Pass, temp;
-		swl::FileTransfer File = swl::FileTransfer();
-		while (true)
+		socket_.set_verify_mode(asio::ssl::verify_peer);
+		socket_.set_verify_callback(
+			bind(&client::verify_certificate, this, std::placeholders::_1, std::placeholders::_2));
+
+		asio::async_connect(socket_.lowest_layer(), endpoint_iterator,
+			bind(&client::handle_connect, this,
+				std::placeholders::_1));
+	}
+
+	bool verify_certificate(bool preverified,
+		asio::ssl::verify_context& ctx)
+	{
+		// The verify callback can be used to check whether the certificate that is
+		// being presented is valid for the peer. For example, RFC 2818 describes
+		// the steps involved in doing this for HTTPS. Consult the OpenSSL
+		// documentation for more details. Note that the callback is called once
+		// for each certificate in the certificate chain, starting from the root
+		// certificate authority.
+
+		// In this example we will simply print the certificate's subject name.
+		char subject_name[256];
+		X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+		X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+		std::cout << "Verifying " << subject_name << "\n";
+
+		return preverified;
+	}
+
+	void handle_connect(const asio::error_code& error)
+	{
+		if (!error)
 		{
-			// To Do A MySQL Login And Password If It's Correctly Then We'll be able to move forward
-			while (!IsLogging)
-			{
-				printf("Hello, you need just log in this System\nEnter Your Login Here: ");
-				cin >> Login;
-				printf("\nOK, Almost done\nEnter Your Password Here: ");
-				cin >> Pass;
-
-				system("cls");
-				printf("\nWe're trying to verify your information... just wait!\n");
-
-				if (!Login.empty() && !Pass.empty())
-				{
-					if (!Client->isConnected())
-					{
-						if (Client->connect(IP, PORT, Login, Pass) == swl::Socket::Status::Done)
-						{
-							system("cls");
-							printf("Here we go!\n");
-							printf("\nTry to type something interesting!\n");
-							IsLogging = true;
-							break;
-						}
-						else
-						{
-							system("cls");
-							printf("Something is wrong, try again later!\n");
-						}
-					}
-				}
-			}
-
-			swl::Packet packet = swl::Packet();
-			if (!Client->isConnected())
-			{
-				system("cls");
-				printf("Something is wrong with Connect To Server, try again later!\n");
-				return;
-			}
-
-			packet = Client->getLastPacket(ID, swl::Packet::Type::Chat);
-			if (packet.operator bool())
-			{
-				temp = json::parse(packet.ToString())["data"].at("body").at("_0").get<string>();
-				if (!temp.empty())
-					printf("\nFrom Client: %s\n", temp.c_str());
-			}
-
-			if (kbhit())
-			{
-				cout << endl;
-				temp.push_back(getch());
-				cout << temp.c_str() << endl;
-
-				if (!temp.empty() && GetAsyncKeyState(VK_RETURN))
-				{
-					// Take One Of File From $(ProjectDir) -- (It's $(ProjectDir)Temp) And Transfer To ALL To Server
-					if (temp.find("/StartTransfer") != std::string::npos)
-					{
-						packet.clear();
-						if (File.SeparateFileIntoPackets("TrySomething.cpp")) // If It's Done Then Send File
-							File.Worker(Client);
-
-						temp.clear();
-						system("cls");
-					}
-					else
-					{
-						packet.clear();
-
-						json data = packet.CreateMessage();
-						data["data"].at("body").at("_0") = temp;
-						packet.FillIn(swl::Packet::Header(swl::Packet::Type::Chat, 0), data);
-						Client->send(packet);
-						temp.clear();
-						system("cls");
-					}
-				}
-			}
-
-			this_thread::sleep_for(10ms);
+			socket_.async_handshake(asio::ssl::stream_base::client,
+				bind(&client::handle_handshake, this,
+					std::placeholders::_1));
 		}
-	}).join();
-	if (Client->isConnected())
-		Client->disconnect();
+		else
+		{
+			std::cout << "Connect failed: " << error.message() << "\n";
+		}
+	}
+
+	void handle_handshake(const asio::error_code& error)
+	{
+		if (!error)
+		{
+			std::cout << "Enter message: ";
+			std::cin.getline(request_, max_length);
+			size_t request_length = strlen(request_);
+
+			asio::async_write(socket_,
+				asio::buffer(request_, request_length),
+				bind(&client::handle_write, this,
+					std::placeholders::_1,
+					std::placeholders::_2));
+		}
+		else
+		{
+			std::cout << "Handshake failed: " << error.message() << "\n";
+		}
+	}
+
+	void handle_write(const asio::error_code& error,
+		size_t bytes_transferred)
+	{
+		if (!error)
+		{
+			asio::async_read(socket_,
+				asio::buffer(reply_, bytes_transferred),
+				bind(&client::handle_read, this,
+					std::placeholders::_1,
+					std::placeholders::_2));
+		}
+		else
+		{
+			std::cout << "Write failed: " << error.message() << "\n";
+		}
+	}
+
+	void handle_read(const asio::error_code& error,
+		size_t bytes_transferred)
+	{
+		if (!error)
+		{
+			std::cout << "Reply: ";
+			std::cout.write(reply_, bytes_transferred);
+			std::cout << "\n";
+		}
+		else
+		{
+			std::cout << "Read failed: " << error.message() << "\n";
+		}
+	}
+
+private:
+	asio::ssl::stream<asio::ip::tcp::socket> socket_;
+	char request_[max_length];
+	char reply_[max_length];
+};
+
+int main(int argc, char* argv[])
+{
+	setlocale(LC_ALL, "Russian");
+	try
+	{
+		if (argc != 3)
+		{
+			std::cerr << "Usage: client <host> <port>\n";
+			return 1;
+		}
+
+		asio::io_service io_service;
+
+		asio::ip::tcp::resolver resolver(io_service);
+		asio::ip::tcp::resolver::query query(argv[1], argv[2]);
+		asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+
+		asio::ssl::context ctx(asio::ssl::context::sslv23);
+		ctx.load_verify_file("ca.pem");
+
+		client c(io_service, ctx, iterator);
+
+		io_service.run();
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << "Exception: " << e.what() << "\n";
+	}
+
+	return 0;
 }

@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\filesystem.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\server.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\server_impl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\user_database.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\include\fineftp\server.h">
+      <Filter>include\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h">
+      <Filter>include\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\filesystem.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\ftp_message.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\ftp_session.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\ftp_user.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\server_impl.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src\user_database.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{A5A7882F-AD4B-366E-93AD-EDCF8FCC4F07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\fineftp">
+      <UniqueIdentifier>{9CF9E576-7A91-3323-BF23-BD872CA65E22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{573C47E6-EDE2-36D0-8901-29C110338E57}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

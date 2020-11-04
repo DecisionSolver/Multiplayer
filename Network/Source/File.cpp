@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "File.hpp"
 #include <stdio.h>
 #include <iostream>
@@ -9,7 +10,8 @@ namespace swl
 {
 	bool FileTransfer::SeparateFileIntoPackets(std::string FileName, size_t HowManyParts, int ID_Recipient)
 	{
-		std::fstream fileIn(FileName, std::ios::in | std::ios::binary);
+		return false;
+		/*std::fstream fileIn(FileName, std::ios::in | std::ios::binary);
 		if (!fileIn)
 		{
 			OutputDebugStringA("FileTransfer::SeparateFileIntoPackets: !fileIn.is_open()");
@@ -58,9 +60,6 @@ namespace swl
 
 					data["data"]["_i"] = i + 1 == HowManyParts ? 255 : i;
 					i++;
-					/*
-						TODO Add Password In Random Part Of Packets
-					*/
 					if (ID_Recipient > -1)
 						data["header"]["_R"] = ID_Recipient;
 					else
@@ -85,9 +84,6 @@ namespace swl
 				data["header"]["_t"] = swl::Packet::Type::File;
 				data["data"]["body"]["_0"] = buffer->data();
 				data["data"]["_i"] = 255;
-				/*
-					TODO Add Password In This Packet
-				*/
 				if (ID_Recipient > -1)
 					data["header"]["_R"] = ID_Recipient;
 				else
@@ -106,14 +102,15 @@ namespace swl
 
 		fileIn.close();
 		return true;
+		*/
 	}
 
 	// Use It Only In Client->SEND!
-	void FileTransfer::Worker(std::shared_ptr<swl::Client> this_client)
+	void FileTransfer::Worker(std::shared_ptr<swl::TCPClient> this_client)
 	{
-		if (!this_client)
+		/*if (!this_client)
 			return;
-		std::thread([&](std::shared_ptr<swl::Client> this_client)
+		std::thread([&](std::shared_ptr<swl::TCPClient> this_client)
 		{
 			uint32_t ID = 0;
 
@@ -130,10 +127,10 @@ namespace swl
 				{
 					while (true)
 					{
-						Packet = this_client->getLastPacket(ID);
+						Packet.receive(this_client->getSocket()->getSocket());
 						if (Packet && Packet.getHeader().type & (swl::Packet::Type::Answer << swl::Packet::Type::File))
 						{
-							if (json::parse(Packet.ToString())["data"]["body"]["_1"].get<std::string>() == "OK")
+							if (json::parse(Packet.getData())["data"]["body"]["_1"].get<std::string>() == "OK")
 							{
 								PacketID++;
 								packets.pop_front();
@@ -141,21 +138,22 @@ namespace swl
 									std::advance(Obj, PacketID);
 								break;
 							}
-							if (json::parse(Packet.ToString())["data"]["body"]["_1"].get<std::string>() == "ERR")
+							if (json::parse(Packet.getData())["data"]["body"]["_1"].get<std::string>() == "ERR")
 								break; // TRY AGAIN!!!
 						}
 					}
 				}
 			} while (this_client->isConnected() && packets.size() != 0);
 		}, this_client).detach();
+		*/
 	}
 
 	// Use It Only In Client->RECV!
-	void FileTransfer::Save(std::string FileName, swl::Packet Packet, swl::Client *this_client)
+	void FileTransfer::Save(std::string FileName, swl::Packet Packet, swl::TCPClient *this_client)
 	{
-		if (Packet && Packet.getHeader().type & (swl::Packet::Type::Answer << swl::Packet::Type::File))
+		/*if (Packet && Packet.getHeader().type & (swl::Packet::Type::Answer << swl::Packet::Type::File))
 		{
-			json dataJSON = json::parse(Packet.ToString());
+			json dataJSON = json::parse(Packet.getData());
 			if (dataJSON["data"]["_i"] <= 254)
 			{
 				// Read Data Packet To All Data And After That Save To File!
@@ -195,5 +193,6 @@ namespace swl
 				fileOut.close();
 			}
 		}
+		*/
 	}
 }

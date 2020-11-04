@@ -1,14 +1,14 @@
-﻿
+﻿#include <pch.h>
 ///////////////////////////////////////
 // Headers                           //
 ///////////////////////////////////////
 									 //
-#include "MySQL_Impl.h"				 //
-#include "MySQL_Database.h"			 //
+#include "MySQL/MySQL_Impl.h"		 //
+#include "MySQL/MySQL_Database.h"	 //
 									 //
 ///////////////////////////////////////
 
-
+using json = nlohmann::json;
 namespace mysql
 {
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,66 +32,76 @@ namespace mysql
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
 
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::vector<std::pair<std::string, std::vector<std::string>>> Database::SelectValues(const std::string& name_table,	 //
-		const std::vector<std::string>& name_columns, const std::string& condition)										 //
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////
+	std::list<std::pair<std::string, json>> Database::SelectValues(const std::string& name_table,			//
+		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)			//
 	{
 		std::string temp;
-
-		ToDo("Add Condition To Check If Columns Are Present");
-
 		size_t ID = 0;
-		for (const auto &piece : name_columns)
+
+		if (name_columns.empty())
 		{
-			temp += piece + " AS " + "'_" + std::to_string(ID) + "',";
-			ID++;
+			throw sql::SQLException("No One Colunms Weren't Selected!");
+			return {};
 		}
-		temp.pop_back();
+
+		if (name_columns.back().back() != '*')
+		{
+			if (name_columns.front().find("_N") == std::string::npos)
+				temp += " _N AS '_N', ";
+			for (const auto &piece: name_columns)
+			{
+				temp += piece + " AS " + "'_" + std::to_string(ID) + "',";
+				ID++;
+			}
+			temp.pop_back();
+		}
+		else
+			temp = name_columns.back().back();
 
 		sql::ResultSet *ResultExec = nullptr;
 		if (!condition.empty())
 		{
-			std::string NewCond = condition;
+			std::string NewCond = *condition.data();
 			size_t FPos = std::string::npos;
 			FPos = temp.find("SELECT");
 			if (FPos != std::string::npos)
 				temp.erase(FPos, strlen("SELECT"));
-			FPos = condition.find("WHERE");
+			FPos = NewCond.find("WHERE");
 			if (FPos != std::string::npos)
 				NewCond.erase(FPos, strlen("WHERE"));
+			if (NewCond.back() == ';')
+				NewCond.pop_back();
 
 			ResultExec = impl->Query("SELECT " + temp + " FROM " + name_table + " WHERE " + NewCond + ";");
 		}
 		else
 			ResultExec = impl->Query("SELECT " + temp + " FROM " + name_table + ";");
 
-		std::vector<std::pair<std::string, std::vector<std::string>>> result;
+		std::list<std::pair<std::string, json>> result;
 		if (!ResultExec)
 			return result;
 		try
 		{
-			ResultExec->first();
-			while (true)
-			{
-				sql::ResultSetMetaData *MD;
-				MD = ResultExec->getMetaData();
-				size_t StartWith = 1;
+			//ResultExec->first();
 				// Get Count Columns
 
 				//printf("\nCount Columns: %d", MD->getColumnCount());
 				//printf("\nCount Rows: %d", ResultExec->rowsCount());
-
-				for (size_t id_column = 1; id_column < MD->getColumnCount() + 1; id_column++)
-				{
-					result.push_back({ MD->getColumnLabel(id_column), {} });
-					do
-					{
-						result.back().second.push_back(ResultExec->getString(StartWith));
-						StartWith++;
-					} while (StartWith < ResultExec->rowsCount() + 1);
-				}
-				if (!ResultExec->next())
-					break;
+			while (ResultExec->next())
+			{
+				json js;
+				if (ResultExec->findColumn("_N") > 0)
+					js["_N"] = ResultExec->getInt("_N");
+				if (ResultExec->findColumn("_0") > 0)
+					js["_0"] = ResultExec->getString("_0");
+				if (ResultExec->findColumn("_1") > 0)
+					js["_1"] = ResultExec->getString("_1");
+				if (ResultExec->findColumn("_2") > 0)
+					js["_2"] = ResultExec->getInt("_2");
+				if (ResultExec->findColumn("_3") > 0)
+					js["_3"] = ResultExec->getInt("_3");
+				result.push_back({ std::to_string((int)js["_N"].get<json::value_t>()), js });
 			}
 		}
 		catch (sql::SQLException &e)
@@ -103,32 +113,39 @@ namespace mysql
 			std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
 		}
 
-		delete ResultExec;
+		if (ResultExec)
+			delete ResultExec;
 		return result;
 	}
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Database::UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,//
-		const std::vector<std::string>& values, const std::string& condition)								//
+		const std::vector<std::string>& values, const std::vector<std::string>& condition)					//
 	{
-		std::stringstream value;
-		std::string temp;
-
+		std::stringstream valueCond, value;
 		for (size_t cnt = 0; cnt < name_columns.size(); cnt++)
 			value << name_columns.at(cnt) << "='" << values.at(cnt) << "',";
+		std::string Set = value.str();
+		Set.pop_back(); // Removed ','
 
+		for (size_t i = 0; i < condition.size(); i++)
+		{
+			valueCond << condition.at(i);
+		}
 		if (!condition.empty())
 		{
-			temp = value.str();
-			temp.pop_back();
+			std::string NewCond = valueCond.str();
+			size_t FPos = std::string::npos;
+			FPos = NewCond.find("WHERE");
+			if (FPos != std::string::npos)
+				NewCond.erase(FPos, strlen("WHERE"));
+			if (NewCond.back() == ';')
+				NewCond.pop_back();
 
-			impl->Query("UPDATE " + name_table + "\nSET " + temp + "\nWHERE " + condition + ";");
+			impl->Exec("UPDATE " + name_table + "\nSET " + Set + "\nWHERE " + NewCond + ";");
 		}
 		else
-		{
-			temp = value.str().replace(value.str().size() - 1, 1, ";");
-			impl->Query("UPDATE " + name_table + "\nSET " + temp);
-		}
+			impl->Exec("UPDATE " + name_table + "\nSET " + Set);
 	}
 } // namespace db
