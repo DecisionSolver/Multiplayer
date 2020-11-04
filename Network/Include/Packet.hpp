@@ -23,7 +23,11 @@ namespace swl
 			// Server
 			ClosedServerByUpdate,
 			// From Server
-			GetListUsersOnline
+			GetListUsersOnline,
+
+			Sync_PosChanges,
+			Sync_RotChanges,
+			Sync_SclChanges
 		};
 
 		struct Header

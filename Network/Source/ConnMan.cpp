@@ -142,11 +142,17 @@ bool ConnectionManager::IsRunning() const
 
 void ConnectionManager::Send(std::string Packet)
 {
-	if (_Type == ConnectionManager::TypeWorking::Client) return;
-
-	for (auto connection: m_connections)
+	if (_Type == ConnectionManager::TypeWorking::Client)
 	{
-		connection->Send({ Packet.begin(), Packet.end() });
+		if (one_connection)
+			one_connection->Send({ Packet.begin(), Packet.end() });
+	}
+	else
+	{
+		for (auto connection: m_connections)
+		{
+			connection->Send({ Packet.begin(), Packet.end() });
+		}
 	}
 }
 
@@ -329,6 +335,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						{
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
+							connection.reset();
 							m_connections.erase(itConnection);
 						}
 
@@ -476,8 +483,8 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 			while ((!m_io_service.stopped() || IsRunning()) && !isUpdate)
 			{
-				if (_Type == TypeWorking::Server)
-					Sleep(500);
+				//if (_Type == TypeWorking::Server)
+				//	Sleep(500);
 
 				if (_Type == TypeWorking::Client && one_connection)
 				{
@@ -499,7 +506,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 				if (_Type == TypeWorking::Server)
 				{
-					for (auto &connection: m_connections)
+					for (auto connection: m_connections)
 					{
 						std::scoped_lock<std::mutex> lock(m_main_handler);
 						if (!connection) continue;

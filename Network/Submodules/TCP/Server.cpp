@@ -34,7 +34,7 @@ int main()
 	{
 		while (server->IsWorking() && !server->isInUpdate())
 		{
-			Sleep(500);
+			//Sleep(500);
 		}
 	}).join();
 

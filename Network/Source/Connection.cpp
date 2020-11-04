@@ -141,7 +141,7 @@ bool Connection::GetTimer()
 
 void Connection::GetPacket(swl::Packet &packet, swl::Packet::Type _CheckingByType, std::string _CheckingByData)
 {
-	std::scoped_lock<std::mutex> lock(m_get_packet);
+	std::lock_guard<std::mutex> get_packet(m_get_packet);
 
 	if (!packet_queue.empty())
 	{
@@ -215,11 +215,10 @@ void Connection::DoSend()
 //--------------------------------------------------------------------
 void Connection::DoReceive()
 {
-	Sleep(500);
 	asio::async_read_until(m_socket, m_receiveBuffer, '#',
 		[self = shared_from_this()](const asio::error_code &errorCode, size_t bytesRead)
 	{
-		Sleep(1000);
+		//Sleep(1000);
 		UNREFERENCED_PARAMETER(bytesRead);
 		if (errorCode)
 		{

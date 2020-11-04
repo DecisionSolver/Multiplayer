@@ -13,6 +13,7 @@ namespace net
 		{
 			for (auto &Next: m_connections)
 			{
+				// Even Not To ME!!!
 				if (connection == Next) continue;
 				swl::Packet Answer = swl::Packet();
 				json pack = Answer.CreateMessage();
@@ -63,6 +64,60 @@ namespace net
 					swl::Packet::Type::PlaySound)), pack);
 				Next->Send(Answer);
 				break;
+			}
+			packet.clear();
+		}
+		connection->GetPacket(packet, swl::Packet::Type::Sync_PosChanges);
+		if (packet)
+		{
+			json unparse = json::parse(packet.getData());
+			for (auto &Next: m_connections)
+			{
+				// Even Not To ME!!!
+				if (connection == Next) continue;
+				swl::Packet Answer = swl::Packet();
+				json pack = Answer.CreateMessage();
+				pack["data"]["body"].clear();
+				pack["data"]["body"] = json::parse(packet.getData());
+				Answer.FillIn(swl::Packet::Header(swl::Packet::Type(swl::Packet::Type::Answer <<
+					swl::Packet::Type::Sync_PosChanges)), pack);
+				Next->Send(Answer);
+			}
+			packet.clear();
+		}
+		connection->GetPacket(packet, swl::Packet::Type::Sync_RotChanges);
+		if (packet)
+		{
+			json unparse = json::parse(packet.getData());
+			for (auto &Next : m_connections)
+			{
+				// Even Not To ME!!!
+				if (connection == Next) continue;
+				swl::Packet Answer = swl::Packet();
+				json pack = Answer.CreateMessage();
+				pack["data"]["body"].clear();
+				pack["data"]["body"] = json::parse(packet.getData());
+				Answer.FillIn(swl::Packet::Header(swl::Packet::Type(swl::Packet::Type::Answer <<
+					swl::Packet::Type::Sync_RotChanges)), pack);
+				Next->Send(Answer);
+			}
+			packet.clear();
+		}
+		connection->GetPacket(packet, swl::Packet::Type::Sync_SclChanges);
+		if (packet)
+		{
+			json unparse = json::parse(packet.getData());
+			for (auto &Next : m_connections)
+			{
+				// Even Not To ME!!!
+				if (connection == Next) continue;
+				swl::Packet Answer = swl::Packet();
+				json pack = Answer.CreateMessage();
+				pack["data"]["body"].clear();
+				pack["data"]["body"] = json::parse(packet.getData());
+				Answer.FillIn(swl::Packet::Header(swl::Packet::Type(swl::Packet::Type::Answer <<
+					swl::Packet::Type::Sync_SclChanges)), pack);
+				Next->Send(Answer);
 			}
 			packet.clear();
 		}
