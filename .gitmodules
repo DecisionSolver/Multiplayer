@@ -1,6 +1,3 @@
 [submodule "Network/Submodules/json"]
 	path = Network/Submodules/json
 	url = https://github.com/nlohmann/json
-[submodule "Network/Submodules/FTP/Server"]
-	path = Network/Submodules/FTP/Server
-	url = https://github.com/continental/fineftp-server

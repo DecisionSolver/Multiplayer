@@ -45,6 +45,99 @@ const std::string md5_from_file(const std::string& path)
 
 	return strHash;
 }
+
+bool addAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+{
+	auto AuthorList = User->TrySelectValues("user_wright", { "Username", username });
+
+	for (auto ThisRow : AuthorList)
+	{
+		if (ThisRow.second["_0"] == authorname)
+		{
+			if (ThisRow.second["_1"].is_null() || (ThisRow.second["_1"].is_string() &&
+				ThisRow.second["_1"].get<json::string_t>().empty()))
+				ThisRow.second["_1"] = {};
+			else if ((ThisRow.second["_1"].is_string() && !ThisRow.second["_1"].get<json::string_t>().empty()))
+				ThisRow.second["_1"] = json::parse(ThisRow.second["_1"].get<json::string_t>());
+			ThisRow.second["_1"].push_back(filename);
+			std::cerr << " " << ThisRow.second.dump() << " ";
+			User->TryInsertValues("user_wright", { username }, { ThisRow.second["_1"].dump() });
+			return false;
+		}
+	}
+	return true;
+}
+
+unsigned remove(nlohmann::json& jsonObject, const std::string& value)
+{
+	std::vector<int> toremove;
+	for (auto &it: jsonObject.items()) {
+		if (it.value().get<std::string>() == value)
+			toremove.push_back(stoi(it.key()));
+	}
+	std::sort(toremove.rbegin(), toremove.rend());
+	for (int &it : toremove)
+		jsonObject.erase(jsonObject.begin() + it);
+	return toremove.size();
+}
+
+bool removeAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+{
+	auto AuthorList = User->TrySelectValues("user_wright", { "Username", username });
+	for (auto ThisRow : AuthorList)
+	{
+		if (ThisRow.second["_0"] == authorname)
+		{
+			OutputDebugStringA(ThisRow.second["_1"].dump().c_str());
+			if ((ThisRow.second["_1"].is_string() && !ThisRow.second["_1"].get<json::string_t>().empty()))
+				ThisRow.second["_1"] = json::parse(ThisRow.second["_1"].get<json::string_t>());
+
+			remove(ThisRow.second["_1"], filename);
+
+			User->TryInsertValues("user_wright", { username }, { ThisRow.second["_1"].dump() }); // seems to be same as previous issue (f*ck json)
+			return false;
+		}
+	}
+	return true;
+}
+
+bool hasUserAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+{
+	if (username == authorname)
+	{
+		path authorpath = _getcwd(nullptr, 1024); // Uncomment only on real server, this is for checking for file existence
+		authorpath += "\\" + authorname + "\\" + filename;
+		ifstream targetfile{ authorpath };
+		if (targetfile.is_open())
+			return true; // file is in author folder + has access
+		else
+			return false; //no file in author folder
+	}
+
+	auto UserAccess = User->TrySelectValues("user_wright", { "Username", username }, { "Username = '" + authorname + "'" });
+
+	if (UserAccess.size() == 0)
+		return false;
+
+	for (auto ThisAccess : UserAccess)
+	{
+		if (ThisAccess.second["_1"].dump().find(filename) != std::string::npos)
+		{
+			path authorpath = _getcwd(nullptr, 1024); //Uncomment only on real server, this is for checking for file existence
+			authorpath += "\\" + authorname + "\\" + filename;
+			ifstream targetfile{ authorpath };
+			if (targetfile.is_open())
+				return true; // file is in author folder + has access
+			else
+				return false; //no file in author folder
+			return true;
+		}
+		else
+			return false; // no access
+	}
+	return false; //no author
+}
+
 int main()
 {
 	//User->Connect("gb_z_rod2_rf", "696ea7b8ty", "mysql101.1gb.ru", "gb_z_rod2_rf");
@@ -56,6 +149,12 @@ int main()
 		"192.168.1.2"
 #endif
 		, "gb_z_rod2_rf");
+
+	//std::cerr << hasUserAccess("doc.doc", "user2", "user1");
+	//std::cerr << addAccess("text1.text", "user1", "user2");
+	//std::cerr << hasUserAccess("text.text", "user1", "user2");
+	//std::cerr << removeAccess("text1.text", "user1", "user2");
+	//std::cerr << hasUserAccess("text.text", "user1", "user2");
 
 	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 	local_root += "/";
@@ -73,8 +172,9 @@ int main()
 	// Add the well known anonymous user and some normal users. The anonymous user
 	// can log in with username "anonyous" or "ftp" and any password. The normal
 	// users have to provide their username and password. 
-	
+
 	auto AllUsers = User->TrySelectValues("Local", { "*" });
+
 	local_root += "Users/";
 	for (auto ThisUser: AllUsers)
 	{
@@ -97,7 +197,7 @@ int main()
 	for (;;)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		
+
 		// Check For Updates
 		if (!exists(local_root.string() + "updates"))
 			create_directories(local_root.string() + "updates/");

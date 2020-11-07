@@ -123,6 +123,7 @@ OPENSSL_SYS_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     <ClCompile Include="Source\Connection.cpp" />
     <ClCompile Include="Source\ConnMan.cpp" />
     <ClCompile Include="Source\File.cpp" />
+    <ClCompile Include="Source\FTPClient.cpp" />
     <ClCompile Include="Source\IPEndpoint.cpp" />
     <ClCompile Include="Source\MySQL\MySQL_Client.cpp" />
     <ClCompile Include="Source\MySQL\MySQL_Database.cpp" />
@@ -136,6 +137,7 @@ OPENSSL_SYS_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     <ClInclude Include="Include\Client.hpp" />
     <ClInclude Include="Include\ConnMan.h" />
     <ClInclude Include="Include\File.hpp" />
+    <ClInclude Include="Include\FTPClient.h" />
     <ClInclude Include="Include\IPEndpoint.hpp" />
     <ClInclude Include="Include\LZ4\lz4.h" />
     <ClInclude Include="Include\LZ4\lz4frame.h" />

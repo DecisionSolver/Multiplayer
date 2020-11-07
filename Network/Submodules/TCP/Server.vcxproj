@@ -65,7 +65,7 @@ OPENSSL_SYS_WINDOWS
 ;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\Network\Include;$(SolutionDir)..\..\Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)..\..\Network\Submodules\LZ4\Include;G:\DecisionSolver\submodules;$(SolutionDir)..\..\Network\Submodules\json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;G:\DecisionSolver\submodules;$(SolutionDir)Network\Submodules\boost\asio\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\boost\asio\include;G:\DecisionSolver\submodules</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>

@@ -8,6 +8,7 @@
 #include <mutex>
 
 #include <Packet.hpp>
+#include <FTPClient.h>
 
 //--------------------------------------------------------------------
 class ConnectionManager;
@@ -59,6 +60,8 @@ public:
 	int GetMetaDB_User() { return UserID_MetaDB; }
 
 	asio::ip::tcp::socket &get_socket() { return m_socket; }
+
+	std::shared_ptr<FTPClient> getFtpClient() { return ftpClient; }
 private:
 	static size_t m_nextClientId;
 	size_t m_clientId = 0;
@@ -88,6 +91,8 @@ private:
 
 	int UserID_MetaDB = 0; // Number Line Of This DB User (Easily Work With User In MySQL)
 	//std::vector<std::string> User_MetaDB;
+
+	std::shared_ptr<FTPClient> ftpClient;
 };
 
 //--------------------------------------------------------------------

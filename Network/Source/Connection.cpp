@@ -52,6 +52,8 @@ Connection::Connection(ConnectionManager *connectionManager, asio::ip::tcp::sock
 {
 	printf("Client connection with id %zd has been created.\n", m_clientId);
 	Curr = Last = std::chrono::high_resolution_clock::now();
+
+	ftpClient = std::make_shared<FTPClient>();
 }
 
 //--------------------------------------------------------------------
@@ -174,14 +176,14 @@ void Connection::DoSend()
 		std::vector<char> &activeBuffer = m_sendBuffers[m_activeSendBufferIndex];
 		auto self(shared_from_this());
 	
-		if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client)
-			Sleep(500);
+		//if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client)
+			//Sleep(500);
 
 		asio::async_write(m_socket, asio::buffer(activeBuffer),
 			[self](const asio::error_code &errorCode, size_t bytesTransferred)
 		{
-			if (self->m_owner && self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client)
-				Sleep(500);
+			//if (self->m_owner && self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client)
+				//Sleep(500);
 			UNREFERENCED_PARAMETER(bytesTransferred);
 			std::scoped_lock<std::mutex> lock(self->m_sendMutex);
 

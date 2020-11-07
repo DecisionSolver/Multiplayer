@@ -348,8 +348,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					{
 						swl::Packet Answer = swl::Packet();
 						json pack = Answer.CreateAnswer();
-						Answer.FillIn(swl::Packet::Header((swl::Packet::Type)
-							(swl::Packet::Type::Answer << swl::Packet::Type::ClosedServerByUpdate)), pack);
+						Answer.FillIn(swl::Packet::Header(swl::Packet::Type::ClosedServerByUpdate), pack);
 						connection->Send(Answer);
 						
 						isUpdate = true;
@@ -483,12 +482,12 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 			while ((!m_io_service.stopped() || IsRunning()) && !isUpdate)
 			{
+				std::scoped_lock<std::mutex> lock(m_main_handler);
 				//if (_Type == TypeWorking::Server)
 				//	Sleep(500);
 
 				if (_Type == TypeWorking::Client && one_connection)
 				{
-					std::scoped_lock<std::mutex> lock(m_main_handler);
 					while (one_connection && (one_connection->getIsError() && !one_connection->get_error_queue().empty()))
 					{
 						if (Callback_OnError)
@@ -508,7 +507,6 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 				{
 					for (auto connection: m_connections)
 					{
-						std::scoped_lock<std::mutex> lock(m_main_handler);
 						if (!connection) continue;
 
 						if (!connection->get_stopped())

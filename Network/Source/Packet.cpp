@@ -30,7 +30,7 @@ namespace swl
 		{
 			{"header",
 				{
-					{ "_s",0}, // Settings
+					{"_s",0}, // Settings
 					{"_t",0}, // Was 2 // Type Of Packet
 					{"_R",0} // ID Recipient
 				}
@@ -56,7 +56,7 @@ namespace swl
 		{
 			{"header",
 				{
-					{ "_s",0}, // Settings
+					{"_s",0}, // Settings
 					{"_t",0}, // Was 2 // Type Of Packet
 					{"_R",0} // ID Recipient
 				}
@@ -82,7 +82,7 @@ namespace swl
 		{
 			{"header",
 				{
-					{ "_s",0}, // Settings
+					{"_s",0}, // Settings
 					{"_t",0}, // Was 2 // Type Of Packet
 					{"_R",0} // ID Recipient
 				}
@@ -106,10 +106,11 @@ namespace swl
 	json Packet::CreateDisconnect() const
 	{
 		return
+		//json Ret =
 		{
 			{"header",
 				{
-					{ "_s",0}, // Settings
+					{"_s",0}, // Settings
 					{"_t",0}, // Was 2 // Type Of Packet
 					{"_R",0} // ID Recipient
 				}
@@ -128,6 +129,12 @@ namespace swl
 				}
 			}
 		};
+
+		//_H.Settings = Ret["header"]["_s"].get<uint8_t>();
+		//_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
+		//	? Ret["data"].at("_o").get<size_t>()
+		//	: 0u;
+		//_H.type = (Type)Ret["header"].at("_t").get<size_t>();
 	}
 	std::string Packet::onSend()
 	{
@@ -222,7 +229,7 @@ namespace swl
 	{
 		if (NewData.empty())
 			return;
-		_H = NewHeader;
+		_H.type |= NewHeader.type;
 
 		NewData["header"]["_s"] = _H.Settings;
 		NewData["data"]["_o"] = _H.OrigSize;
