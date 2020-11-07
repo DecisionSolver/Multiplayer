@@ -8,22 +8,23 @@
 #include <conio.h>
 
 using namespace std;
+#include "MySQL/MySQL_Client.h"
+#include "MySQL/MySQL_Impl.h"
 
-#include <stdio.h>
-#include <ftpclient.h>
-#include <direct.h>
+std::shared_ptr<mysql::Impl> DB = std::make_shared<mysql::Impl>();
 
 int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "Russian");
 
-	FTPClient cl = FTPClient();
-	if (cl.Connect("192.168.121.1", "Uploader", "123456" /*"PBAX", "OK"*/))
-	{
-		std::string path = _getcwd(nullptr, 1024);
-		cl.ReceiveFile("AutoRun.InF", (path + "/NewFile.txt"));
-		cl.SendFile("G:/AutoRun.InF");
-	}
-	cl.Disconnect();
+	DB->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+#if defined(_DEBUG)
+		"188.210.240.246"
+#else
+		"192.168.1.2"
+#endif
+		, "gb_z_rod2_rf");
+	DB->InsertValues("user_wright", { "Authorname" }, { "TEST" });
+
 	return 0;
 }

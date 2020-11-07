@@ -47,14 +47,14 @@ namespace mysql
 		// Methods                                   //
 		///////////////////////////////////////////////
 
-		void Connect(const std::string& user, const std::string& password, const std::string& host,
+		void Connect(const std::string &user, const std::string &password, const std::string &host,
 			const std::string DB = "", const unsigned short& port = 3306, const std::string charset = "utf8");
 
-		std::list<std::pair<std::string, nlohmann::json>> TrySelectValues(const std::string& name_table,
-			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {});
+		std::list<std::pair<std::string, nlohmann::json>> TrySelectValues(const std::string &name_table,
+			const std::vector<std::string> &name_columns, const std::vector<std::string> &condition = {});
 
-		void TryInsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-			const std::vector<std::string>& values, const std::vector<std::string>& condition = {});
+		void TryInsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,
+			const std::vector<std::string> &values, const std::vector<std::string> &condition = {});
 
 		void Disconnect();
 	private:

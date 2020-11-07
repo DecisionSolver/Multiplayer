@@ -33,8 +33,8 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::list<std::pair<std::string, json>> Database::SelectValues(const std::string& name_table,			//
-		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)			//
+	std::list<std::pair<std::string, json>> Database::SelectValues(const std::string &name_table,			//
+		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)			//
 	{
 		std::string temp;
 		size_t ID = 0;
@@ -131,8 +131,8 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Database::UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,//
-		const std::vector<std::string>& values, const std::vector<std::string>& condition)					//
+	void Database::UpdateValues(const std::string &name_table, const std::vector<std::string> &name_columns,//
+		const std::vector<std::string> &values, const std::vector<std::string> &condition)					//
 	{
 		std::stringstream valueCond, value;
 		for (size_t cnt = 0; cnt < name_columns.size(); cnt++)
@@ -158,5 +158,37 @@ namespace mysql
 		}
 		else
 			impl->Exec("UPDATE " + name_table + "\nSET " + Set);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	void Database::InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,	//
+		const std::vector<std::string> &values)																	//
+	{
+		std::stringstream name_column;
+		std::string temp;
+
+		if (!name_columns.empty())
+		{
+			for (size_t cnt = 0; cnt < name_columns.size() - 1; cnt++)
+				name_column << name_columns.at(cnt) + ", ";
+
+			name_column << name_columns.back();
+		}
+
+		if (!values.empty())
+		{
+			temp.insert(0, "(");
+			for (size_t i = 0; i < values.size(); i++)
+			{
+				temp.insert(temp.size(), "'" + values.at(i) + "',");
+			}
+			temp.pop_back(); // Remove ','
+			temp.push_back(')');
+
+
+			impl->Exec("INSERT " + name_table + "(" + name_column.str() + ")" + "VALUES" + temp);
+		}
+		else
+			impl->Exec("INSERT " + name_table + "() VALUES()");
 	}
 } // namespace db

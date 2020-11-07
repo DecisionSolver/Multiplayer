@@ -62,14 +62,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;MYSQLCLIENT_STATIC_BINDING;ASIO_STANDALONE;ASIO_HAS_BOOST_THROW_EXCEPTION;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;ASIO_DISABLE_STD_SYSTEM_ERROR;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)include;G:\DecisionSolver\submodules;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)include;G:\DecisionSolver\submodules;$(SolutionDir)Network\Submodules\MySQL Connection\Include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\;$(SolutionDir)Network\Submodules\Boost\Libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Network.lib;libcurl-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Network.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>MSVCRT.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -97,7 +97,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Network\Submodules\FTP\Client.cpp" />
     <ClCompile Include="TrySomething.cpp" />
   </ItemGroup>
   <ItemGroup>
