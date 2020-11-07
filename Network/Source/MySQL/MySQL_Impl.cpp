@@ -258,9 +258,12 @@ namespace mysql
 
 				attribute << attributes.back();
 			}
-
-			Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
-				attribute.str() + ";");
+			if(value.empty())
+				Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type +
+					attribute.str() + ";");
+			else
+				Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
+					attribute.str() + ";");
 		}
 	}
 

@@ -26,6 +26,7 @@ using namespace boost::filesystem;
 #define IP swl::IPEndpoint("192.168.1.2")
 std::shared_ptr<mysql::MYSQLCLIENT> User = std::make_shared<mysql::MYSQLCLIENT>();
 std::shared_ptr<net::Client> Client = std::make_shared<net::Client>();
+std::shared_ptr<mysql::Impl> DB = std::make_shared<mysql::Impl>();
 path Programm;
 std::string Hash2;
 
@@ -46,29 +47,30 @@ const std::string md5_from_file(const std::string& path)
 	return strHash;
 }
 
-bool addAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+void addUser(const std::string& username)
 {
-	auto AuthorList = User->TrySelectValues("user_wright", { "Username", username });
-
-	for (auto ThisRow : AuthorList)
-	{
-		if (ThisRow.second["_0"] == authorname)
-		{
-			if (ThisRow.second["_1"].is_null() || (ThisRow.second["_1"].is_string() &&
-				ThisRow.second["_1"].get<json::string_t>().empty()))
-				ThisRow.second["_1"] = {};
-			else if ((ThisRow.second["_1"].is_string() && !ThisRow.second["_1"].get<json::string_t>().empty()))
-				ThisRow.second["_1"] = json::parse(ThisRow.second["_1"].get<json::string_t>());
-			ThisRow.second["_1"].push_back(filename);
-			std::cerr << " " << ThisRow.second.dump() << " ";
-			User->TryInsertValues("user_wright", { username }, { ThisRow.second["_1"].dump() });
-			return false;
-		}
-	}
-	return true;
+	DB->CreateColumn("user_wright", username, "TEXT", "", {});
+	DB->InsertValues("user_wright", { "Authorname" }, { username });
 }
 
-unsigned remove(nlohmann::json& jsonObject, const std::string& value)
+void addAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+{
+	auto AuthorList = User->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+	auto Row = AuthorList.begin();
+
+	if (Row->second["_0"].is_null() || (Row->second["_0"].is_string() && Row->second["_0"].get<json::string_t>().empty()))
+		Row->second["_0"] = {};
+	else if ((Row->second["_0"].is_string() && !Row->second["_0"].get<json::string_t>().empty()))
+		Row->second["_0"] = json::parse(Row->second["_0"].get<json::string_t>());
+
+	if (Row->second["_0"].dump().find(filename) == std::string::npos)
+	{
+		Row->second["_0"].push_back(filename);
+		User->TryInsertValues("user_wright", { username }, { Row->second["_0"].dump() }, { "Authorname = '" + authorname + "'" });
+	}
+}
+
+/*unsigned remove(nlohmann::json& jsonObject, const std::string& value)
 {
 	std::vector<int> toremove;
 	for (auto &it: jsonObject.items()) {
@@ -79,33 +81,28 @@ unsigned remove(nlohmann::json& jsonObject, const std::string& value)
 	for (int &it : toremove)
 		jsonObject.erase(jsonObject.begin() + it);
 	return toremove.size();
-}
+}*/
 
-bool removeAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+void removeAccess(const std::string& filename, const std::string& authorname, const std::string& username)
 {
-	auto AuthorList = User->TrySelectValues("user_wright", { "Username", username });
-	for (auto ThisRow : AuthorList)
-	{
-		if (ThisRow.second["_0"] == authorname)
-		{
-			OutputDebugStringA(ThisRow.second["_1"].dump().c_str());
-			if ((ThisRow.second["_1"].is_string() && !ThisRow.second["_1"].get<json::string_t>().empty()))
-				ThisRow.second["_1"] = json::parse(ThisRow.second["_1"].get<json::string_t>());
+	auto AuthorList = User->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+	auto Row = AuthorList.begin();
 
-			remove(ThisRow.second["_1"], filename);
+	OutputDebugStringA(Row->second["_0"].dump().c_str());
+	if ((Row->second["_0"].is_string() && !Row->second["_0"].get<json::string_t>().empty()))
+		Row->second["_0"] = json::parse(Row->second["_0"].get<json::string_t>());
 
-			User->TryInsertValues("user_wright", { username }, { ThisRow.second["_1"].dump() }); // seems to be same as previous issue (f*ck json)
-			return false;
-		}
-	}
-	return true;
+	//remove(Row->second["_0"], filename);
+	Row->second["_0"].dump().erase(Row->second["_0"].dump().find(filename), Row->second["_0"].dump().find(filename) + filename.size());
+
+	User->TryInsertValues("user_wright", { username }, { Row->second["_1"].dump() }, { "Authorname = '" + authorname + "'" });
 }
 
 bool hasUserAccess(const std::string& filename, const std::string& authorname, const std::string& username)
 {
 	if (username == authorname)
 	{
-		path authorpath = _getcwd(nullptr, 1024); // Uncomment only on real server, this is for checking for file existence
+		path authorpath = _getcwd(nullptr, 1024);
 		authorpath += "\\" + authorname + "\\" + filename;
 		ifstream targetfile{ authorpath };
 		if (targetfile.is_open())
@@ -114,33 +111,30 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 			return false; //no file in author folder
 	}
 
-	auto UserAccess = User->TrySelectValues("user_wright", { "Username", username }, { "Username = '" + authorname + "'" });
+	auto UserAccess = User->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
 
 	if (UserAccess.size() == 0)
-		return false;
+		return false; //no author
 
-	for (auto ThisAccess : UserAccess)
+	if (UserAccess.begin()->second["_0"].dump().find(filename) != std::string::npos)
 	{
-		if (ThisAccess.second["_1"].dump().find(filename) != std::string::npos)
-		{
-			path authorpath = _getcwd(nullptr, 1024); //Uncomment only on real server, this is for checking for file existence
-			authorpath += "\\" + authorname + "\\" + filename;
-			ifstream targetfile{ authorpath };
-			if (targetfile.is_open())
-				return true; // file is in author folder + has access
-			else
-				return false; //no file in author folder
-			return true;
-		}
+		path authorpath = _getcwd(nullptr, 1024);
+		authorpath += "\\" + authorname + "\\" + filename;
+		ifstream targetfile{ authorpath };
+		if (targetfile.is_open())
+			return true; // file is in author folder + has access
 		else
-			return false; // no access
+			return false; //no file in author folder
 	}
-	return false; //no author
+	else
+		return false; // no access
 }
 
 int main()
 {
 	//User->Connect("gb_z_rod2_rf", "696ea7b8ty", "mysql101.1gb.ru", "gb_z_rod2_rf");
+
+	DB->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd", "188.210.240.246", "gb_z_rod2_rf"); //change for test user, because this one doesn't have enough rights
 
 	User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
 #if defined(_DEBUG)
@@ -149,12 +143,12 @@ int main()
 		"192.168.1.2"
 #endif
 		, "gb_z_rod2_rf");
-
-	//std::cerr << hasUserAccess("doc.doc", "user2", "user1");
-	//std::cerr << addAccess("text1.text", "user1", "user2");
-	//std::cerr << hasUserAccess("text.text", "user1", "user2");
-	//std::cerr << removeAccess("text1.text", "user1", "user2");
-	//std::cerr << hasUserAccess("text.text", "user1", "user2");
+	addUser("user3");
+	std::cerr << hasUserAccess("doc.doc", "user2", "user1");
+	addAccess("text.text", "user1", "user3");
+	std::cerr << hasUserAccess("text.text", "user1", "user3");
+	addAccess("text.text", "user3", "user1");
+	std::cerr << hasUserAccess("text.text", "user3", "user1");
 
 	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 	local_root += "/";
