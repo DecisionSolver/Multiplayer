@@ -119,7 +119,7 @@ void ConnectionManager::ConnectToServer()
 	
 		/* Sending ACCEPT CONNECTION Packet */
 		swl::Packet AnswerPacket = swl::Packet();
-		json dataJSON = AnswerPacket.CreateMessage();
+		json dataJSON = json::parse(AnswerPacket.CreateMessage()->getData());
 		dataJSON["data"]["body"]["_1"] = "OK";
 		AnswerPacket.FillIn(swl::Packet::Header(swl::Packet::Type::Connection), dataJSON);
 		one_connection->Send(AnswerPacket);
@@ -335,7 +335,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						{
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
-							connection.reset();
+							connection->get_socket().close();
 							m_connections.erase(itConnection);
 						}
 
@@ -347,7 +347,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					if (packet && connection->get_socket().local_endpoint().address().to_string() == "127.0.0.1")
 					{
 						swl::Packet Answer = swl::Packet();
-						json pack = Answer.CreateAnswer();
+						json pack = json::parse(Answer.CreateAnswer()->getData());
 						Answer.FillIn(swl::Packet::Header(swl::Packet::Type::ClosedServerByUpdate), pack);
 						connection->Send(Answer);
 						
@@ -378,11 +378,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								auto Obj = User->TrySelectValues("Local", { "*" },
 									{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
 
-								//printf(("\nsize: " + std::to_string(Obj.size()) + "\n").c_str());
-
 								// If Successfull Then Send Answer About It
 								swl::Packet Answer = swl::Packet();
-								json pack = Answer.CreateAnswer();
+								json pack = json::parse(Answer.CreateAnswer()->getData());
 								if (!Obj.empty() && !Obj.front().second.empty())
 								{
 									pack["data"]["body"]["_0"] = "OK";
@@ -395,8 +393,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								else
 									pack["data"]["body"]["_0"] = "NotFound";
 
-								Answer.FillIn(swl::Packet::Header((swl::Packet::Type)
-									(swl::Packet::Type::Answer << swl::Packet::Type::MySQL)), pack);
+								Answer.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL), pack);
 								connection->Send(Answer);
 
 								if (pack["data"]["body"]["_0"] == "NotFound" ||

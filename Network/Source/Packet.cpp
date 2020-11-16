@@ -12,6 +12,7 @@ namespace swl
 			data.clear();
 		_H.OrigSize = 0;
 		_H.Settings = 0;
+		_H.IsAnswer = false;
 		_H.type = Type::Chat;
 	}
 	size_t Packet::getSize() const
@@ -24,14 +25,15 @@ namespace swl
 		return data;
 	}
 
-	json Packet::CreateAnswer() const
+	Packet *Packet::CreateAnswer()
 	{
-		return
+		json Return =
 		{
 			{"header",
 				{
 					{"_s",0}, // Settings
 					{"_t",0}, // Was 2 // Type Of Packet
+					{"_A",true}, // If Is It Answer?
 					{"_R",0} // ID Recipient
 				}
 			},
@@ -49,15 +51,25 @@ namespace swl
 				}
 			}
 		};
+
+		_H.Settings = Return["header"]["_s"].get<uint8_t>();
+		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
+			? Return["data"]["_o"].get<size_t>()
+			: 0u;
+		_H.type = (Type)Return["header"]["_t"].get<size_t>();
+		data = Return["data"]["body"].dump();
+		_H.IsAnswer = Return["header"]["_A"].get<bool>();
+
+		return this;
 	}
-	json Packet::CreateMessage() const
+	Packet *Packet::CreateMessage()
 	{
-		return
+		json Return =
 		{
 			{"header",
 				{
 					{"_s",0}, // Settings
-					{"_t",0}, // Was 2 // Type Of Packet
+					{"_t",Chat}, // Was 2 // Type Of Packet
 					{"_R",0} // ID Recipient
 				}
 			},
@@ -75,15 +87,24 @@ namespace swl
 				}
 			}
 		};
+		
+		_H.Settings = Return["header"]["_s"].get<uint8_t>();
+		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
+			? Return["data"]["_o"].get<size_t>()
+			: 0u;
+		_H.type = (Type)Return["header"]["_t"].get<size_t>();
+		data = Return["data"]["body"].dump();
+
+		return this;
 	}
-	json Packet::CreateMySQL() const
+	Packet *Packet::CreateMySQL()
 	{
-		return
+		json Return =
 		{
 			{"header",
 				{
 					{"_s",0}, // Settings
-					{"_t",0}, // Was 2 // Type Of Packet
+					{"_t",MySQL}, // Was 2 // Type Of Packet
 					{"_R",0} // ID Recipient
 				}
 			},
@@ -102,16 +123,24 @@ namespace swl
 				}
 			}
 		};
+		
+		_H.Settings = Return["header"]["_s"].get<uint8_t>();
+		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
+			? Return["data"]["_o"].get<size_t>()
+			: 0u;
+		_H.type = (Type)Return["header"]["_t"].get<size_t>();
+		data = Return["data"]["body"].dump();
+
+		return this;
 	}
-	json Packet::CreateDisconnect() const
+	Packet *Packet::CreateDisconnect()
 	{
-		return
-		//json Ret =
+		json Return =
 		{
 			{"header",
 				{
 					{"_s",0}, // Settings
-					{"_t",0}, // Was 2 // Type Of Packet
+					{"_t",Disconnection}, // Was 2 // Type Of Packet
 					{"_R",0} // ID Recipient
 				}
 			},
@@ -130,11 +159,14 @@ namespace swl
 			}
 		};
 
-		//_H.Settings = Ret["header"]["_s"].get<uint8_t>();
-		//_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
-		//	? Ret["data"].at("_o").get<size_t>()
-		//	: 0u;
-		//_H.type = (Type)Ret["header"].at("_t").get<size_t>();
+		_H.Settings = Return["header"]["_s"].get<uint8_t>();
+		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
+			? Return["data"]["_o"].get<size_t>()
+			: 0u;
+		_H.type = (Type)Return["header"]["_t"].get<size_t>();
+		data = Return.dump();
+
+		return this;
 	}
 	std::string Packet::onSend()
 	{
@@ -186,11 +218,18 @@ namespace swl
 
 			if (js.empty()) return this;
 
-			_H.Settings = js["header"].at("_s").get<uint8_t>();
-			_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
-				? js["data"].at("_o").get<size_t>()
+			auto End = js["header"].end();
+			if (js["header"].find("_s") != End)
+				_H.Settings = js["header"]["_s"].get<uint8_t>();
+
+			if (js["header"].find("_o") != End)
+				_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
+				? js["data"]["_o"].get<size_t>()
 				: 0u;
-			_H.type = (Type)js["header"].at("_t").get<size_t>();
+			if (js["header"].find("_t") != End)
+				_H.type = (Type)js["header"]["_t"].get<int>();
+			if (js["header"].find("_A") != End)
+				_H.IsAnswer = js["header"]["_A"].get<json::boolean_t>();
 
 			if (_H.Settings & Header::TypeSettings::Compressed)
 			{
@@ -229,62 +268,17 @@ namespace swl
 	{
 		if (NewData.empty())
 			return;
-		_H.type |= NewHeader.type;
+		_H.type = NewHeader.type;
+
+		// Translate String To Array JSON
+		if (NewData.is_string() && !NewData.get<json::string_t>().empty())
+			NewData = json::parse(NewData.get<json::string_t>());
 
 		NewData["header"]["_s"] = _H.Settings;
 		NewData["data"]["_o"] = _H.OrigSize;
 		NewData["header"]["_t"] = _H.type;
+		NewData["header"]["_A"] = _H.IsAnswer;
 
 		data = NewData.dump() + '#';
 	}
-
-//	void Packet::send(std::shared_ptr<TCPSocket> socket)
-//	{
-//		if (!socket) return;
-//		send(socket->getSocket());
-//	}
-//	void Packet::send(tcp::socket &socket)
-//	{
-//		std::size_t length = socket.write_some(asio::buffer(data, data.length()));
-//#if defined (_SERVER) && defined (_CONSOLE)
-//		std::cout << " Sent:\nData: " << data << ", numBytes: " << length << "\n";
-//#endif
-//	}
-//	void Packet::receive(std::shared_ptr<TCPSocket> socket)
-//	{
-//		if (!socket) return;
-//		receive(socket->getSocket());
-//	}
-//
-//	void Packet::receive(tcp::socket &socket)
-//	{
-//		char *newdata = new char[2048 * 5];
-//		std::error_code ec;
-//		std::size_t length = 0;
-//		length = socket.read_some(asio::buffer(newdata, 2048 * 5), ec);
-//		newdata[length] = '\0';
-//
-//		if (ec)
-//		{
-//			if (ec != asio::error::eof)
-//			{
-//				std::cerr << "read_until error: " << ec.message() << std::endl;
-//				socket.close();
-//			}
-//#ifndef NDEBUG
-//			else
-//			{
-//				std::cout << "Control connection closed by client." << std::endl;
-//				socket.close();
-//			}
-//#endif // !NDEBUG
-//			std::cerr << ec.message() << std::endl;
-//			socket.close();
-//			return;
-//		}
-//		onReceive(newdata);
-//#if defined (_SERVER) && defined (_CONSOLE)
-//		std::cout << "\nServer Got New Packet:\nData: " << (const char*)newdata << ", numBytes: " << length << "\n";
-//#endif
-//	}
 }

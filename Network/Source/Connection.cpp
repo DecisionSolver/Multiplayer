@@ -86,7 +86,7 @@ void Connection::Stop()
 	{
 		swl::Packet disconnect = swl::Packet();
 		disconnect.FillIn(swl::Packet::Header(swl::Packet::Type::Disconnection),
-			disconnect.CreateDisconnect());
+			disconnect.CreateDisconnect()->getData());
 		Send(disconnect);
 	}
 	SetConnected(false);
@@ -202,8 +202,14 @@ void Connection::DoSend()
 				return;
 			}
 			
-			printf("Sending data to client %zd: %s\n", self->m_clientId, self->m_sendBuffers[0].size() > 0 ? 
-				self->m_sendBuffers[0].data() : self->m_sendBuffers[1].data());
+			if (self->m_sendBuffers[0].size() > 0)
+				self->m_sendBuffers[0].push_back('\0');
+			else
+				self->m_sendBuffers[1].push_back('\0');
+
+			printf("Sending data to client %zd: %s\n", self->m_clientId, self->m_sendBuffers[0].size() > 0 ?
+				self->m_sendBuffers[0].data() :
+				self->m_sendBuffers[1].data());
 			self->m_sendBuffers[self->m_activeSendBufferIndex].clear();
 
 			// Check if there is more to send that has been queued up on the inactive buffer,

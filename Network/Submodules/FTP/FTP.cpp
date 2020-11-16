@@ -24,9 +24,10 @@ using namespace boost::filesystem;
 
 #define PORT 20675
 #define IP swl::IPEndpoint("192.168.1.2")
-std::shared_ptr<mysql::MYSQLCLIENT> User = std::make_shared<mysql::MYSQLCLIENT>();
+
 std::shared_ptr<net::Client> Client = std::make_shared<net::Client>();
 std::shared_ptr<mysql::Impl> DB = std::make_shared<mysql::Impl>();
+
 path Programm;
 std::string Hash2;
 
@@ -55,7 +56,7 @@ void addUser(const std::string& username)
 
 void addAccess(const std::string& filename, const std::string& authorname, const std::string& username)
 {
-	auto AuthorList = User->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
 	auto Row = AuthorList.begin();
 
 	if (Row->second["_0"].is_null() || (Row->second["_0"].is_string() && Row->second["_0"].get<json::string_t>().empty()))
@@ -66,36 +67,22 @@ void addAccess(const std::string& filename, const std::string& authorname, const
 	if (Row->second["_0"].dump().find(filename) == std::string::npos)
 	{
 		Row->second["_0"].push_back(filename);
-		User->TryInsertValues("user_wright", { username }, { Row->second["_0"].dump() }, { "Authorname = '" + authorname + "'" });
+		DB->TryInsertValues("user_wright", { username }, { Row->second["_0"].dump() }, { "Authorname = '" + authorname + "'" });
 	}
 }
 
-/*unsigned remove(nlohmann::json& jsonObject, const std::string& value)
-{
-	std::vector<int> toremove;
-	for (auto &it: jsonObject.items()) {
-		if (it.value().get<std::string>() == value)
-			toremove.push_back(stoi(it.key()));
-	}
-	std::sort(toremove.rbegin(), toremove.rend());
-	for (int &it : toremove)
-		jsonObject.erase(jsonObject.begin() + it);
-	return toremove.size();
-}*/
-
 void removeAccess(const std::string& filename, const std::string& authorname, const std::string& username)
 {
-	auto AuthorList = User->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
 	auto Row = AuthorList.begin();
 
-	OutputDebugStringA(Row->second["_0"].dump().c_str());
-	if ((Row->second["_0"].is_string() && !Row->second["_0"].get<json::string_t>().empty()))
-		Row->second["_0"] = json::parse(Row->second["_0"].get<json::string_t>());
+	//OutputDebugStringA(Row->second["_0"].dump().c_str());
+	
+	if (Row->second["_0"].dump() != "\"\"")
+		Row->second["_0"].dump().erase(Row->second["_0"].dump().find(filename), Row->second["_0"].dump().find(filename) + filename.size());
 
-	//remove(Row->second["_0"], filename);
-	Row->second["_0"].dump().erase(Row->second["_0"].dump().find(filename), Row->second["_0"].dump().find(filename) + filename.size());
-
-	User->TryInsertValues("user_wright", { username }, { Row->second["_1"].dump() }, { "Authorname = '" + authorname + "'" });
+	DB->TryInsertValues("user_wright", { username },
+		{ Row->second["_0"].dump() != "\"\"" ? Row->second["_0"].dump() : "" }, { "Authorname = '" + authorname + "'" });
 }
 
 bool hasUserAccess(const std::string& filename, const std::string& authorname, const std::string& username)
@@ -111,7 +98,7 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 			return false; //no file in author folder
 	}
 
-	auto UserAccess = User->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+	auto UserAccess = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
 
 	if (UserAccess.size() == 0)
 		return false; //no author
@@ -132,11 +119,7 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 
 int main()
 {
-	//User->Connect("gb_z_rod2_rf", "696ea7b8ty", "mysql101.1gb.ru", "gb_z_rod2_rf");
-
-	DB->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd", "188.210.240.246", "gb_z_rod2_rf"); //change for test user, because this one doesn't have enough rights
-
-	User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+	DB->Connect("test", "test123",
 #if defined(_DEBUG)
 		"188.210.240.246"
 #else
@@ -149,6 +132,7 @@ int main()
 	std::cerr << hasUserAccess("text.text", "user1", "user3");
 	addAccess("text.text", "user3", "user1");
 	std::cerr << hasUserAccess("text.text", "user3", "user1");
+	removeAccess("text1.text", "user1", "user2");
 
 	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 	local_root += "/";
@@ -167,7 +151,7 @@ int main()
 	// can log in with username "anonyous" or "ftp" and any password. The normal
 	// users have to provide their username and password. 
 
-	auto AllUsers = User->TrySelectValues("Local", { "*" });
+	auto AllUsers = DB->TrySelectValues("Local", { "*" });
 
 	local_root += "Users/";
 	for (auto ThisUser: AllUsers)
@@ -247,7 +231,7 @@ int main()
 					Client->StartSystem();
 
 					swl::Packet packet = swl::Packet();
-					json pack = packet.CreateMessage();
+					json pack = json::parse(packet.CreateMessage()->getData());
 					packet.FillIn(swl::Packet::Header(swl::Packet::Type::ClosedServerByUpdate), pack);
 					Client->GetConnect()->Send(packet);
 				}

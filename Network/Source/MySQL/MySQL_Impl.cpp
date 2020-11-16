@@ -18,6 +18,7 @@
 #endif // defined(_CONSOLE)
 
 std::map<std::string, std::shared_ptr<mysql::Database>> mysql::Impl::databases;
+sql::ConnectOptionsMap mysql::Impl::connection_properties;
 
 namespace mysql
 {
@@ -26,8 +27,6 @@ namespace mysql
 	{
 		try
 		{
-			sql::ConnectOptionsMap connection_properties;
-
 			connection_properties["hostName"] = host;
 			connection_properties["userName"] = user;
 			connection_properties["password"] = password;
@@ -91,6 +90,15 @@ namespace mysql
 		}
 		catch (sql::SQLException &e)
 		{
+			// If "Lost Connection To MySQL Server During Query"
+			if (e.getErrorCode() == 2013)
+			{
+				driver = get_driver_instance();
+				connection.reset(driver->connect(connection_properties));
+				std::cout << "Made Reconnect To Server" << std::endl;
+				return nullptr;
+			}
+
 			std::cout << "# ERR: SQLException in " << __FILE__;
 			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
 			std::cout << "# ERR: " << e.what();
@@ -123,6 +131,14 @@ namespace mysql
 		}
 		catch (sql::SQLException &e)
 		{
+			// If "Lost Connection To MySQL Server During Query"
+			if (e.getErrorCode() == 2013)
+			{
+				driver = get_driver_instance();
+				connection.reset(driver->connect(connection_properties));
+				std::cout << "Made Reconnect To Server" << std::endl;
+				return;
+			}
 			std::cout << "# ERR: SQLException in " << __FILE__;
 			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
 			std::cout << "# ERR: " << e.what();

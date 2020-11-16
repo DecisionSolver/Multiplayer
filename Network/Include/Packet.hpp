@@ -27,8 +27,6 @@ namespace swl
 			Sync_PosChanges,
 			Sync_RotChanges,
 			Sync_SclChanges,
-
-			Answer = (1 << 31)
 		};
 
 		struct Header
@@ -39,6 +37,7 @@ namespace swl
 			};
 			uint8_t Settings = 0; // IsCompressed etc...
 			int type;
+			bool IsAnswer = false; // Sets Only When Comes (e.g. GetPacket With (_A == True) Param)
 			size_t OrigSize = 0;
 
 			Header(Type NewType): type(NewType), Settings(0) {}
@@ -65,10 +64,10 @@ namespace swl
 		operator bool() { return !data.empty(); }
 		Header getHeader() { return _H; }
 
-		json CreateAnswer() const;
-		json CreateMessage() const;
-		json CreateMySQL() const;
-		json CreateDisconnect() const;
+		Packet *CreateAnswer();
+		Packet *CreateMessage();
+		Packet *CreateMySQL();
+		Packet *CreateDisconnect();
 		
 		Packet *onReceive(const char *_data);
 	protected:

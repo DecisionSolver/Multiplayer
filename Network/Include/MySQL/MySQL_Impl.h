@@ -49,6 +49,9 @@ namespace mysql
 		static std::map<std::string, std::shared_ptr<mysql::Database>> databases;
 		std::shared_ptr<Database> current_database;
 		bool isReadOnly = false, wasSelectedDB = false;
+
+		// For Reconnection
+		static sql::ConnectOptionsMap connection_properties;
 	public:
 		//////////////////////////////////////////////////////////
 		///////////			SECTION MODIFIED		//////////////
