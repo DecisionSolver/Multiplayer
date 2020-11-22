@@ -15,7 +15,6 @@ namespace swl
 			Chat = 0,
 			File,
 			MySQL,
-			Answer,
 			Connection,
 			Disconnection,
 			PlaySound,
@@ -23,7 +22,11 @@ namespace swl
 			// Server
 			ClosedServerByUpdate,
 			// From Server
-			GetListUsersOnline
+			GetListUsersOnline,
+
+			Sync_PosChanges,
+			Sync_RotChanges,
+			Sync_SclChanges,
 		};
 
 		struct Header
@@ -33,9 +36,10 @@ namespace swl
 				Compressed = 1,
 			};
 			uint8_t Settings = 0; // IsCompressed etc...
-			Type type;
+			int type;
+			bool IsAnswer = false; // Sets Only When Comes (e.g. GetPacket With (_A == True) Param)
 			size_t OrigSize = 0;
-	
+
 			Header(Type NewType): type(NewType), Settings(0) {}
 			Header(Type NewType, uint8_t NewSettings): type(NewType), Settings(NewSettings) {}
 			Header() {}
@@ -57,18 +61,13 @@ namespace swl
 		void FillIn(json NewData);
 		void FillIn(Header NewHeader, json NewData);
 
-		//void send(std::shared_ptr<TCPSocket> socket);
-		//void send(tcp::socket &socket);
-		//void receive(std::shared_ptr<TCPSocket> socket);
-		//void receive(tcp::socket &socket);
-
 		operator bool() { return !data.empty(); }
 		Header getHeader() { return _H; }
 
-		json CreateAnswer() const;
-		json CreateMessage() const;
-		json CreateMySQL() const;
-		json CreateDisconnect() const;
+		Packet *CreateAnswer();
+		Packet *CreateMessage();
+		Packet *CreateMySQL();
+		Packet *CreateDisconnect();
 		
 		Packet *onReceive(const char *_data);
 	protected:

@@ -18,7 +18,7 @@ Connection::SharedPtr Connection::Create(ConnectionManager *connectionManager, a
 std::ostringstream Connection::ErrorCodeToString(const asio::error_code &errorCode)
 {
 	std::ostringstream debugMsg;
-	debugMsg << " Error Category: " << errorCode.category().name() << ". "
+	debugMsg << "Error Category: " << errorCode.category().name() << ". "
 		<< " Error Message: " << errorCode.message() << ". ";
 
 	// IMPORTANT - These comparisons only work if you dynamically link boost libraries
@@ -44,7 +44,6 @@ Connection::Connection(ConnectionManager *connectionManager, asio::ip::tcp::sock
 	, m_socket(std::move(socket))
 	, m_stopped(false)
 	, m_receiveBuffer()
-	, m_sendMutex()
 	, m_sendBuffers()
 	, m_activeSendBufferIndex(0)
 	, m_sending(false)
@@ -52,6 +51,8 @@ Connection::Connection(ConnectionManager *connectionManager, asio::ip::tcp::sock
 {
 	printf("Client connection with id %zd has been created.\n", m_clientId);
 	Curr = Last = std::chrono::high_resolution_clock::now();
+
+	ftpClient = std::make_shared<FTPClient>();
 }
 
 //--------------------------------------------------------------------
@@ -84,11 +85,11 @@ void Connection::Stop()
 	{
 		swl::Packet disconnect = swl::Packet();
 		disconnect.FillIn(swl::Packet::Header(swl::Packet::Type::Disconnection),
-			disconnect.CreateDisconnect());
+			disconnect.CreateDisconnect()->getData());
 		Send(disconnect);
 	}
 	SetConnected(false);
-	isApproved = false;
+	isLogged = false;
 
 	successConn.notify_all();
 
@@ -98,7 +99,6 @@ void Connection::Stop()
 //--------------------------------------------------------------------
 void Connection::Send(const std::vector<char> &data)
 {
-	std::scoped_lock<std::mutex> lock(m_sendMutex);
 	// Append to the inactive buffer
 	std::vector<char> &inactiveBuffer = m_sendBuffers[m_activeSendBufferIndex ^ 1];
 	inactiveBuffer.insert(inactiveBuffer.end(), data.begin(), data.end());
@@ -109,7 +109,6 @@ void Connection::Send(const std::vector<char> &data)
 
 void Connection::Send(const swl::Packet &packet)
 {
-	std::scoped_lock<std::mutex> lock(m_sendMutex);
 	auto Data = packet.getData();
 	if (Data.empty()) return;
 
@@ -121,10 +120,6 @@ void Connection::Send(const swl::Packet &packet)
 	DoSend();
 }
 
-bool Connection::GetApproved()
-{
-	return isApproved;
-}
 bool Connection::GetTimer()
 {
 	if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client) return false;
@@ -141,23 +136,24 @@ bool Connection::GetTimer()
 
 void Connection::GetPacket(swl::Packet &packet, swl::Packet::Type _CheckingByType, std::string _CheckingByData)
 {
-	std::scoped_lock<std::mutex> lock(m_get_packet);
-
 	if (!packet_queue.empty())
 	{
-		auto it = std::find_if(packet_queue.begin(), packet_queue.end(),
-			[&](const std::shared_ptr<swl::Packet> &packet)
+		std::lock_guard<std::mutex> get_packet(m_get_packet);
+		if (!packet_queue.empty())
 		{
-			if (packet->getHeader().type == _CheckingByType ||
-				(!_CheckingByData.empty() && packet->getData().find(_CheckingByData) != std::string::npos))
-				return true;
-			return false;
-		});
-		if (it != packet_queue.end())
-		{
-			packet = *std::move(packet_queue.front());
-			if (!packet_queue.empty())
-				packet_queue.pop_front();
+			auto it = std::find_if(packet_queue.begin(), packet_queue.end(),
+				[&](swl::Packet Packet_Queue)
+			{
+				if (Packet_Queue && (Packet_Queue.getHeader().type == _CheckingByType ||
+					(!_CheckingByData.empty() && Packet_Queue.getData().find(_CheckingByData) != std::string::npos)))
+				{
+					packet = std::move(Packet_Queue);
+					return true;
+				}
+				return false;
+			});
+			if (it != packet_queue.end())
+				packet_queue.erase(it);
 		}
 	}
 }
@@ -174,16 +170,10 @@ void Connection::DoSend()
 		std::vector<char> &activeBuffer = m_sendBuffers[m_activeSendBufferIndex];
 		auto self(shared_from_this());
 	
-		if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client)
-			Sleep(500);
-
 		asio::async_write(m_socket, asio::buffer(activeBuffer),
 			[self](const asio::error_code &errorCode, size_t bytesTransferred)
 		{
-			if (self->m_owner && self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client)
-				Sleep(500);
 			UNREFERENCED_PARAMETER(bytesTransferred);
-			std::scoped_lock<std::mutex> lock(self->m_sendMutex);
 
 			if (errorCode)
 			{
@@ -200,8 +190,14 @@ void Connection::DoSend()
 				return;
 			}
 			
-			printf("Sending data to client %zd: %s\n", self->m_clientId, self->m_sendBuffers[0].size() > 0 ? 
-				self->m_sendBuffers[0].data() : self->m_sendBuffers[1].data());
+			if (self->m_sendBuffers[0].size() > 0)
+				self->m_sendBuffers[0].push_back('\0');
+			else
+				self->m_sendBuffers[1].push_back('\0');
+
+			printf("Sending data to client %zd: %s\n", self->m_clientId, self->m_sendBuffers[0].size() > 0 ?
+				self->m_sendBuffers[0].data() :
+				self->m_sendBuffers[1].data());
 			self->m_sendBuffers[self->m_activeSendBufferIndex].clear();
 
 			// Check if there is more to send that has been queued up on the inactive buffer,
@@ -215,16 +211,12 @@ void Connection::DoSend()
 //--------------------------------------------------------------------
 void Connection::DoReceive()
 {
-	Sleep(500);
 	asio::async_read_until(m_socket, m_receiveBuffer, '#',
 		[self = shared_from_this()](const asio::error_code &errorCode, size_t bytesRead)
 	{
-		Sleep(1000);
 		UNREFERENCED_PARAMETER(bytesRead);
 		if (errorCode)
 		{
-			std::scoped_lock<std::mutex> lock(self->getMutex_Error());
-
 			// Check if the other side hung up
 			if (errorCode == asio::error::make_error_code(asio::error::eof))
 				// This is not really an error. The client is free to hang up whenever they like
@@ -253,12 +245,12 @@ void Connection::DoReceive()
 
 		printf("Received data from client %zd: %s\n", self->m_clientId, data.c_str());
 
-		std::shared_ptr<swl::Packet> newPacket = std::make_shared<swl::Packet>();
-		if (newPacket->onReceive(data.c_str()))
+		swl::Packet newPacket = swl::Packet();
+		if (newPacket.onReceive(data.c_str()))
 		{
-			if (self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server && !self->GetApproved())
+			if (self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server && !self->GetLogged())
 			{
-				if (newPacket->getHeader().type == swl::Packet::Type::Connection || swl::Packet::Type::MySQL)
+				if (newPacket.getHeader().type == swl::Packet::Type::Connection || swl::Packet::Type::MySQL)
 					self->packet_queue.push_back(newPacket);
 			}
 			else

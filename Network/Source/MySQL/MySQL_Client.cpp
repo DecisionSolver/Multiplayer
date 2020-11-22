@@ -41,12 +41,12 @@ namespace mysql
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::Connect(const std::string& user, const std::string& password, const std::string& host,			//
+	Client::Status Client::Connect(const std::string& user, const std::string& password, const std::string& host,	//
 		const std::string DB, const unsigned short& port, const std::string charset)
 	{
 		try
 		{
-			impl->Connect(user, password, host, DB, port, charset, true);
+			return (Client::Status)impl->Connect(user, password, host, DB, port, charset, true);
 		}
 		catch (sql::SQLException &e)
 		{
@@ -56,6 +56,7 @@ namespace mysql
 			std::cout << "# ERR: " << e.what();
 			std::cout << " (MySQL error code: " << e.getErrorCode();
 			std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+			return Status::Error;
 		}
 	}
 

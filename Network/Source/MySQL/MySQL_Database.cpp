@@ -33,11 +33,11 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::list<std::pair<std::string, json>> Database::SelectValues(const std::string& name_table,			//
-		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)			//
+	std::list<std::pair<std::string, json>> Database::SelectValues(const std::string &name_table,			//
+		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)			//
 	{
 		std::string temp;
-		size_t ID = 0;
+		//size_t ID = 0;
 
 		if (name_columns.empty())
 		{
@@ -47,12 +47,12 @@ namespace mysql
 
 		if (name_columns.back().back() != '*')
 		{
-			if (name_columns.front().find("_N") == std::string::npos)
-				temp += " _N AS '_N', ";
+			//if (name_columns.front().find("_N") == std::string::npos)
+				//temp += " _N AS '_N', ";
 			for (const auto &piece: name_columns)
 			{
-				temp += piece + " AS " + "'_" + std::to_string(ID) + "',";
-				ID++;
+				temp += piece + ",";
+				//ID++;
 			}
 			temp.pop_back();
 		}
@@ -83,20 +83,31 @@ namespace mysql
 			return result;
 		try
 		{
-			//ResultExec->first();
-				// Get Count Columns
+			// Get Count Columns
 
-				//printf("\nCount Columns: %d", MD->getColumnCount());
-				//printf("\nCount Rows: %d", ResultExec->rowsCount());
+			//printf("\nCount Columns: %d", MD->getColumnCount());
+			//printf("\nCount Rows: %d", ResultExec->rowsCount());
 			while (ResultExec->next())
 			{
 				json js;
 				if (ResultExec->findColumn("_N") > 0)
 					js["_N"] = ResultExec->getInt("_N");
 				if (ResultExec->findColumn("_0") > 0)
+				{
 					js["_0"] = ResultExec->getString("_0");
+					if ((js["_0"].is_string() && !js["_0"].get<json::string_t>().empty() &&
+						(js["_0"].dump().find("[") != std::string::npos &&
+							js["_0"].dump().rfind("]") != std::string::npos)))
+						js["_0"] = json::parse(js["_0"].get<json::string_t>());
+				}
 				if (ResultExec->findColumn("_1") > 0)
+				{
 					js["_1"] = ResultExec->getString("_1");
+					if ((js["_1"].is_string() && !js["_1"].get<json::string_t>().empty() &&
+						(js["_1"].dump().find("[") != std::string::npos &&
+							js["_1"].dump().rfind("]") != std::string::npos)))
+						js["_1"] = json::parse(js["_1"].get<json::string_t>());
+				}
 				if (ResultExec->findColumn("_2") > 0)
 					js["_2"] = ResultExec->getInt("_2");
 				if (ResultExec->findColumn("_3") > 0)
@@ -120,8 +131,8 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Database::UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,//
-		const std::vector<std::string>& values, const std::vector<std::string>& condition)					//
+	void Database::UpdateValues(const std::string &name_table, const std::vector<std::string> &name_columns,//
+		const std::vector<std::string> &values, const std::vector<std::string> &condition)					//
 	{
 		std::stringstream valueCond, value;
 		for (size_t cnt = 0; cnt < name_columns.size(); cnt++)
@@ -147,5 +158,37 @@ namespace mysql
 		}
 		else
 			impl->Exec("UPDATE " + name_table + "\nSET " + Set);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	void Database::InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,	//
+		const std::vector<std::string> &values)																	//
+	{
+		std::stringstream name_column;
+		std::string temp;
+
+		if (!name_columns.empty())
+		{
+			for (size_t cnt = 0; cnt < name_columns.size() - 1; cnt++)
+				name_column << name_columns.at(cnt) + ", ";
+
+			name_column << name_columns.back();
+		}
+
+		if (!values.empty())
+		{
+			temp.insert(0, "(");
+			for (size_t i = 0; i < values.size(); i++)
+			{
+				temp.insert(temp.size(), "'" + values.at(i) + "',");
+			}
+			temp.pop_back(); // Remove ','
+			temp.push_back(')');
+
+
+			impl->Exec("INSERT " + name_table + "(" + name_column.str() + ")" + "VALUES" + temp);
+		}
+		else
+			impl->Exec("INSERT " + name_table + "() VALUES()");
 	}
 } // namespace db

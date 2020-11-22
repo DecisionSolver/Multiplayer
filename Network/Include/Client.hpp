@@ -18,7 +18,7 @@ namespace net
 		ConnectionManager(ConnectionManager::TypeWorking::Client, IP.toString(), Port, numThreads) {}
 		~Client() {}
 		
-		void Connect(const swl::IPEndpoint& ip, const uint16_t& port);
+		bool Connect(const swl::IPEndpoint& ip, const uint16_t& port);
 		void Disconnect();
 	};
 }

@@ -14,6 +14,7 @@
 using namespace boost::filesystem;
 
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
 #include <cryptlib.h>
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
@@ -22,10 +23,8 @@ using namespace boost::filesystem;
 #include <hex.h>
 #include <Shellapi.h>
 
-#define PORT 20675
-#define IP swl::IPEndpoint("192.168.1.2")
-std::shared_ptr<mysql::MYSQLCLIENT> User = std::make_shared<mysql::MYSQLCLIENT>();
-std::shared_ptr<net::Client> Client = std::make_shared<net::Client>();
+std::shared_ptr<mysql::Impl> DB = std::make_shared<mysql::Impl>();
+
 path Programm;
 std::string Hash2;
 
@@ -43,19 +42,95 @@ const std::string md5_from_file(const std::string& path)
 	std::string strHash = std::string(reinterpret_cast<const char*>(buf), size);
 	std::cout << strHash.c_str() << std::endl;
 
+	boost::to_upper(strHash);
 	return strHash;
 }
+
+void addUser(const std::string& username)
+{
+	DB->CreateColumn("user_wright", username, "TEXT", "", {});
+	DB->InsertValues("user_wright", { "Authorname" }, { username });
+}
+
+void addAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+{
+	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+	auto Row = AuthorList.begin();
+
+	if (Row->second["_0"].is_null() || (Row->second["_0"].is_string() && Row->second["_0"].get<json::string_t>().empty()))
+		Row->second["_0"] = {};
+	else if ((Row->second["_0"].is_string() && !Row->second["_0"].get<json::string_t>().empty()))
+		Row->second["_0"] = json::parse(Row->second["_0"].get<json::string_t>());
+
+	if (Row->second["_0"].dump().find(filename) == std::string::npos)
+	{
+		Row->second["_0"].push_back(filename);
+		DB->TryInsertValues("user_wright", { username }, { Row->second["_0"].dump() }, { "Authorname = '" + authorname + "'" });
+	}
+}
+
+void removeAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+{
+	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+	auto Row = AuthorList.begin();
+
+	//OutputDebugStringA(Row->second["_0"].dump().c_str());
+	
+	if (Row->second["_0"].dump() != "\"\"")
+		Row->second["_0"].dump().erase(Row->second["_0"].dump().find(filename), Row->second["_0"].dump().find(filename) + filename.size());
+
+	DB->TryInsertValues("user_wright", { username },
+		{ Row->second["_0"].dump() != "\"\"" ? Row->second["_0"].dump() : "" }, { "Authorname = '" + authorname + "'" });
+}
+
+bool hasUserAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+{
+	if (username == authorname)
+	{
+		path authorpath = _getcwd(nullptr, 1024);
+		authorpath += "\\" + authorname + "\\" + filename;
+		ifstream targetfile{ authorpath };
+		if (targetfile.is_open())
+			return true; // file is in author folder + has access
+		else
+			return false; //no file in author folder
+	}
+
+	auto UserAccess = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+
+	if (UserAccess.size() == 0)
+		return false; //no author
+
+	if (UserAccess.begin()->second["_0"].dump().find(filename) != std::string::npos)
+	{
+		path authorpath = _getcwd(nullptr, 1024);
+		authorpath += "\\" + authorname + "\\" + filename;
+		ifstream targetfile{ authorpath };
+		if (targetfile.is_open())
+			return true; // file is in author folder + has access
+		else
+			return false; //no file in author folder
+	}
+	else
+		return false; // no access
+}
+
 int main()
 {
-	//User->Connect("gb_z_rod2_rf", "696ea7b8ty", "mysql101.1gb.ru", "gb_z_rod2_rf");
-
-	User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+	DB->Connect("test", "test123",
 #if defined(_DEBUG)
 		"188.210.240.246"
 #else
 		"192.168.1.2"
 #endif
 		, "gb_z_rod2_rf");
+	//addUser("user3");
+	//std::cerr << hasUserAccess("doc.doc", "user2", "user1");
+	//addAccess("text.text", "user1", "user3");
+	//std::cerr << hasUserAccess("text.text", "user1", "user3");
+	//addAccess("text.text", "user3", "user1");
+	//std::cerr << hasUserAccess("text.text", "user3", "user1");
+	//removeAccess("text1.text", "user1", "user2");
 
 	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 	local_root += "/";
@@ -73,8 +148,9 @@ int main()
 	// Add the well known anonymous user and some normal users. The anonymous user
 	// can log in with username "anonyous" or "ftp" and any password. The normal
 	// users have to provide their username and password. 
-	
-	auto AllUsers = User->TrySelectValues("Local", { "*" });
+
+	auto AllUsers = DB->TrySelectValues("Local", { "*" });
+
 	local_root += "Users/";
 	for (auto ThisUser: AllUsers)
 	{
@@ -82,7 +158,8 @@ int main()
 		if (!exists(ThisPath))
 			create_directories(ThisPath);
 		if (ThisUser.second["_3"].get<int>() == 1)
-			server.addUser(ThisUser.second["_0"], ThisUser.second["_1"], local_root.string(), fineftp::Permission::All);
+			server.addUser(ThisUser.second["_0"], ThisUser.second["_1"], (_getcwd(nullptr, 1024) +
+				std::string("Workspace")), fineftp::Permission::All);
 		else
 			server.addUser(ThisUser.second["_0"], ThisUser.second["_1"], ThisPath, fineftp::Permission::FileWrite);
 	}
@@ -97,68 +174,6 @@ int main()
 	for (;;)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		
-		// Check For Updates
-		if (!exists(local_root.string() + "updates"))
-			create_directories(local_root.string() + "updates/");
-
-		int cnt = std::count_if(
-			directory_iterator(local_root.string() + "updates/"),
-			directory_iterator(),
-			static_cast<bool(*)(const path&)>(is_regular_file));
-		if (cnt > 1)
-		{
-			if (Programm.empty() && Hash2.empty())
-			{
-				for (directory_iterator it(local_root.string() + "updates/"); it != directory_iterator(); ++it)
-				{
-					if (it->path().filename() != "update_tcp.exe")
-						Hash2 = it->path().filename().string();
-					else
-						Programm = it->path();
-				}
-			}
-			else if (Client->IsRunning() && Client->GetConnect() && (!Programm.empty() && !is_empty(Programm)))
-			{
-				swl::Packet packet = swl::Packet();
-				Client->GetConnect()->GetPacket(packet, (swl::Packet::Type)
-					(swl::Packet::Type::Answer << swl::Packet::Type::ClosedServerByUpdate));
-				if (packet)
-				{
-					local_root = _getcwd(nullptr, 1024);
-					local_root += "/Workspace/";
-					Hash2 += ".exe";
-
-					// Call New Server
-					if (!exists(local_root.string() + Hash2))
-						boost::filesystem::copy_file(Programm, local_root.string() + Hash2);
-
-					boost::filesystem::remove_all(local_root.string() + "updates");
-					ShellExecuteA(0, "open", (local_root.string() + Hash2).c_str(), 0, 0, 1);
-					Programm.clear();
-					Hash2.clear();
-
-					Client->Disconnect();
-					Client->StopSystem();
-				}
-			}
-
-			else if (!Client->GetConnect() || !Client->IsRunning() && !Programm.empty() && !is_empty(Programm))
-			{
-				auto Hash1 = md5_from_file(Programm.string());
-				if ((!Hash1.empty() && !Hash2.empty()) && Hash2 == Hash1)
-				{
-					// Connecting to server and send ClosedServerByUpdate Packet
-					Client->Connect(IP, PORT);
-					Client->StartSystem();
-
-					swl::Packet packet = swl::Packet();
-					json pack = packet.CreateMessage();
-					packet.FillIn(swl::Packet::Header(swl::Packet::Type::ClosedServerByUpdate), pack);
-					Client->GetConnect()->Send(packet);
-				}
-			}
-		}
 	}
 
 	return 0;

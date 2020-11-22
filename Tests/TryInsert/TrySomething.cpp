@@ -1,163 +1,326 @@
-﻿#include <iostream>
-#include "MySQL/MySQL_Client.h"
-#include "MySQL/MySQL_Impl.h"
+#include <iostream>
 #include <vector>
 #include <string>
 #include <memory>
 #include "LZ4/lz4.h"
 #include "nlohmann/json.hpp"
 
-#include "Packet.hpp"
-#include "Client.hpp"
-
 #include <conio.h>
-#include <File.hpp>
-
-#include "asio/ssl/impl/src.hpp"
-#include "asio/ssl.hpp"
 
 using namespace std;
-using namespace net;
+#include "MySQL/MySQL_Client.h"
+#include "MySQL/MySQL_Impl.h"
+#include "Client.hpp"
+#include "Packet.hpp"
 
-using namespace asio::ssl;
+shared_ptr<mysql::Impl> DB = make_shared<mysql::Impl>();
+vector<shared_ptr<net::Client>> Users;
 
-enum { max_length = 1024 };
+#define IP swl::IPEndpoint("192.168.121.1")
+#define PORT 20675
 
-class client
+bool UseRepeater = false;
+void ConnectFunc(string Login, string Pass)
 {
-public:
-	client(asio::io_service& io_service,
-		asio::ssl::context& context,
-		asio::ip::tcp::resolver::iterator endpoint_iterator)
-		: socket_(io_service, context)
+	Users.push_back(make_shared<net::Client>(swl::IPEndpoint(""), 0));
+	if (Users.back()->Connect(IP, PORT))
 	{
-		socket_.set_verify_mode(asio::ssl::verify_peer);
-		socket_.set_verify_callback(
-			bind(&client::verify_certificate, this, std::placeholders::_1, std::placeholders::_2));
+		Users.back()->StartSystem();
 
-		asio::async_connect(socket_.lowest_layer(), endpoint_iterator,
-			bind(&client::handle_connect, this,
-				std::placeholders::_1));
+		// Create MySQL Packet That We're Connection To
+		swl::Packet Answer = swl::Packet();
+		json pack = json::parse(Answer.CreateMySQL()->getData());
+		pack["data"]["body"]["_0"] = Login;
+		pack["data"]["body"]["_1"] = Pass;
+		Answer.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL), pack);
+
+		Users.back()->Send(Answer.getData());
 	}
-
-	bool verify_certificate(bool preverified,
-		asio::ssl::verify_context& ctx)
+	else
 	{
-		// The verify callback can be used to check whether the certificate that is
-		// being presented is valid for the peer. For example, RFC 2818 describes
-		// the steps involved in doing this for HTTPS. Consult the OpenSSL
-		// documentation for more details. Note that the callback is called once
-		// for each certificate in the certificate chain, starting from the root
-		// certificate authority.
-
-		// In this example we will simply print the certificate's subject name.
-		char subject_name[256];
-		X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
-		X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-		std::cout << "Verifying " << subject_name << "\n";
-
-		return preverified;
+		system("cls");
+		printf("User: %s, didn't connect to the %s", Login.c_str(), IP.toString().c_str());
 	}
-
-	void handle_connect(const asio::error_code& error)
+}
+void GetPacketFromThread(swl::Packet packet, swl::Packet::Type NeededPacket)
+{
+	if (packet && packet.getHeader().type == NeededPacket && packet.getHeader().IsAnswer)
 	{
-		if (!error)
+		json unparsed = json::parse(packet.getData());
+		size_t i = 0;
+		for (const auto &element: unparsed["_0"])
 		{
-			socket_.async_handshake(asio::ssl::stream_base::client,
-				bind(&client::handle_handshake, this,
-					std::placeholders::_1));
-		}
-		else
-		{
-			std::cout << "Connect failed: " << error.message() << "\n";
+			printf("\tID: %i\nName: %s\n", (int)unparsed["_1"].at(i).get<json::value_t>(),
+				element.get<json::string_t>().c_str());
+			i++;
 		}
 	}
-
-	void handle_handshake(const asio::error_code& error)
-	{
-		if (!error)
-		{
-			std::cout << "Enter message: ";
-			std::cin.getline(request_, max_length);
-			size_t request_length = strlen(request_);
-
-			asio::async_write(socket_,
-				asio::buffer(request_, request_length),
-				bind(&client::handle_write, this,
-					std::placeholders::_1,
-					std::placeholders::_2));
-		}
-		else
-		{
-			std::cout << "Handshake failed: " << error.message() << "\n";
-		}
-	}
-
-	void handle_write(const asio::error_code& error,
-		size_t bytes_transferred)
-	{
-		if (!error)
-		{
-			asio::async_read(socket_,
-				asio::buffer(reply_, bytes_transferred),
-				bind(&client::handle_read, this,
-					std::placeholders::_1,
-					std::placeholders::_2));
-		}
-		else
-		{
-			std::cout << "Write failed: " << error.message() << "\n";
-		}
-	}
-
-	void handle_read(const asio::error_code& error,
-		size_t bytes_transferred)
-	{
-		if (!error)
-		{
-			std::cout << "Reply: ";
-			std::cout.write(reply_, bytes_transferred);
-			std::cout << "\n";
-		}
-		else
-		{
-			std::cout << "Read failed: " << error.message() << "\n";
-		}
-	}
-
-private:
-	asio::ssl::stream<asio::ip::tcp::socket> socket_;
-	char request_[max_length];
-	char reply_[max_length];
-};
+}
 
 int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "Russian");
-	try
+
+	DB->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+#if defined(_DEBUG)
+		"188.210.240.246"
+#else
+		"192.168.1.2"
+#endif
+		, "gb_z_rod2_rf");
+
+	int Choice = 0;
+	while (true)
 	{
-		if (argc != 3)
+		printf("Choice The One:\n");
+		printf("\t[0] - Login Under All Users That Are Free Now\n");
+		printf("\t[1] - Login Under Needed Account\n");
+		printf("\t[2] - Exit\n");
+
+		printf(": ");
+
+		cin >> Choice;
+		switch (Choice)
 		{
-			std::cerr << "Usage: client <host> <port>\n";
-			return 1;
+		case 0:
+		{
+			auto AllUsers = DB->TrySelectValues("Local", { "*" }, { " WHERE _2 = 0" });
+			for (auto CurrUser: AllUsers)
+			{
+				ConnectFunc(CurrUser.second["_0"].get<json::string_t>(), CurrUser.second["_1"].get<json::string_t>());
+			}
+			break;
+		}
+		case 1:
+		{
+			string Login, Pass;
+			system("cls");
+			printf("Enter Login Here: ");
+			cin >> Login;
+			printf("Enter Password Here: ");
+			cin >> Pass;
+
+			ConnectFunc(Login, Pass);
+
+			break;
+		}
+		case 2:
+		{
+			return 0;
+		}
+		default:
+		{
+			system("cls");
+			printf("Unrecognized Choice. Try Another One!\n");
+			continue;
+		}
 		}
 
-		asio::io_service io_service;
+		Sleep(1000);
+		Choice = 0;
+		string Text;
 
-		asio::ip::tcp::resolver resolver(io_service);
-		asio::ip::tcp::resolver::query query(argv[1], argv[2]);
-		asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+		std::thread([&]
+		{
+			while (!Users.empty())
+			{
+				Sleep(1000);
+				swl::Packet packet;
 
-		asio::ssl::context ctx(asio::ssl::context::sslv23);
-		ctx.load_verify_file("ca.pem");
+				if (Users.size() == 1)
+				{
+					if (!UseRepeater)
+					{
+						if (!Users.front()->GetConnect()) continue;
+						Users.front()->GetConnect()->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
+						GetPacketFromThread(packet, swl::Packet::Type::GetListUsersOnline);
+					}
+					while (UseRepeater)
+					{
+						if (!Users.front()->GetConnect()) continue;
+						Users.front()->GetConnect()->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
+						GetPacketFromThread(packet, swl::Packet::Type::GetListUsersOnline);
+					}
+				}
+				else if (Users.size() > 1)
+				{
+					if (!UseRepeater)
+					{
+						for (auto CurrentUser: Users)
+						{
+							if (!CurrentUser->GetConnect()) continue;
+							CurrentUser->GetConnect()->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
+							GetPacketFromThread(packet, swl::Packet::Type::GetListUsersOnline);
+						}
+					}
+					while (UseRepeater)
+					{
+						for (auto CurrentUser: Users)
+						{
+							if (!CurrentUser->GetConnect()) continue;
+							CurrentUser->GetConnect()->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
+							GetPacketFromThread(packet, swl::Packet::Type::GetListUsersOnline);
+						}
+					}
+				}
+			}
+		}).detach();
+		while (true)
+		{
+			Sleep(1000);
+			printf("Choice The One:\n");
+			printf("\t[0] - Send Chat Message Packet\n");
+			printf("\t[1] - Send Random Coordinates Level Object\n");
+			printf("\t[2] - Send \"Sound Play\" Packet (By Default It's \"01.08.16.wav\")\n");
 
-		client c(io_service, ctx, iterator);
+			printf("\t[3] - Get List Online Users\n");
 
-		io_service.run();
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << "Exception: " << e.what() << "\n";
+			printf("\t[4] - Back To Previous Menu\n");
+
+			printf("\t[5] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
+			
+			printf(": ");
+			cin >> Choice;
+			switch (Choice)
+			{
+			case 0:
+			{
+				Text.clear();
+				system("cls");
+				printf("Enter Message Here: ");
+				cin >> Text;
+
+				std::thread t = std::thread([&]
+				{
+					swl::Packet packet;
+					json data = json::parse(packet.CreateMessage()->getData());
+					data["data"]["body"]["_0"] = Text + "\n";
+					packet.FillIn(swl::Packet::Header(swl::Packet::Type::Chat), data);
+
+					if (Users.size() == 1)
+					{
+						if (UseRepeater)
+						{
+							while (UseRepeater)
+							{
+								if (Users.front()->GetConnect())
+									Users.front()->GetConnect()->Send(packet);
+							}
+						}
+						else
+						{
+							if (Users.front()->GetConnect())
+								Users.front()->GetConnect()->Send(packet);
+						}
+					}
+					else if (Users.size() > 1)
+					{
+						if (UseRepeater)
+						{
+							while (UseRepeater)
+							{
+								for (auto CurrentUser: Users)
+								{
+									if (!CurrentUser->GetConnect()) continue;
+									CurrentUser->GetConnect()->Send(packet);
+								}
+							}
+						}
+						else
+						{
+							for (auto CurrentUser: Users)
+							{
+								if (!CurrentUser->GetConnect()) continue;
+								CurrentUser->GetConnect()->Send(packet);
+							}
+						}
+					}
+				});
+				if (UseRepeater)
+					t.detach();
+				else
+					t.join();
+
+				break;
+			}
+			case 2:
+			{
+				Text.clear();
+				system("cls");
+				printf("Enter ID User Here (-1 Means That 'To All Users'): ");
+				cin >> Text;
+
+				if (Text == "-1")
+				{
+					auto AllUsersID = DB->TrySelectValues("Local", { "_N" });
+					vector<swl::Packet> packet;
+
+					for (auto ID: AllUsersID)
+					{
+						packet.push_back(swl::Packet());
+						json data = json::parse(packet.back().CreateMessage()->getData());
+						data["data"]["body"]["_0"] = atoi(ID.first.c_str());
+						data["data"]["body"]["_1"] = 0.016f;
+						data["data"]["body"]["_2"] = "01.08.16.wav";
+						packet.back().FillIn(swl::Packet::Header(swl::Packet::Type::PlaySound), data);
+					}
+					for (auto ThisPacket: packet)
+					{
+						if (!Users.front()->GetConnect()) continue;
+						Users.front()->GetConnect()->Send(ThisPacket);
+					}
+				}
+				else
+				{
+					swl::Packet packet;
+					json data = json::parse(packet.CreateMessage()->getData());
+					data["data"]["body"]["_0"] = atoi(Text.c_str());
+					data["data"]["body"]["_1"] = 0.016f;
+					data["data"]["body"]["_2"] = "01.08.16.wav";
+					packet.FillIn(swl::Packet::Header(swl::Packet::Type::PlaySound), data);
+					
+					if (Users.front()->GetConnect())
+						Users.front()->GetConnect()->Send(packet);
+				}
+				break;
+			}
+			case 3:
+			{
+				swl::Packet packet;
+				json pack = json::parse(packet.CreateMessage()->getData());
+				pack["data"]["body"].clear();
+				packet.FillIn(swl::Packet::Header(swl::Packet::Type::GetListUsersOnline), pack);
+
+				if (Users.size() == 1)
+				{
+					if (!Users.front()->GetConnect()) continue;
+					Users.front()->GetConnect()->Send(packet);
+				}
+				else if (Users.size() > 1)
+				{
+					for (auto CurrentUser: Users)
+					{
+						if (!CurrentUser->GetConnect()) continue;
+						CurrentUser->GetConnect()->Send(packet);
+					}
+				}
+
+				Sleep(1000);
+				break;
+			}
+			case 4:
+			{
+				break;
+			}
+			case 5:
+			{
+				UseRepeater = !UseRepeater;
+				break;
+			}
+			}
+			if (Choice == 4)
+				break;
+		}
 	}
 
 	return 0;

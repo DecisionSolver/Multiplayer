@@ -18,16 +18,15 @@
 #endif // defined(_CONSOLE)
 
 std::map<std::string, std::shared_ptr<mysql::Database>> mysql::Impl::databases;
+sql::ConnectOptionsMap mysql::Impl::connection_properties;
 
 namespace mysql
 {
-	Impl::Status Impl::Connect(const std::string & user, const std::string & password, const std::string & host,
-		const std::string DB, const unsigned short & port, const std::string charset, bool OnlyRead)
+	Impl::Status Impl::Connect(const std::string &user, const std::string &password, const std::string &host,
+		const std::string &DB, const unsigned short &port, const std::string &charset, bool OnlyRead)
 	{
 		try
 		{
-			sql::ConnectOptionsMap connection_properties;
-
 			connection_properties["hostName"] = host;
 			connection_properties["userName"] = user;
 			connection_properties["password"] = password;
@@ -68,7 +67,7 @@ namespace mysql
 		}
 		return Impl::Status::Error;
 	}
-	sql::ResultSet *Impl::Query(const std::string& query)
+	sql::ResultSet *Impl::Query(const std::string &query)
 	{
 		try
 		{
@@ -91,6 +90,16 @@ namespace mysql
 		}
 		catch (sql::SQLException &e)
 		{
+			// If "Lost Connection To MySQL Server During Query"
+			if (e.getErrorCode() == 2013)
+			{
+				driver = get_driver_instance();
+				connection.reset(driver->connect(connection_properties));
+				std::cout << "Made Reconnect To Server" << std::endl;
+
+				return Query(query);
+			}
+
 			std::cout << "# ERR: SQLException in " << __FILE__;
 			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
 			std::cout << "# ERR: " << e.what();
@@ -100,7 +109,7 @@ namespace mysql
 
 		return nullptr;
 	}
-	void Impl::Exec(const std::string& query)
+	void Impl::Exec(const std::string &query)
 	{
 		try
 		{
@@ -123,6 +132,15 @@ namespace mysql
 		}
 		catch (sql::SQLException &e)
 		{
+			// If "Lost Connection To MySQL Server During Query"
+			if (e.getErrorCode() == 2013)
+			{
+				driver = get_driver_instance();
+				connection.reset(driver->connect(connection_properties));
+				std::cout << "Made Reconnect To Server" << std::endl;
+				
+				Exec(query);
+			}
 			std::cout << "# ERR: SQLException in " << __FILE__;
 			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
 			std::cout << "# ERR: " << e.what();
@@ -132,13 +150,13 @@ namespace mysql
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
-	void Impl::CreateDatabase(const std::string& name)								  //
+	void Impl::CreateDatabase(const std::string &name)								  //
 	{
 		Exec(std::string("CREATE DATABASE " + name).c_str());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
-	void Impl::AddDatabase(const std::string& name)									  //
+	void Impl::AddDatabase(const std::string &name)									  //
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
@@ -149,7 +167,7 @@ namespace mysql
 
 
 	////////////////////////////////////////////////////////////////////////////////////
-	void Impl::SelectDatabase(const std::string& name)								  //
+	void Impl::SelectDatabase(const std::string &name)								  //
 	{
 		if (!databases.empty())
 			current_database = databases.find(name)->second;
@@ -160,7 +178,7 @@ namespace mysql
 
 
 	////////////////////////////////////////////////////////////////////////////////////
-	void Impl::DeleteDatabase(const std::string& name)								  //
+	void Impl::DeleteDatabase(const std::string &name)								  //
 	{
 		Exec(std::string("DROP DATABASE " + name).c_str());
 	}
@@ -173,8 +191,8 @@ namespace mysql
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Impl::TryInsertValues(const std::string & name_table, const std::vector<std::string>& name_columns,		//
-		const std::vector<std::string>& values, const std::vector<std::string>& condition)										//
+	void Impl::TryInsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,		//
+		const std::vector<std::string> &values, const std::vector<std::string> &condition)							//
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
@@ -187,8 +205,8 @@ namespace mysql
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::list<std::pair<std::string, nlohmann::json>> Impl::TrySelectValues(const std::string & name_table,	 //
-		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)				 //
+	std::list<std::pair<std::string, nlohmann::json>> Impl::TrySelectValues(const std::string &name_table,				 //
+		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)						 //
 	{
 		if (!wasSelectedDB)
 			throw sql::SQLException("Database Was Not Selected!");
@@ -217,8 +235,8 @@ namespace mysql
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Impl::CreateTable(const std::string& name_table, const std::string& name_column,				//
-		const std::string& type, const std::string& value, const std::vector<std::string>& attributes)	//
+	void Impl::CreateTable(const std::string &name_table, const std::string &name_column,				//
+		const std::string &type, const std::string &value, const std::vector<std::string> &attributes)	//
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
@@ -240,8 +258,8 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Impl::CreateColumn(const std::string& name_table, const std::string& name_column,				//
-		const std::string& type, const std::string& value, const std::vector<std::string>& attributes)  //
+	void Impl::CreateColumn(const std::string &name_table, const std::string &name_column,				//
+		const std::string &type, const std::string &value, const std::vector<std::string> &attributes)  //
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
@@ -258,16 +276,19 @@ namespace mysql
 
 				attribute << attributes.back();
 			}
-
-			Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
-				attribute.str() + ";");
+			if(value.empty())
+				Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type +
+					attribute.str() + ";");
+			else
+				Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
+					attribute.str() + ";");
 		}
 	}
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Impl::ModifyColumn(const std::string& name_table, const std::string& name_column,				//
-		const std::string& type, const std::string& value, const std::vector<std::string>& attributes)  //
+	void Impl::ModifyColumn(const std::string &name_table, const std::string &name_column,				//
+		const std::string &type, const std::string &value, const std::vector<std::string> &attributes)  //
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
@@ -292,63 +313,33 @@ namespace mysql
 
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Impl::InsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,			  //
-		const std::vector<std::vector<std::string>>& values)														  //
+	void Impl::InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,			  //
+		const std::vector<std::string> &values)																		  //
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
 		else if (isReadOnly)
 			throw sql::SQLException("It's Read Only :O !");
 		else
-		{
-			std::stringstream name_column, value;
-			std::string temp[2];
-
-			if (!name_columns.empty())
-			{
-				for (size_t cnt = 0; cnt < name_columns.size() - 1; cnt++)
-					name_column << name_columns.at(cnt) + ", ";
-
-				name_column << name_columns.back();
-			}
-
-			if (!values.empty())
-			{
-				for (size_t i = 0; i < values.size(); i++)
-				{
-					value << "(";
-					for (size_t j = 0; j < values.at(i).size() - 1; j++)
-						value << "'" << values.at(i).at(j) + "',";
-
-					value << "'" << values.at(i).back() << "'),";
-				}
-
-				temp[0] = name_column.str();
-				temp[1] = value.str().replace(value.str().back(), 1, ";");
-
-				Exec("INSERT " + name_table + "(" + temp[0] + ")" + "VALUES" + temp[1]);
-			}
-			else
-				Exec("INSERT " + name_table + "() VALUES()");
-		}
+			current_database->InsertValues(name_table, name_columns, values);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Impl::DeleteValues(const std::string& name_table, const std::string& condition)			  //
+	void Impl::DeleteValues(const std::string &name_table, const std::string &condition)			  //
 	{
 		Exec("DELETE FROM " + name_table + "\nWHERE " + condition + ";");
 	}
 
 
 	////////////////////////////////////////////////////////////////////////////////////
-	void Impl::DeleteTable(const std::string& name_table)							  //
+	void Impl::DeleteTable(const std::string &name_table)							  //
 	{
 		Exec("DROP TABLE " + name_table);
 	}
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Impl::DeleteColumn(const std::string& name_table, const std::string& name_column)			    //
+	void Impl::DeleteColumn(const std::string &name_table, const std::string &name_column)			    //
 	{
 		Exec("ALTER TABLE " + name_table + "\nDROP COLUMN " + name_column);
 	}

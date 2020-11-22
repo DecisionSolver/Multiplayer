@@ -3,13 +3,13 @@
 
 namespace net
 {
-	void Client::Connect(const swl::IPEndpoint& ip, const uint16_t& port)
+	bool Client::Connect(const swl::IPEndpoint& ip, const uint16_t& port)
 	{
-		if (_IP.empty())
-			SetIP(ip.toString());
-		if (_Port == 0)
-			SetPort(port);
-		ConnectToServer();
+		SetIP(ip.toString());
+		SetPort(port);
+
+		std::this_thread::sleep_for(200ms);
+		return ConnectToServer();
 	}
 
 	void Client::Disconnect()

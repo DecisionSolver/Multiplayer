@@ -51,15 +51,16 @@ void ConnectionManager::StartSystem(std::function<void(Connection::SharedPtr)> F
 //------------------------------------------------------------------------------
 void ConnectionManager::StopSystem()
 {
-	std::scoped_lock<std::mutex> lock(m_stop_sys);
-
 	IsWorking = false;
 
-	m_connections.clear();
+	if (_Type == TypeWorking::Server)
+		m_connections.clear();
 
-	if (_Type == TypeWorking::Client && one_connection && (one_connection->get_stopped() || one_connection->IsConnected()))
+	if (_Type == TypeWorking::Client && one_connection && (one_connection->get_stopped() || one_connection->IsConnected() ||
+		one_connection->GetLogged()))
 	{
-		one_connection->Stop();
+		if (!one_connection->getIsError())
+			one_connection->Stop();
 		one_connection.reset();
 	}
 	// TODO - Will the stopping of the io_service be enough to kill all the connections and
@@ -67,7 +68,7 @@ void ConnectionManager::StopSystem()
 	//        Because remember they have outstanding ref count to thier shared_ptr in the async handlers
 	m_io_service.stop();
 
-	if (User)
+	if (_Type == TypeWorking::Server && User)
 	{
 		User->Disconnect();
 		User.reset();
@@ -80,15 +81,10 @@ void ConnectionManager::StopSystem()
 	}
 }
 
-#include <boost/lambda/lambda.hpp>
-using boost::lambda::var;
-using boost::lambda::_1; 
-void ConnectionManager::ConnectToServer()
+bool ConnectionManager::ConnectToServer()
 {
-	if (_Type == TypeWorking::Server || (one_connection && one_connection->IsConnected()))
-		return;
-
-	Sleep(500);
+	if (_Type == TypeWorking::Server || (one_connection && (one_connection->IsConnected() || one_connection->GetLogged())))
+		return false;
 
 	// Set up the variable that receives the result of the asynchronous
 	// operation. The error code is set to would_block to signal that the
@@ -119,11 +115,12 @@ void ConnectionManager::ConnectToServer()
 	
 		/* Sending ACCEPT CONNECTION Packet */
 		swl::Packet AnswerPacket = swl::Packet();
-		json dataJSON = AnswerPacket.CreateMessage();
+		json dataJSON = json::parse(AnswerPacket.CreateMessage()->getData());
 		dataJSON["data"]["body"]["_1"] = "OK";
 		AnswerPacket.FillIn(swl::Packet::Header(swl::Packet::Type::Connection), dataJSON);
 		one_connection->Send(AnswerPacket);
-		//throw asio::system_error(ec ? ec : asio::error::operation_aborted);
+		
+		return true;
 	}
 	else
 	{
@@ -132,7 +129,10 @@ void ConnectionManager::ConnectToServer()
 		one_connection->get_cv_error().notify_one();
 
 		StopSystem();
+		return false;
 	}
+
+	return false;
 }
 
 bool ConnectionManager::IsRunning() const
@@ -142,11 +142,17 @@ bool ConnectionManager::IsRunning() const
 
 void ConnectionManager::Send(std::string Packet)
 {
-	if (_Type == ConnectionManager::TypeWorking::Client) return;
-
-	for (auto connection: m_connections)
+	if (_Type == ConnectionManager::TypeWorking::Client)
 	{
-		connection->Send({ Packet.begin(), Packet.end() });
+		if (one_connection)
+			one_connection->Send({ Packet.begin(), Packet.end() });
+	}
+	else
+	{
+		for (auto connection: m_connections)
+		{
+			connection->Send({ Packet.begin(), Packet.end() });
+		}
 	}
 }
 
@@ -192,6 +198,7 @@ void ConnectionManager::IoServiceThreadProc()
 		printf("Unhandled exception caught in io_service socket thread.\n");
 	}
 
+	WaitForMySQL.notify_all();
 	printf("io_service socket thread exiting.\n");
 }
 
@@ -211,16 +218,15 @@ void ConnectionManager::DoAccept()
 			return;
 		}
 
-		std::scoped_lock<std::mutex> lock(m_do_accept);
+		std::scoped_lock<std::mutex> lock(m_connectionsMutex);
 		// Create the connection from the connected socket
 		Connection::SharedPtr connection = Connection::Create(this, *newConn);
 		
-#if !defined(_DEBUG)
-		if (connection->get_socket().local_endpoint().address().to_string() == "127.0.0.1")
-			connection->SetApproved();
-#endif
-
-		m_connections.push_back(connection);
+		auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
+		if (itConnection == m_connections.end())
+			m_connections.push_back(connection);
+		else
+			m_connections.erase(itConnection);
 
 		if (Callback_Accept)
 			Callback_Accept(m_connections.back());
@@ -233,7 +239,7 @@ void ConnectionManager::DoAccept()
 //------------------------------------------------------------------------------
 void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection)
 {
-	std::scoped_lock<std::mutex> lock(m_onconn_close);
+	std::scoped_lock<std::mutex> lock(m_connectionsMutex);
 	
 	if (_Type == TypeWorking::Client)
 	{
@@ -263,7 +269,7 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection)
 
 std::vector<Connection::SharedPtr> ConnectionManager::GetAllConnections()
 {
-	std::scoped_lock<std::mutex> lock(m_get_allconn);
+	std::scoped_lock<std::mutex> lock(m_connectionsMutex);
 	if (!m_connections.empty())
 	{
 		if (_Type == TypeWorking::Server)
@@ -277,7 +283,7 @@ std::vector<Connection::SharedPtr> ConnectionManager::GetAllConnections()
 
 Connection::SharedPtr ConnectionManager::GetConnect()
 {
-	std::scoped_lock<std::mutex> lock(m_get_allconn);
+	std::scoped_lock<std::mutex> lock(m_connectionsMutex);
 	if (_Type == ConnectionManager::TypeWorking::Server) return nullptr;
 
 	if (one_connection)
@@ -302,6 +308,11 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 		
 		std::thread([&]
 		{
+			if (_Type == TypeWorking::Server)
+			{
+				std::unique_lock<std::mutex> MySQL_Lock(m_MySQL);
+				WaitForMySQL.wait(MySQL_Lock);
+			}
 			auto Lambd = [&](Connection::SharedPtr &connection)
 			{
 				if (!connection)
@@ -329,39 +340,20 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						{
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
-							m_connections.erase(itConnection);
-						}
-
-						return;
-					}
-
-					// Updating FTP Server
-					connection->GetPacket(packet, swl::Packet::Type::ClosedServerByUpdate);
-					if (packet && connection->get_socket().local_endpoint().address().to_string() == "127.0.0.1")
-					{
-						swl::Packet Answer = swl::Packet();
-						json pack = Answer.CreateAnswer();
-						Answer.FillIn(swl::Packet::Header((swl::Packet::Type)
-							(swl::Packet::Type::Answer << swl::Packet::Type::ClosedServerByUpdate)), pack);
-						connection->Send(Answer);
-						
-						isUpdate = true;
-						auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
-						if (itConnection != m_connections.end())
-						{
 							connection->get_socket().close();
 							m_connections.erase(itConnection);
 						}
+
 						return;
 					}
 				}
 
-				if (connection && (!connection->GetApproved()))
+				if (connection && (!connection->GetLogged()))
 				{
 					if (_Type == TypeWorking::Server)
 					{
 						connection->GetPacket(packet, swl::Packet::Type::MySQL);
-						if (packet)
+						if (packet && (packet.getData().find("_0") != std::string::npos && packet.getData().find("_1") != std::string::npos))
 						{
 							json temp = json::parse(packet.getData());
 							if (!temp.empty())
@@ -372,11 +364,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								auto Obj = User->TrySelectValues("Local", { "*" },
 									{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
 
-								//printf(("\nsize: " + std::to_string(Obj.size()) + "\n").c_str());
-
 								// If Successfull Then Send Answer About It
 								swl::Packet Answer = swl::Packet();
-								json pack = Answer.CreateAnswer();
+								json pack = json::parse(Answer.CreateAnswer()->getData());
 								if (!Obj.empty() && !Obj.front().second.empty())
 								{
 									pack["data"]["body"]["_0"] = "OK";
@@ -389,8 +379,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								else
 									pack["data"]["body"]["_0"] = "NotFound";
 
-								Answer.FillIn(swl::Packet::Header((swl::Packet::Type)
-									(swl::Packet::Type::Answer << swl::Packet::Type::MySQL)), pack);
+								Answer.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL), pack);
 								connection->Send(Answer);
 
 								if (pack["data"]["body"]["_0"] == "NotFound" ||
@@ -406,8 +395,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								}
 								if (pack["data"]["body"]["_0"] == "OK")
 								{
-									connection->SetApproved();
-									connection->SetConnected(true);
+									connection->SetLogged();
 									User->TryInsertValues("Local", { "_2" }, { { "1" } }, { {
 										" WHERE _N = '" + std::to_string(connection->GetMetaDB_User()) + "'" } });
 
@@ -441,7 +429,8 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							{
 								connection->SetConnected(true);
 								connection->successConn.notify_all();
-								Callback_OnLoggin(connection);
+								if (Callback_OnLoggin)
+									Callback_OnLoggin(connection);
 							}
 						}
 						else
@@ -451,6 +440,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							dataJSON["data"]["body"]["_1"] = "OK";
 							AnswerPacket.FillIn(swl::Packet::Header(swl::Packet::Type::Connection), dataJSON);
 							connection->Send(AnswerPacket);
+							connection->SetConnected(true);
 						}
 					}
 
@@ -476,17 +466,13 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 			while ((!m_io_service.stopped() || IsRunning()) && !isUpdate)
 			{
-				if (_Type == TypeWorking::Server)
-					Sleep(500);
-
 				if (_Type == TypeWorking::Client && one_connection)
 				{
-					std::scoped_lock<std::mutex> lock(m_main_handler);
 					while (one_connection && (one_connection->getIsError() && !one_connection->get_error_queue().empty()))
 					{
+						Sleep(1000);
 						if (Callback_OnError)
 						{
-							Sleep(1000);
 							Callback_OnError(one_connection->get_error_queue().back());
 							return;
 						}
@@ -499,9 +485,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 				if (_Type == TypeWorking::Server)
 				{
-					for (auto &connection: m_connections)
+					std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
+					for (auto connection: m_connections)
 					{
-						std::scoped_lock<std::mutex> lock(m_main_handler);
 						if (!connection) continue;
 
 						if (!connection->get_stopped())

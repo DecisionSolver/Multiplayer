@@ -60,6 +60,9 @@
     <ClCompile Include="Source\ConnMan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\FTPClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Client.hpp">
@@ -103,6 +106,9 @@
     </ClInclude>
     <ClInclude Include="Include\MySQL\MySQL_Database.h">
       <Filter>Include Files\MySQL</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\FTPClient.h">
+      <Filter>Include Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

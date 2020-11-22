@@ -1,5 +1,4 @@
 #pragma once
-#if defined __has_include && __has_include("asio.hpp")
 #include "pch.h"
 
 #include <atomic>
@@ -8,6 +7,7 @@
 #include <mutex>
 
 #include <Packet.hpp>
+#include <FTPClient.h>
 
 //--------------------------------------------------------------------
 class ConnectionManager;
@@ -37,10 +37,10 @@ public:
 	void Send(const std::vector<char> &data);
 	void Send(const swl::Packet &packet);
 
-	void SetApproved() { isApproved = true; }
+	void SetLogged() { isLogged = true; }
 	void SetConnected(bool IsConnected) { Connected = IsConnected; }
 	
-	bool GetApproved();
+	bool GetLogged() { return isLogged; }
 
 	bool IsConnected() { return Connected; }
 	bool GetTimer();
@@ -59,6 +59,8 @@ public:
 	int GetMetaDB_User() { return UserID_MetaDB; }
 
 	asio::ip::tcp::socket &get_socket() { return m_socket; }
+
+	std::shared_ptr<FTPClient> getFtpClient() { return ftpClient; }
 private:
 	static size_t m_nextClientId;
 	size_t m_clientId = 0;
@@ -66,16 +68,16 @@ private:
 	asio::ip::tcp::socket m_socket;
 	std::atomic<bool> m_stopped;
 	asio::streambuf m_receiveBuffer;
-	mutable std::mutex m_sendMutex, m_get_packet, m_disconnect, m_error;
+	mutable std::mutex m_get_packet, m_disconnect, m_error;
 
 	std::condition_variable error;
 	std::atomic_bool IsError = false;
 
 	std::vector<char> m_sendBuffers[2]; // Double buffer
 	int m_activeSendBufferIndex = 0;
-	bool m_sending = false, isApproved = false, Connected = false;
+	bool m_sending = false, isLogged = false, Connected = false;
 
-	std::deque<std::shared_ptr<swl::Packet>> packet_queue;
+	std::vector<swl::Packet> packet_queue;
 	std::deque<asio::error_code> error_queue;
 
 	std::vector<char> m_allReadData; // Strictly for test purposes
@@ -88,7 +90,6 @@ private:
 
 	int UserID_MetaDB = 0; // Number Line Of This DB User (Easily Work With User In MySQL)
 	//std::vector<std::string> User_MetaDB;
-};
 
-//--------------------------------------------------------------------
-#endif
+	std::shared_ptr<FTPClient> ftpClient;
+};

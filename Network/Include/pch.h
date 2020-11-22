@@ -19,8 +19,6 @@
 #include <mutex>
 #include <asio.hpp>
 
-std::string GetLastErrorStr();
-
 using namespace std::chrono_literals;
 using asio::ip::tcp;
 // for convenience

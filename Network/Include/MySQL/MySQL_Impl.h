@@ -49,26 +49,30 @@ namespace mysql
 		static std::map<std::string, std::shared_ptr<mysql::Database>> databases;
 		std::shared_ptr<Database> current_database;
 		bool isReadOnly = false, wasSelectedDB = false;
+
+		// For Reconnection
+		static sql::ConnectOptionsMap connection_properties;
 	public:
 		//////////////////////////////////////////////////////////
 		///////////			SECTION MODIFIED		//////////////
 		//////////////////////////////////////////////////////////
 
-		Status Connect(const std::string& user, const std::string& password, const std::string& host,
-			const std::string DB, const unsigned short& port, const std::string charset, bool OnlyRead = false);
+		Status Connect(const std::string &user, const std::string &password, const std::string &host,
+			const std::string &DB = "", const unsigned short &port = 3306, const std::string &charset = "utf8",
+			bool OnlyRead = false);
 
-		sql::ResultSet *Query(const std::string& query);
-		void Exec(const std::string& query);
+		sql::ResultSet *Query(const std::string &query);
+		void Exec(const std::string &query);
 
-		void SelectDatabase(const std::string& name);
+		void SelectDatabase(const std::string &name);
 
 		std::shared_ptr<Database> GetCurrentDatabase() const;
 
-		void TryInsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-			const std::vector<std::string>& values, const std::vector<std::string>& condition = {});
+		void TryInsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,
+			const std::vector<std::string> &values, const std::vector<std::string> &condition = {});
 
-		std::list<std::pair<std::string, nlohmann::json>> TrySelectValues(const std::string& name_table,
-			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {});
+		std::list<std::pair<std::string, nlohmann::json>> TrySelectValues(const std::string &name_table,
+			const std::vector<std::string> &name_columns, const std::vector<std::string> &condition = {});
 
 		const std::vector<std::string> GetDatabaseNames() const;
 
@@ -78,29 +82,29 @@ namespace mysql
 		///////////		SECTION DON'T MODIFIED		//////////////
 		//////////////////////////////////////////////////////////
 
-		void CreateTable(const std::string& name_table, const std::string& name_column,
-			const std::string& type, const std::string& value, const std::vector<std::string>& attributes);
+		void CreateTable(const std::string &name_table, const std::string &name_column,
+			const std::string &type, const std::string &value, const std::vector<std::string> &attributes);
 
-		void CreateColumn(const std::string& name_table, const std::string& name_column,
-			const std::string& type, const std::string& value, const std::vector<std::string>& attributes);
+		void CreateColumn(const std::string &name_table, const std::string &name_column,
+			const std::string &type, const std::string &value, const std::vector<std::string> &attributes);
 
-		void ModifyColumn(const std::string& name_table, const std::string& name_column,
-			const std::string& type, const std::string& value, const std::vector<std::string>& attributes);
+		void ModifyColumn(const std::string &name_table, const std::string &name_column,
+			const std::string &type, const std::string &value, const std::vector<std::string> &attributes);
 
-		void InsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-			const std::vector<std::vector<std::string>>& values);
+		void InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,
+			const std::vector<std::string> &values);
 
-		void DeleteDatabase(const std::string& name);
+		void DeleteDatabase(const std::string &name);
 		
-		void CreateDatabase(const std::string& name);
+		void CreateDatabase(const std::string &name);
 
-		void AddDatabase(const std::string& name);
+		void AddDatabase(const std::string &name);
 
-		void DeleteValues(const std::string& name_table, const std::string& condition = "");
+		void DeleteValues(const std::string &name_table, const std::string &condition = "");
 
-		void DeleteTable(const std::string& name_table);
+		void DeleteTable(const std::string &name_table);
 
-		void DeleteColumn(const std::string& name_table, const std::string& name_column);
+		void DeleteColumn(const std::string &name_table, const std::string &name_column);
 
 		void Destroy();
 	};
