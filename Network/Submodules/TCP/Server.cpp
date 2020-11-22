@@ -34,7 +34,7 @@ int main()
 	{
 		while (server->IsWorking() && !server->isInUpdate())
 		{
-			//Sleep(500);
+			std::this_thread::sleep_for(1ms);
 		}
 	}).join();
 

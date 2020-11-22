@@ -96,7 +96,8 @@ namespace mysql
 				driver = get_driver_instance();
 				connection.reset(driver->connect(connection_properties));
 				std::cout << "Made Reconnect To Server" << std::endl;
-				return nullptr;
+
+				return Query(query);
 			}
 
 			std::cout << "# ERR: SQLException in " << __FILE__;
@@ -137,7 +138,8 @@ namespace mysql
 				driver = get_driver_instance();
 				connection.reset(driver->connect(connection_properties));
 				std::cout << "Made Reconnect To Server" << std::endl;
-				return;
+				
+				Exec(query);
 			}
 			std::cout << "# ERR: SQLException in " << __FILE__;
 			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;

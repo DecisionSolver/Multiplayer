@@ -14,6 +14,7 @@
 using namespace boost::filesystem;
 
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
 #include <cryptlib.h>
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
@@ -22,10 +23,6 @@ using namespace boost::filesystem;
 #include <hex.h>
 #include <Shellapi.h>
 
-#define PORT 20675
-#define IP swl::IPEndpoint("192.168.1.2")
-
-std::shared_ptr<net::Client> Client = std::make_shared<net::Client>();
 std::shared_ptr<mysql::Impl> DB = std::make_shared<mysql::Impl>();
 
 path Programm;
@@ -45,6 +42,7 @@ const std::string md5_from_file(const std::string& path)
 	std::string strHash = std::string(reinterpret_cast<const char*>(buf), size);
 	std::cout << strHash.c_str() << std::endl;
 
+	boost::to_upper(strHash);
 	return strHash;
 }
 
@@ -126,13 +124,13 @@ int main()
 		"192.168.1.2"
 #endif
 		, "gb_z_rod2_rf");
-	addUser("user3");
-	std::cerr << hasUserAccess("doc.doc", "user2", "user1");
-	addAccess("text.text", "user1", "user3");
-	std::cerr << hasUserAccess("text.text", "user1", "user3");
-	addAccess("text.text", "user3", "user1");
-	std::cerr << hasUserAccess("text.text", "user3", "user1");
-	removeAccess("text1.text", "user1", "user2");
+	//addUser("user3");
+	//std::cerr << hasUserAccess("doc.doc", "user2", "user1");
+	//addAccess("text.text", "user1", "user3");
+	//std::cerr << hasUserAccess("text.text", "user1", "user3");
+	//addAccess("text.text", "user3", "user1");
+	//std::cerr << hasUserAccess("text.text", "user3", "user1");
+	//removeAccess("text1.text", "user1", "user2");
 
 	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 	local_root += "/";
@@ -160,7 +158,8 @@ int main()
 		if (!exists(ThisPath))
 			create_directories(ThisPath);
 		if (ThisUser.second["_3"].get<int>() == 1)
-			server.addUser(ThisUser.second["_0"], ThisUser.second["_1"], local_root.string(), fineftp::Permission::All);
+			server.addUser(ThisUser.second["_0"], ThisUser.second["_1"], (_getcwd(nullptr, 1024) +
+				std::string("Workspace")), fineftp::Permission::All);
 		else
 			server.addUser(ThisUser.second["_0"], ThisUser.second["_1"], ThisPath, fineftp::Permission::FileWrite);
 	}
@@ -175,68 +174,6 @@ int main()
 	for (;;)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-		// Check For Updates
-		if (!exists(local_root.string() + "updates"))
-			create_directories(local_root.string() + "updates/");
-
-		int cnt = std::count_if(
-			directory_iterator(local_root.string() + "updates/"),
-			directory_iterator(),
-			static_cast<bool(*)(const path&)>(is_regular_file));
-		if (cnt > 1)
-		{
-			if (Programm.empty() && Hash2.empty())
-			{
-				for (directory_iterator it(local_root.string() + "updates/"); it != directory_iterator(); ++it)
-				{
-					if (it->path().filename() != "update_tcp.exe")
-						Hash2 = it->path().filename().string();
-					else
-						Programm = it->path();
-				}
-			}
-			else if (Client->IsRunning() && Client->GetConnect() && (!Programm.empty() && !is_empty(Programm)))
-			{
-				swl::Packet packet = swl::Packet();
-				Client->GetConnect()->GetPacket(packet, (swl::Packet::Type)
-					(swl::Packet::Type::Answer << swl::Packet::Type::ClosedServerByUpdate));
-				if (packet)
-				{
-					local_root = _getcwd(nullptr, 1024);
-					local_root += "/Workspace/";
-					Hash2 += ".exe";
-
-					// Call New Server
-					if (!exists(local_root.string() + Hash2))
-						boost::filesystem::copy_file(Programm, local_root.string() + Hash2);
-
-					boost::filesystem::remove_all(local_root.string() + "updates");
-					ShellExecuteA(0, "open", (local_root.string() + Hash2).c_str(), 0, 0, 1);
-					Programm.clear();
-					Hash2.clear();
-
-					Client->Disconnect();
-					Client->StopSystem();
-				}
-			}
-
-			else if (!Client->GetConnect() || !Client->IsRunning() && !Programm.empty() && !is_empty(Programm))
-			{
-				auto Hash1 = md5_from_file(Programm.string());
-				if ((!Hash1.empty() && !Hash2.empty()) && Hash2 == Hash1)
-				{
-					// Connecting to server and send ClosedServerByUpdate Packet
-					Client->Connect(IP, PORT);
-					Client->StartSystem();
-
-					swl::Packet packet = swl::Packet();
-					json pack = json::parse(packet.CreateMessage()->getData());
-					packet.FillIn(swl::Packet::Header(swl::Packet::Type::ClosedServerByUpdate), pack);
-					Client->GetConnect()->Send(packet);
-				}
-			}
-		}
 	}
 
 	return 0;

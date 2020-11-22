@@ -47,7 +47,7 @@ namespace mysql
 		// Methods                                   //
 		///////////////////////////////////////////////
 
-		void Connect(const std::string &user, const std::string &password, const std::string &host,
+		Status Connect(const std::string &user, const std::string &password, const std::string &host,
 			const std::string DB = "", const unsigned short& port = 3306, const std::string charset = "utf8");
 
 		std::list<std::pair<std::string, nlohmann::json>> TrySelectValues(const std::string &name_table,

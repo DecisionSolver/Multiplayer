@@ -3,7 +3,8 @@
 
 namespace net
 {
-	void Server::OnPacketHandler(Connection::SharedPtr connection /* Came (One Connection) From Cycle m_connections */)
+	void Server::OnPacketHandler(Connection::SharedPtr connection
+								 /* Came (One Connection) From Cycle m_connections */)
 	{
 		if (!connection) return;
 
@@ -123,15 +124,19 @@ namespace net
 		{
 			Server::OnPacketHandler(connection);
 		});
-		User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+		if (User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
 #if defined(_DEBUG)
 			"188.210.240.246"
 #else
 			"192.168.1.2"
 #endif
-			, "gb_z_rod2_rf");
-		//User->Connect("gb_z_rod2_rf", "696ea7b8ty", "mysql101.1gb.ru", "gb_z_rod2_rf");
-
+			, "gb_z_rod2_rf") == mysql::Impl::Done)
+			WaitForMySQL.notify_all();
+		else
+		{
+			printf("Something Is Went Wrong With Connection To MySQL Server!\n");
+			WaitForMySQL.notify_all();
+		}
 		// Set All Users To Offline
 		User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _2 = '1'" } });
 	}

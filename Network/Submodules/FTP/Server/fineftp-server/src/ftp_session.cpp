@@ -289,13 +289,13 @@ namespace fineftp
     Filesystem::FileStatus file_status(local_path);
 
     if (!file_status.isOk())
-      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed ot change directory: The given resource does not exist or permission denied.");
+      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed to change directory: The given resource does not exist or permission denied.");
 
     if (file_status.type() != Filesystem::FileType::Dir)
-      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed ot change directory: The given resource is not a directory.");
+      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed to change directory: The given resource is not a directory.");
 
     if (!file_status.canOpenDir())
-      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed ot change directory: Permission denied.");
+      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed to change directory: Permission denied.");
 
     ftp_working_directory_ = absolute_new_working_dir;
     return FtpMessage(FtpReplyCode::FILE_ACTION_COMPLETED, "Working directory changed to " + ftp_working_directory_);

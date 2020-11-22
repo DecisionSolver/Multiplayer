@@ -2,7 +2,6 @@
 #include "pch.h"
 #include "Connection.h"
 
-#if defined __has_include && __has_include("asio.hpp")
 // Boost Includes
 #include "asio.hpp"
 
@@ -40,7 +39,7 @@ public:
 	void SetIP(std::string NewIP) { _IP = NewIP; }
 	void SetPort(UINT NewPort) { _Port = NewPort; }
 
-	void ConnectToServer();
+	bool ConnectToServer();
 	bool IsRunning() const;
 
 	void Send(std::string Packet);
@@ -64,19 +63,19 @@ public:
 	asio::io_service &GetIOService() { return m_io_service; }
 
 	std::condition_variable &IsWait();
+	std::condition_variable &IsWaitMySQL() { return WaitForMySQL; }
 protected:
 	asio::io_service m_io_service;
 	asio::ip::tcp::acceptor m_acceptor;
 	std::unique_ptr<asio::ip::tcp::socket> m_Socket;
 	std::vector<std::thread> m_threads;
 
-	mutable std::mutex m_connectionsMutex, m_onconn_close, m_get_allconn,
-		m_main_handler, m_do_accept, m_stop_sys, m_wait_done;
+	mutable std::mutex m_connectionsMutex, m_MySQL;
 	std::vector<Connection::SharedPtr> m_connections;
 	Connection::SharedPtr one_connection;
 
 	std::atomic_bool isUpdate = false;
-	std::condition_variable waiter_update;
+	std::condition_variable waiter_update, WaitForMySQL;
 
 	void IoServiceThreadProc();
 
@@ -93,6 +92,3 @@ protected:
 
 	std::unique_ptr<asio::ip::tcp::socket> newConn;
 };
-
-//--------------------------------------------------------------------
-#endif

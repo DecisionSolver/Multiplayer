@@ -37,7 +37,7 @@ namespace mysql
 		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)			//
 	{
 		std::string temp;
-		size_t ID = 0;
+		//size_t ID = 0;
 
 		if (name_columns.empty())
 		{
@@ -47,12 +47,12 @@ namespace mysql
 
 		if (name_columns.back().back() != '*')
 		{
-			if (name_columns.front().find("_N") == std::string::npos)
-				temp += " _N AS '_N', ";
+			//if (name_columns.front().find("_N") == std::string::npos)
+				//temp += " _N AS '_N', ";
 			for (const auto &piece: name_columns)
 			{
-				temp += piece + " AS " + "'_" + std::to_string(ID) + "',";
-				ID++;
+				temp += piece + ",";
+				//ID++;
 			}
 			temp.pop_back();
 		}

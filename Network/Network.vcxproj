@@ -111,7 +111,7 @@
     </Link>
     <Lib>
       <AdditionalDependencies>liblz4_static.lib;mysqlcppconn8-2-vs14.lib;Dnsapi.lib;libmysql.lib;libcrypto.lib;libssl.lib;libcurl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Network\Submodules\MySQL Connection\Lib\$(Configuration);$(SolutionDir)Network\Submodules\LZ4\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Network\Submodules\MySQL Connection\Lib\$(Configuration);$(SolutionDir)Network\Submodules\LZ4\Lib\$(Configuration);$(SolutionDir)Network\Submodules\Boost\Libs;$(SolutionDir)Network\Submodules\libcurl\lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <Xdcmake>
       <AdditionalDocumentFile>%(AdditionalDocumentFile)</AdditionalDocumentFile>
