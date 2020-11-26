@@ -27,6 +27,9 @@ namespace swl
 			Sync_PosChanges,
 			Sync_RotChanges,
 			Sync_SclChanges,
+
+			Sync_NewNodeName,
+			Sync_NewNode
 		};
 
 		struct Header
@@ -37,7 +40,7 @@ namespace swl
 			};
 			uint8_t Settings = 0; // IsCompressed etc...
 			int type;
-			bool IsAnswer = false; // Sets Only When Comes (e.g. GetPacket With (_A == True) Param)
+			bool IsAnswer = false; // Sets Only When Comes In onReceive Function
 			size_t OrigSize = 0;
 
 			Header(Type NewType): type(NewType), Settings(0) {}

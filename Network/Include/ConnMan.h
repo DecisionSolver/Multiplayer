@@ -91,4 +91,6 @@ protected:
 	std::shared_ptr<mysql::MYSQLCLIENT> User = std::make_shared<mysql::MYSQLCLIENT>();
 
 	std::unique_ptr<asio::ip::tcp::socket> newConn;
+
+	std::chrono::time_point<std::chrono::steady_clock> Curr, Last;
 };

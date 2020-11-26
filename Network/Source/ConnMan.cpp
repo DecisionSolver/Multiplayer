@@ -42,6 +42,7 @@ void ConnectionManager::StartSystem(std::function<void(Connection::SharedPtr)> F
 
 	IsWorking = true;
 
+	Curr = Last = std::chrono::high_resolution_clock::now();
 	if (Func)
 		Handler(Func);
 	else
@@ -56,7 +57,7 @@ void ConnectionManager::StopSystem()
 	if (_Type == TypeWorking::Server)
 		m_connections.clear();
 
-	if (_Type == TypeWorking::Client && one_connection && (one_connection->get_stopped() || one_connection->IsConnected() ||
+	if (_Type == TypeWorking::Client && one_connection && (one_connection->GetStopped() || one_connection->IsConnected() ||
 		one_connection->GetLogged()))
 	{
 		if (!one_connection->getIsError())
@@ -313,7 +314,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 				std::unique_lock<std::mutex> MySQL_Lock(m_MySQL);
 				WaitForMySQL.wait(MySQL_Lock);
 			}
-			auto Lambd = [&](Connection::SharedPtr &connection)
+			auto Lambd = [&](Connection::SharedPtr connection)
 			{
 				if (!connection)
 				{
@@ -353,7 +354,8 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					if (_Type == TypeWorking::Server)
 					{
 						connection->GetPacket(packet, swl::Packet::Type::MySQL);
-						if (packet && (packet.getData().find("_0") != std::string::npos && packet.getData().find("_1") != std::string::npos))
+						if (packet && (packet.getData().find("_0") != std::string::npos &&
+							packet.getData().find("_1") != std::string::npos))
 						{
 							json temp = json::parse(packet.getData());
 							if (!temp.empty())
@@ -486,11 +488,64 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 				if (_Type == TypeWorking::Server)
 				{
 					std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
+					
+					Last = std::chrono::high_resolution_clock::now();
+
+					// Check For Are Users Online Now Or Not And Then Try To Disconnect Them
+					if (!m_connections.empty() && (Last - Curr) > std::chrono::seconds(20))
+					{
+						Curr = std::chrono::high_resolution_clock::now();
+						// Get All Users Who Is Online Now Or Not
+						auto IsOnline = User->TrySelectValues("Local", { "_2, _N" });
+
+						std::vector<Connection::SharedPtr>::iterator itConnection;
+						if (!IsOnline.empty())
+						{
+							for (auto It: IsOnline)
+							{
+								// If Isn't Online Then Disconnect It
+								if (!It.second.empty() &&
+									(It.second.find("_N") != It.second.end() &&
+										It.second.find("_2") != It.second.end() &&
+										(int)It.second["_2"].get<json::value_t>() == 0))
+								{
+									itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+										[&](const Connection::SharedPtr &ThisConn)
+									{
+										if (ThisConn && (ThisConn->GetLogged() || ThisConn->IsConnected() &&
+											!ThisConn->GetStopped()) &&
+											ThisConn->GetMetaDB_User() == (int)It.second["_N"].get<json::value_t>())
+											return true;
+										return false;
+									});
+								}
+							}
+						}
+
+						// If Nobody Is Online But Have Connected...
+						else
+						{
+							itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+								[&](const Connection::SharedPtr &ThisConn)
+							{
+								if (ThisConn && (ThisConn->GetLogged() || ThisConn->IsConnected() &&
+									!ThisConn->GetStopped()))
+									return true;
+								return false;
+							});
+						}
+						if (itConnection != m_connections.end())
+						{
+							itConnection->operator->()->get_socket().close();
+							m_connections.erase(itConnection);
+						}
+					}
+
 					for (auto connection: m_connections)
 					{
 						if (!connection) continue;
 
-						if (!connection->get_stopped())
+						if (!connection->GetStopped())
 							Lambd(connection);
 
 						if (connection)

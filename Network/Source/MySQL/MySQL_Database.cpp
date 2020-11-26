@@ -37,7 +37,6 @@ namespace mysql
 		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)			//
 	{
 		std::string temp;
-		//size_t ID = 0;
 
 		if (name_columns.empty())
 		{
@@ -47,12 +46,9 @@ namespace mysql
 
 		if (name_columns.back().back() != '*')
 		{
-			//if (name_columns.front().find("_N") == std::string::npos)
-				//temp += " _N AS '_N', ";
 			for (const auto &piece: name_columns)
 			{
 				temp += piece + ",";
-				//ID++;
 			}
 			temp.pop_back();
 		}
@@ -83,10 +79,6 @@ namespace mysql
 			return result;
 		try
 		{
-			// Get Count Columns
-
-			//printf("\nCount Columns: %d", MD->getColumnCount());
-			//printf("\nCount Rows: %d", ResultExec->rowsCount());
 			while (ResultExec->next())
 			{
 				json js;
@@ -112,7 +104,19 @@ namespace mysql
 					js["_2"] = ResultExec->getInt("_2");
 				if (ResultExec->findColumn("_3") > 0)
 					js["_3"] = ResultExec->getInt("_3");
-				result.push_back({ std::to_string((int)js["_N"].get<json::value_t>()), js });
+
+				if (js.find("_N") != js.end())
+					result.push_back({
+					 (js["_N"].is_number() ?
+						std::to_string((int)js["_N"].get<json::value_t>()) :
+						js["_N"].get<json::string_t>()),
+						js });
+				else
+					result.push_back({
+						(js.front().is_number() ?
+						std::to_string((int)js.front().get<json::value_t>()) :
+						js.front().get<json::string_t>()),
+						js });
 			}
 		}
 		catch (sql::SQLException &e)

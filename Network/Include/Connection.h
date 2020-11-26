@@ -53,7 +53,7 @@ public:
 	std::deque<asio::error_code> &get_error_queue() { return error_queue; }
 
 	std::condition_variable successConn, waiterDisconnection;
-	std::atomic<bool> &get_stopped() { return m_stopped; }
+	std::atomic<bool> &GetStopped() { return m_stopped; }
 
 	void SetMetaDB_User(int ID) { UserID_MetaDB = ID; }
 	int GetMetaDB_User() { return UserID_MetaDB; }
@@ -77,7 +77,7 @@ private:
 	int m_activeSendBufferIndex = 0;
 	bool m_sending = false, isLogged = false, Connected = false;
 
-	std::vector<swl::Packet> packet_queue;
+	std::map<swl::Packet::Type, swl::Packet> packet_queue;
 	std::deque<asio::error_code> error_queue;
 
 	std::vector<char> m_allReadData; // Strictly for test purposes

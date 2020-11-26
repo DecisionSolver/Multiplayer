@@ -141,19 +141,26 @@ void Connection::GetPacket(swl::Packet &packet, swl::Packet::Type _CheckingByTyp
 		std::lock_guard<std::mutex> get_packet(m_get_packet);
 		if (!packet_queue.empty())
 		{
-			auto it = std::find_if(packet_queue.begin(), packet_queue.end(),
-				[&](swl::Packet Packet_Queue)
+			OutputDebugStringA(("\nSize of the packet_map: " + std::to_string(packet_queue.size()) + "\n").c_str());
+			auto It = packet_queue.find(_CheckingByType);
+			if (!_CheckingByData.empty())
 			{
-				if (Packet_Queue && (Packet_Queue.getHeader().type == _CheckingByType ||
-					(!_CheckingByData.empty() && Packet_Queue.getData().find(_CheckingByData) != std::string::npos)))
+				for (auto _It: packet_queue)
 				{
-					packet = std::move(Packet_Queue);
-					return true;
+					if (_It.second && _It.second.getData().find(_CheckingByData) != std::string::npos)
+					{
+						packet = std::move(_It.second);
+						packet_queue.erase(_It.first);
+						return;
+					}
 				}
-				return false;
-			});
-			if (it != packet_queue.end())
-				packet_queue.erase(it);
+			}
+			if (It != packet_queue.end())
+			{
+				packet = std::move(It->second);
+				packet_queue.erase(It);
+			}
+			OutputDebugStringA(("\nSize of the packet_map: " + std::to_string(packet_queue.size()) + "\n").c_str());
 		}
 	}
 }
@@ -214,6 +221,7 @@ void Connection::DoReceive()
 	asio::async_read_until(m_socket, m_receiveBuffer, '#',
 		[self = shared_from_this()](const asio::error_code &errorCode, size_t bytesRead)
 	{
+		OutputDebugStringA(("\nSize of the packet_map: " + std::to_string(self->packet_queue.size()) + "\n").c_str());
 		UNREFERENCED_PARAMETER(bytesRead);
 		if (errorCode)
 		{
@@ -251,10 +259,12 @@ void Connection::DoReceive()
 			if (self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server && !self->GetLogged())
 			{
 				if (newPacket.getHeader().type == swl::Packet::Type::Connection || swl::Packet::Type::MySQL)
-					self->packet_queue.push_back(newPacket);
+					self->packet_queue.insert(
+						std::pair<swl::Packet::Type, swl::Packet>((swl::Packet::Type)newPacket.getHeader().type, newPacket));
 			}
 			else
-				self->packet_queue.push_back(newPacket);
+				self->packet_queue.insert(
+					std::pair<swl::Packet::Type, swl::Packet>((swl::Packet::Type)newPacket.getHeader().type, newPacket));
 		}
 
 		// Issue the next receive
