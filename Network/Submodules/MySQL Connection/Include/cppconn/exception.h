@@ -42,6 +42,7 @@ namespace sql
 {
 
 #if (__cplusplus < 201103L)
+#pragma warning (disable : 5040)
 #define MEMORY_ALLOC_OPERATORS(Class) \
   void* operator new(size_t size) throw (std::bad_alloc) { return ::operator new(size); }  \
   void* operator new(size_t, void*) throw(); \

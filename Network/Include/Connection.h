@@ -20,6 +20,7 @@ public:
 
 	// Ensure all instances are created as shared_ptr in order to fulfill requirements for shared_from_this
 	static Connection::SharedPtr Create(ConnectionManager *connectionManager, asio::ip::tcp::socket &socket);
+	static Connection::SharedPtr Create(ConnectionManager *connectionManager);
 
 	//
 	static std::ostringstream ErrorCodeToString(const asio::error_code &errorCode);
@@ -58,16 +59,24 @@ public:
 	void SetMetaDB_User(int ID) { UserID_MetaDB = ID; }
 	int GetMetaDB_User() { return UserID_MetaDB; }
 
-	asio::ip::tcp::socket &get_socket() { return m_socket; }
+	asio::ip::tcp::socket &get_socketTCP() { return m_socketTCP; }
 
 	std::shared_ptr<FTPClient> getFtpClient() { return ftpClient; }
+
+	void SetEndPoint(asio::ip::udp::endpoint NewEndPoint) { remote_endpoint_ = NewEndPoint; }
+	asio::ip::udp::endpoint remote_endpoint() { return remote_endpoint_; }
 private:
 	static size_t m_nextClientId;
 	size_t m_clientId = 0;
 	ConnectionManager *m_owner = nullptr;
-	asio::ip::tcp::socket m_socket;
+
+	asio::ip::tcp::socket m_socketTCP;
+
+	asio::ip::udp::endpoint remote_endpoint_;
+
 	std::atomic<bool> m_stopped;
 	asio::streambuf m_receiveBuffer;
+
 	mutable std::mutex m_get_packet, m_disconnect, m_error;
 
 	std::condition_variable error;
@@ -83,13 +92,13 @@ private:
 	std::vector<char> m_allReadData; // Strictly for test purposes
 
 	Connection(ConnectionManager *connectionManager, asio::ip::tcp::socket socket);
+	Connection(ConnectionManager *connectionManager);
 
 	void DoReceive();
 	void DoSend();
 	std::chrono::time_point<std::chrono::steady_clock> Curr, Last;
 
 	int UserID_MetaDB = 0; // Number Line Of This DB User (Easily Work With User In MySQL)
-	//std::vector<std::string> User_MetaDB;
 
 	std::shared_ptr<FTPClient> ftpClient;
 };

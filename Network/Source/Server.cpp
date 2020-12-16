@@ -15,13 +15,13 @@ namespace net
 			for (auto &Next: m_connections)
 			{
 				// Not To ME!!!
-				if (connection == Next) continue;
+				if (connection == Next.second) continue;
 				swl::Packet Answer = swl::Packet();
 				json pack = json::parse(Answer.CreateMessage()->getData());
 				pack["data"]["body"].clear();
 				pack["data"]["body"] = json::parse(packet.getData());
 				Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Chat), pack);
-				Next->Send(Answer);
+				Next.second->Send(Answer);
 			}
 			packet.clear();
 		}
@@ -54,13 +54,13 @@ namespace net
 			json unparse = json::parse(packet.getData());
 			for (auto &Next: m_connections)
 			{
-				if (Next->GetMetaDB_User() != unparse["_0"].get<int>()) continue;
+				if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>()) continue;
 				swl::Packet Answer = swl::Packet();
 				json pack = json::parse(Answer.CreateAnswer()->getData());
 				pack["data"]["body"].clear();
 				pack["data"]["body"] = json::parse(packet.getData());
 				Answer.FillIn(swl::Packet::Header(swl::Packet::Type::PlaySound), pack);
-				Next->Send(Answer);
+				Next.second->Send(Answer);
 				break;
 			}
 			packet.clear();
@@ -72,13 +72,13 @@ namespace net
 			for (auto &Next: m_connections)
 			{
 				// Not To ME!!!
-				if (connection == Next) continue;
+				if (connection == Next.second) continue;
 				swl::Packet Answer = swl::Packet();
 				json pack = json::parse(Answer.CreateAnswer()->getData());
 				pack["data"]["body"].clear();
 				pack["data"]["body"] = json::parse(packet.getData());
 				Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_PosChanges), pack);
-				Next->Send(Answer);
+				Next.second->Send(Answer);
 			}
 			packet.clear();
 		}
@@ -89,13 +89,13 @@ namespace net
 			for (auto &Next : m_connections)
 			{
 				// Not To ME!!!
-				if (connection == Next) continue;
+				if (connection == Next.second) continue;
 				swl::Packet Answer = swl::Packet();
 				json pack = json::parse(Answer.CreateAnswer()->getData());
 				pack["data"]["body"].clear();
 				pack["data"]["body"] = json::parse(packet.getData());
 				Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_RotChanges), pack);
-				Next->Send(Answer);
+				Next.second->Send(Answer);
 			}
 			packet.clear();
 		}
@@ -106,13 +106,13 @@ namespace net
 			for (auto &Next : m_connections)
 			{
 				// Not To ME!!!
-				if (connection == Next) continue;
+				if (connection == Next.second) continue;
 				swl::Packet Answer = swl::Packet();
 				json pack = json::parse(Answer.CreateAnswer()->getData());
 				pack["data"]["body"].clear();
 				pack["data"]["body"] = json::parse(packet.getData());
 				Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_SclChanges), pack);
-				Next->Send(Answer);
+				Next.second->Send(Answer);
 			}
 			packet.clear();
 		}
@@ -123,13 +123,13 @@ namespace net
 			for (auto &Next: m_connections)
 			{
 				// Not To ME!!!
-				if (connection == Next) continue;
+				if (connection == Next.second) continue;
 				swl::Packet Answer = swl::Packet();
 				json pack = json::parse(Answer.CreateAnswer()->getData());
 				pack["data"]["body"].clear();
 				pack["data"]["body"] = json::parse(packet.getData());
 				Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_NewNodeName), pack);
-				Next->Send(Answer);
+				Next.second->Send(Answer);
 			}
 			packet.clear();
 		}
@@ -140,13 +140,13 @@ namespace net
 			for (auto &Next : m_connections)
 			{
 				// Not To ME!!!
-				if (connection == Next) continue;
+				if (connection == Next.second) continue;
 				swl::Packet Answer = swl::Packet();
 				json pack = json::parse(Answer.CreateAnswer()->getData());
 				pack["data"]["body"].clear();
 				pack["data"]["body"] = json::parse(packet.getData());
 				Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_NewNode), pack);
-				Next->Send(Answer);
+				Next.second->Send(Answer);
 			}
 			packet.clear();
 		}
@@ -162,7 +162,7 @@ namespace net
 #if defined(_DEBUG)
 			"188.210.240.246"
 #else
-			"192.168.1.2"
+			"188.210.240.246"
 #endif
 			, "gb_z_rod2_rf") == mysql::Impl::Done)
 			WaitForMySQL.notify_all();

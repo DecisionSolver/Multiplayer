@@ -210,10 +210,8 @@ namespace swl
 		try
 		{
 			std::string NewData = _data;
-			if (NewData.empty() || NewData.find("header") == std::string::npos ||
-				NewData.rfind('#') == std::string::npos) return this;
-
-			NewData.pop_back(); // Remove '#' From Back!
+			NewData.erase(NewData.find("#"), NewData.length());
+			if (NewData.empty() || NewData.find("header") == std::string::npos) return this;
 			json js = json::parse(NewData);
 
 			if (js.empty()) return this;

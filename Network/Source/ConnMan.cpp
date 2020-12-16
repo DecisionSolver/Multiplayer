@@ -2,18 +2,36 @@
 #include "ConnMan.h"
 #include <system_error>
 
-using asio::ip::tcp;
+std::map<asio::ip::udp::endpoint, Connection::SharedPtr> ConnectionManager::m_connections;
+
+std::mutex m_connectionsMutex;
 
 //------------------------------------------------------------------------------
-ConnectionManager::ConnectionManager(TypeWorking _Type, std::string IP, UINT port, size_t numThreads):
+ConnectionManager::ConnectionManager(TypeWorking _Type, TypeProtocol _Proto, std::string IP, UINT port, size_t numThreads) :
 	m_io_service()
-	, m_acceptor(m_io_service, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(IP), (USHORT)port))
+	, m_acceptor(asio::ip::tcp::acceptor(m_io_service, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(IP),
+	(USHORT)port)))
 	, m_threads(numThreads)
 	, _IP(IP)
 	, _Port(port)
 	, _Type(_Type)
+	, _Proto(_Proto)
 {
-	m_Socket.reset(new asio::ip::tcp::socket(m_io_service));
+	if (_Proto == TypeProtocol::TCP)
+	{
+		//auto NewSock = new asio::ip::tcp::socket(m_io_service,
+		//	asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(IP), (USHORT)port));
+		//NewSock->set_option(asio::ip::tcp::socket::reuse_address(true));
+		//m_SocketTCP.reset(NewSock);
+	}
+	else
+	{
+		m_SocketUDP.reset(new asio::ip::udp::socket(m_io_service,
+			_Type == TypeWorking::Server ?
+			asio::ip::udp::endpoint(asio::ip::address_v4::from_string(IP), (USHORT)port)
+			: asio::ip::udp::endpoint(asio::ip::udp::v4(), 0)));
+		m_SocketUDP->set_option(asio::ip::udp::socket::reuse_address(true));
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -57,7 +75,8 @@ void ConnectionManager::StopSystem()
 	if (_Type == TypeWorking::Server)
 		m_connections.clear();
 
-	if (_Type == TypeWorking::Client && one_connection && (one_connection->GetStopped() || one_connection->IsConnected() ||
+	if (_Type == TypeWorking::Client && one_connection && (one_connection->GetStopped()
+		|| one_connection->IsConnected() ||
 		one_connection->GetLogged()))
 	{
 		if (!one_connection->getIsError())
@@ -84,7 +103,8 @@ void ConnectionManager::StopSystem()
 
 bool ConnectionManager::ConnectToServer()
 {
-	if (_Type == TypeWorking::Server || (one_connection && (one_connection->IsConnected() || one_connection->GetLogged())))
+	if (_Type == TypeWorking::Server || (one_connection && (one_connection->IsConnected()
+		|| one_connection->GetLogged())))
 		return false;
 
 	// Set up the variable that receives the result of the asynchronous
@@ -99,9 +119,13 @@ bool ConnectionManager::ConnectToServer()
 	// operation completes. The blocking_udp_client.cpp example shows how you
 	// can use boost::bind rather than boost::lambda.
 
-	m_Socket.reset(new asio::ip::tcp::socket(m_io_service));
-	m_Socket->connect(tcp::endpoint(asio::ip::address::from_string(_IP), (USHORT)_Port), ec);
-
+	if (_Proto == TypeProtocol::TCP)
+	{
+		m_SocketTCP.reset(new asio::ip::tcp::socket(m_io_service));
+		m_SocketTCP->connect(tcp::endpoint(asio::ip::address::from_string(_IP), (USHORT)_Port), ec);
+	}
+	//else
+		//m_SocketUDP->connect(asio::ip::udp::endpoint(asio::ip::address::from_string(_IP), (USHORT)_Port), ec);
 	// Determine whether a connection was successfully established. The
 	// deadline actor may have had a chance to run and close our socket, even
 	// though the connect operation notionally succeeded. Therefore we must
@@ -109,11 +133,22 @@ bool ConnectionManager::ConnectToServer()
 	// or failed.
 	
 	// Create the connection from the connected socket
-	one_connection = Connection::Create(this, *m_Socket);
-	if (!ec || m_Socket->is_open())
+	if (_Proto == TypeProtocol::TCP)
+		one_connection = Connection::Create(this, *m_SocketTCP);
+	else
+		one_connection = Connection::Create(this);
+
+	if (!ec || (m_SocketTCP && m_SocketTCP->is_open()) || m_SocketUDP)
 	{
-		one_connection->Start();
+		if (_Proto == TypeProtocol::UDP)
+		{
+			asio::ip::udp::resolver resolver(m_io_service);
+			asio::ip::udp::endpoint receiver_endpoint = *resolver.resolve(asio::ip::udp::v4(), _IP, std::to_string(_Port));
+			one_connection->SetEndPoint(receiver_endpoint);
+		}
 	
+		one_connection->Start();
+
 		/* Sending ACCEPT CONNECTION Packet */
 		swl::Packet AnswerPacket = swl::Packet();
 		json dataJSON = json::parse(AnswerPacket.CreateMessage()->getData());
@@ -152,7 +187,7 @@ void ConnectionManager::Send(std::string Packet)
 	{
 		for (auto connection: m_connections)
 		{
-			connection->Send({ Packet.begin(), Packet.end() });
+			connection.second->Send({ Packet.begin(), Packet.end() });
 		}
 	}
 }
@@ -203,38 +238,66 @@ void ConnectionManager::IoServiceThreadProc()
 	printf("io_service socket thread exiting.\n");
 }
 
+// This is a server connection (to not to do another methods and other things)
+// It seems just like a one user but it's a sever worker xD
+Connection::SharedPtr OneConnForServerUDP;
+
 //------------------------------------------------------------------------------
 void ConnectionManager::DoAccept()
 {
 	if (_Type == TypeWorking::Client) return;
 
-	newConn.reset(new asio::ip::tcp::socket(m_io_service));
-	m_acceptor.async_accept(*newConn,
-		[this](const asio::error_code errorCode)
+	if (_Proto == TypeProtocol::TCP)
+		newConnTCP.reset(new asio::ip::tcp::socket(m_io_service));
+	else
 	{
-		if (errorCode)
-		{
-			printf("An error occured while attemping to accept connections. Error Code: %s\n",
-				Connection::ErrorCodeToString(errorCode).str().c_str());
-			return;
-		}
-
-		std::scoped_lock<std::mutex> lock(m_connectionsMutex);
-		// Create the connection from the connected socket
-		Connection::SharedPtr connection = Connection::Create(this, *newConn);
-		
-		auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
-		if (itConnection == m_connections.end())
-			m_connections.push_back(connection);
-		else
-			m_connections.erase(itConnection);
-
+		OneConnForServerUDP = Connection::Create(this);
 		if (Callback_Accept)
-			Callback_Accept(m_connections.back());
-		connection->Start();
+			Callback_Accept(OneConnForServerUDP);
+		
+		asio::ip::udp::resolver resolver(m_io_service);
+		asio::ip::udp::resolver::query query(asio::ip::udp::v4(), _IP, std::to_string(_Port));
+		asio::ip::udp::endpoint receiver_endpoint = *resolver.resolve(query);
+		OneConnForServerUDP->SetEndPoint(receiver_endpoint);
+		OneConnForServerUDP->Start();
+	}
 
-		DoAccept();
-	});
+	if (_Proto == TypeProtocol::TCP)
+	{
+		m_acceptor.async_accept(*newConnTCP,
+			[this](const asio::error_code errorCode)
+		{
+			if (errorCode)
+			{
+				printf("An error occured while attemping to accept connections. Error Code: %s\n",
+					Connection::ErrorCodeToString(errorCode).str().c_str());
+				return;
+			}
+
+			std::scoped_lock<std::mutex> lock(m_connectionsMutex);
+			// Create the connection from the connected socket
+			Connection::SharedPtr connectionTCP = Connection::Create(this, *newConnTCP);
+
+			auto itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+				[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
+			{
+				if (ThisConn.second == connectionTCP)
+					return true;
+				return false;
+			});
+			if (itConnection == m_connections.end())
+				m_connections.insert(std::pair<asio::ip::udp::endpoint, Connection::SharedPtr>(asio::ip::udp::endpoint(),
+					connectionTCP));
+			else
+				m_connections.erase(itConnection);
+
+			if (Callback_Accept)
+				Callback_Accept(connectionTCP);
+			connectionTCP->Start();
+
+			DoAccept();
+		});
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -253,33 +316,25 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection)
 
 	if (_Type == TypeWorking::Server)
 	{
-		auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
+		auto itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+			[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
+		{
+			if (ThisConn.second == connection)
+				return true;
+			return false;
+		});
 		if (itConnection != m_connections.end())
 		{
 			User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 				std::to_string(connection->GetMetaDB_User()) + "'" } });
 
-			if (m_Socket)
-				m_Socket.reset();
+			if (m_SocketTCP)
+				m_SocketTCP.reset();
 			m_connections.erase(itConnection);
 		}
 	}
 	else
 		one_connection.reset();
-}
-
-std::vector<Connection::SharedPtr> ConnectionManager::GetAllConnections()
-{
-	std::scoped_lock<std::mutex> lock(m_connectionsMutex);
-	if (!m_connections.empty())
-	{
-		if (_Type == TypeWorking::Server)
-			return m_connections;
-		if (_Type == TypeWorking::Client)
-			return { m_connections.back() };
-	}
-
-	return {};
 }
 
 Connection::SharedPtr ConnectionManager::GetConnect()
@@ -320,9 +375,18 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 				{
 					if (_Type == TypeWorking::Server)
 					{
-						auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
+						auto itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+							[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
+						{
+							if (ThisConn.second == connection)
+								return true;
+							return false;
+						});
 						if (itConnection != m_connections.end())
+						{
+							std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
 							m_connections.erase(itConnection);
+						}
 					}
 					else
 						one_connection.reset();
@@ -336,12 +400,20 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					connection->GetPacket(packet, swl::Packet::Type::Disconnection);
 					if (packet)
 					{
-						auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
+						auto itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+							[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
+						{
+							if (ThisConn.second == connection)
+								return true;
+							return false;
+						});
 						if (itConnection != m_connections.end())
 						{
+							std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
-							connection->get_socket().close();
+							if (_Proto == TypeProtocol::TCP)
+								connection->get_socketTCP().close();
 							m_connections.erase(itConnection);
 						}
 
@@ -387,10 +459,18 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								if (pack["data"]["body"]["_0"] == "NotFound" ||
 									pack["data"]["body"]["_0"] == "AlreadyOnl")
 								{
-									auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
+									auto itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+										[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
+									{
+										if (ThisConn.second == connection)
+											return true;
+										return false;
+									});
 									if (itConnection != m_connections.end())
 									{
-										connection->get_socket().close();
+										std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
+										if (_Proto == TypeProtocol::TCP)
+											connection->get_socketTCP().close();
 										m_connections.erase(itConnection);
 									}
 									return;
@@ -406,12 +486,20 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							}
 							else
 							{
-								auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
+								auto itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+									[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
+								{
+									if (ThisConn.second == connection)
+										return true;
+									return false;
+								});
 								if (itConnection != m_connections.end())
 								{
+									std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
 									User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 										std::to_string(connection->GetMetaDB_User()) + "'" } });
-									connection->get_socket().close();
+									if (_Proto == TypeProtocol::TCP)
+										connection->get_socketTCP().close();
 									m_connections.erase(itConnection);
 								}
 
@@ -449,12 +537,19 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					// If Wasn't MySQL Packet And Timer Is Done
 					if (_Type == TypeWorking::Server && connection->GetTimer())
 					{
-						auto itConnection = std::find(m_connections.begin(), m_connections.end(), connection);
+						auto itConnection = std::find_if(m_connections.begin(), m_connections.end(),
+							[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
+						{
+							if (ThisConn.second == connection)
+								return true;
+							return false;
+						});
 						if (itConnection != m_connections.end())
 						{
 							User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
-							connection->get_socket().close();
+							if (_Proto == TypeProtocol::TCP)
+								connection->get_socketTCP().close();
 							m_connections.erase(itConnection);
 						}
 
@@ -498,7 +593,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						// Get All Users Who Is Online Now Or Not
 						auto IsOnline = User->TrySelectValues("Local", { "_2, _N" });
 
-						std::vector<Connection::SharedPtr>::iterator itConnection;
+						std::map<asio::ip::udp::endpoint, Connection::SharedPtr>::iterator itConnection;
 						if (!IsOnline.empty())
 						{
 							for (auto It: IsOnline)
@@ -510,11 +605,12 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 										(int)It.second["_2"].get<json::value_t>() == 0))
 								{
 									itConnection = std::find_if(m_connections.begin(), m_connections.end(),
-										[&](const Connection::SharedPtr &ThisConn)
+										[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
 									{
-										if (ThisConn && (ThisConn->GetLogged() || ThisConn->IsConnected() &&
-											!ThisConn->GetStopped()) &&
-											ThisConn->GetMetaDB_User() == (int)It.second["_N"].get<json::value_t>())
+										if (ThisConn.second &&
+											(ThisConn.second->GetLogged() || ThisConn.second->IsConnected() &&
+											!ThisConn.second->GetStopped()) &&
+											ThisConn.second->GetMetaDB_User() == (int)It.second["_N"].get<json::value_t>())
 											return true;
 										return false;
 									});
@@ -526,37 +622,40 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						else
 						{
 							itConnection = std::find_if(m_connections.begin(), m_connections.end(),
-								[&](const Connection::SharedPtr &ThisConn)
+								[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
 							{
-								if (ThisConn && (ThisConn->GetLogged() || ThisConn->IsConnected() &&
-									!ThisConn->GetStopped()))
+								if (ThisConn.second &&
+									(ThisConn.second->GetLogged() || ThisConn.second->IsConnected() &&
+									!ThisConn.second->GetStopped()))
 									return true;
 								return false;
 							});
 						}
 						if (itConnection != m_connections.end())
 						{
-							itConnection->operator->()->get_socket().close();
+							std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
+							if (_Proto == TypeProtocol::TCP)
+								itConnection->second->get_socketTCP().close();
 							m_connections.erase(itConnection);
 						}
 					}
 
 					for (auto connection: m_connections)
 					{
-						if (!connection) continue;
+						if (!connection.second) continue;
 
-						if (!connection->GetStopped())
-							Lambd(connection);
+						if (!connection.second->GetStopped())
+							Lambd(connection.second);
 
-						if (connection)
+						if (connection.second)
 						{
-							if (connection->getIsError() && !connection->get_error_queue().empty())
+							if (connection.second->getIsError() && !connection.second->get_error_queue().empty())
 							{
 								User->TryInsertValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
-								std::to_string(connection->GetMetaDB_User()) + "'" } });
-								connection->get_error_queue().pop_front();
+								std::to_string(connection.second->GetMetaDB_User()) + "'" } });
+								connection.second->get_error_queue().pop_front();
 							}
-							connection->waiterDisconnection.notify_all();
+							connection.second->waiterDisconnection.notify_all();
 						}
 					}
 				}

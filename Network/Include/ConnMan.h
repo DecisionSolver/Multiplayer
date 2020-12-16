@@ -25,8 +25,13 @@ public:
 		Server = 0,
 		Client
 	};
+	enum TypeProtocol
+	{
+		TCP = 0,
+		UDP
+	};
 
-	ConnectionManager(TypeWorking _Type, std::string IP, UINT port, size_t numThreads = 2);
+	ConnectionManager(TypeWorking _Type, TypeProtocol _Proto, std::string IP, UINT port, size_t numThreads = 2);
 	ConnectionManager(const ConnectionManager &) = delete;
 	ConnectionManager(ConnectionManager &&) = delete;
 	ConnectionManager &operator = (const ConnectionManager &) = delete;
@@ -51,27 +56,32 @@ public:
 
 	void OnConnectionClosed(Connection::SharedPtr connection);
 
-	// Only SERVER!
-	std::vector<Connection::SharedPtr> GetAllConnections();
 	std::atomic_bool &isInUpdate() { return isUpdate; };
 
 	// Only CLIENT!
 	Connection::SharedPtr GetConnect();
 	
 	const TypeWorking GetTypeWork() const { return _Type; }
+	const TypeProtocol GetProtocol() const { return _Proto; }
 
 	asio::io_service &GetIOService() { return m_io_service; }
 
 	std::condition_variable &IsWait();
 	std::condition_variable &IsWaitMySQL() { return WaitForMySQL; }
+	
+	asio::ip::udp::socket &GetSocketUDP() { return *m_SocketUDP; }
+
+	static std::map<asio::ip::udp::endpoint, Connection::SharedPtr> m_connections;
 protected:
 	asio::io_service m_io_service;
 	asio::ip::tcp::acceptor m_acceptor;
-	std::unique_ptr<asio::ip::tcp::socket> m_Socket;
+	std::unique_ptr<asio::ip::tcp::socket> m_SocketTCP;
+
+	std::unique_ptr<asio::ip::udp::socket> m_SocketUDP;
+
 	std::vector<std::thread> m_threads;
 
-	mutable std::mutex m_connectionsMutex, m_MySQL;
-	std::vector<Connection::SharedPtr> m_connections;
+	mutable std::mutex m_MySQL;
 	Connection::SharedPtr one_connection;
 
 	std::atomic_bool isUpdate = false;
@@ -84,13 +94,14 @@ protected:
 
 	bool IsWorking = false;
 	TypeWorking _Type;
+	TypeProtocol _Proto;
 
 	std::function<void(Connection::SharedPtr)> Callback_OnClientHandler, Callback_Accept, Callback_OnLoggin;
 	std::function<void(asio::error_code)> Callback_OnError;
 
 	std::shared_ptr<mysql::MYSQLCLIENT> User = std::make_shared<mysql::MYSQLCLIENT>();
 
-	std::unique_ptr<asio::ip::tcp::socket> newConn;
+	std::unique_ptr<asio::ip::tcp::socket> newConnTCP;
 
 	std::chrono::time_point<std::chrono::steady_clock> Curr, Last;
 };
