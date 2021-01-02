@@ -25,12 +25,6 @@ std::ostringstream Connection::ErrorCodeToString(const asio::error_code &errorCo
 	debugMsg << "Error Category: " << errorCode.category().name() << ". "
 		<< " Error Message: " << errorCode.message() << ". ";
 
-	// IMPORTANT - These comparisons only work if you dynamically link boost libraries
-	//             Because boost chose to implement boost::system::error_category::operator == by comparing addresses
-	//             The addresses are different in one library and the other when statically linking.
-	//
-	// We use make_error_code macro to make the correct category as well as error code value.
-	// Error code value is not unique and can be duplicated in more than one category.
 	if (errorCode == asio::error::make_error_code(asio::error::connection_refused))
 		debugMsg << " (Connection Refused)";
 	else if (errorCode == asio::error::make_error_code(asio::error::eof))
@@ -95,10 +89,6 @@ void Connection::Start()
 void Connection::Stop()
 {
 	std::unique_lock<std::mutex> lock(m_disconnect);
-	// The entire connection class is only kept alive, because it is a shared pointer and always has a ref count
-	// as a consequence of the outstanding async receive call that gets posted every time we receive.
-	// Once we stop posting another receive in the receive handler and once our owner release any references to
-	// us, we will get destroyed.
 	m_stopped = true;
 
 	if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client &&

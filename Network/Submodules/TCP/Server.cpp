@@ -20,13 +20,13 @@ int main()
 
 	IPEndpoint IP = IPEndpoint(
 #if defined(_DEBUG)
-		"192.168.14.1"
+		"127.0.0.1"
 #else
-		"192.168.14.1"
+		"192.168.1.4"
 #endif
 	);
 	uint16_t Port = 20675;
-	std::shared_ptr<Server> server = std::make_shared<Server>(IP, ConnectionManager::TypeProtocol::UDP, Port);
+	std::shared_ptr<Server> server = std::make_shared<Server>(IP, ConnectionManager::TypeProtocol::TCP, Port);
 
 	server->Start();
 

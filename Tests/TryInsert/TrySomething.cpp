@@ -16,13 +16,13 @@ using namespace std;
 shared_ptr<mysql::Impl> DB = make_shared<mysql::Impl>();
 vector<shared_ptr<net::Client>> Users;
 
-#define IP swl::IPEndpoint("192.168.14.1")
+#define IP swl::IPEndpoint("127.0.0.1")
 #define PORT 20675
 
 bool UseRepeater = false;
 void ConnectFunc(string Login, string Pass)
 {
-	Users.push_back(make_shared<net::Client>(swl::IPEndpoint(""),ConnectionManager::TypeProtocol::TCP, 0));
+	Users.push_back(make_shared<net::Client>(swl::IPEndpoint(""), ConnectionManager::TypeProtocol::TCP, 0));
 	if (Users.back()->Connect(IP, PORT))
 	{
 		Users.back()->StartSystem();

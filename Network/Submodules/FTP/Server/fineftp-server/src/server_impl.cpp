@@ -36,7 +36,7 @@ namespace fineftp
     // set up the acceptor to listen on the tcp port
 	asio::ip::tcp::endpoint endpoint(asio::ip::address_v4::from_string(
 #if defined(_DEBUG)
-		"192.168.121.1"
+		"192.168.1.4"
 #else
 		"192.168.1.2"
 #endif

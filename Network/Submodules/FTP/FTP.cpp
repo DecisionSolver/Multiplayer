@@ -117,7 +117,7 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 
 int main()
 {
-	DB->Connect("test", "test123",
+	DB->Connect("test", "vextern123",
 #if defined(_DEBUG)
 		"188.210.240.246"
 #else

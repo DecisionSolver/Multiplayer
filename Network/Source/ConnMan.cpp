@@ -83,9 +83,6 @@ void ConnectionManager::StopSystem()
 			one_connection->Stop();
 		one_connection.reset();
 	}
-	// TODO - Will the stopping of the io_service be enough to kill all the connections and
-	//		  ultimately have them get destroyed?
-	//        Because remember they have outstanding ref count to thier shared_ptr in the async handlers
 	m_io_service.stop();
 
 	if (_Type == TypeWorking::Server && User)
@@ -107,30 +104,13 @@ bool ConnectionManager::ConnectToServer()
 		|| one_connection->GetLogged())))
 		return false;
 
-	// Set up the variable that receives the result of the asynchronous
-	// operation. The error code is set to would_block to signal that the
-	// operation is incomplete. Asio guarantees that its asynchronous
-	// operations will never fail with would_block, so any other value in
-	// ec indicates completion.
-	asio::error_code ec = asio::error::would_block;
-
-	// Start the asynchronous operation itself. The boost::lambda function
-	// object is used as a callback and will update the ec variable when the
-	// operation completes. The blocking_udp_client.cpp example shows how you
-	// can use boost::bind rather than boost::lambda.
+	asio::error_code ec;
 
 	if (_Proto == TypeProtocol::TCP)
 	{
 		m_SocketTCP.reset(new asio::ip::tcp::socket(m_io_service));
 		m_SocketTCP->connect(tcp::endpoint(asio::ip::address::from_string(_IP), (USHORT)_Port), ec);
 	}
-	//else
-		//m_SocketUDP->connect(asio::ip::udp::endpoint(asio::ip::address::from_string(_IP), (USHORT)_Port), ec);
-	// Determine whether a connection was successfully established. The
-	// deadline actor may have had a chance to run and close our socket, even
-	// though the connect operation notionally succeeded. Therefore we must
-	// check whether the socket is still open before deciding if we succeeded
-	// or failed.
 	
 	// Create the connection from the connected socket
 	if (_Proto == TypeProtocol::TCP)
@@ -438,7 +418,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								auto Obj = User->TrySelectValues("Local", { "*" },
 									{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
 
-								// If Successfull Then Send Answer About It
+								// If Successful Then Send Answer About It
 								swl::Packet Answer = swl::Packet();
 								json pack = json::parse(Answer.CreateAnswer()->getData());
 								if (!Obj.empty() && !Obj.front().second.empty())
@@ -550,7 +530,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								std::to_string(connection->GetMetaDB_User()) + "'" } });
 							if (_Proto == TypeProtocol::TCP)
 								connection->get_socketTCP().close();
-							m_connections.erase(itConnection);
+							//BUG -- m_connections.erase(itConnection);
 						}
 
 						return;
@@ -633,7 +613,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						}
 						if (itConnection != m_connections.end())
 						{
-							std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
+							std::scoped_lock<std::mutex> _MainLock(m_connectionsMutex);
 							if (_Proto == TypeProtocol::TCP)
 								itConnection->second->get_socketTCP().close();
 							m_connections.erase(itConnection);
