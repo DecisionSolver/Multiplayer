@@ -72,7 +72,7 @@ namespace swl
 		Packet *CreateMySQL();
 		Packet *CreateDisconnect();
 		
-		Packet *onReceive(const char *_data);
+		Packet *onReceive(std::string NewData);
 	protected:
 		friend TCPSocket;
 		friend UDPSocket;

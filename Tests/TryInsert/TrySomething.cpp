@@ -48,10 +48,10 @@ void GetPacketFromThread(swl::Packet packet, swl::Packet::Type NeededPacket)
 	{
 		json unparsed = json::parse(packet.getData());
 		size_t i = 0;
-		for (const auto &element: unparsed["_0"])
+		for (size_t i = 0; i < unparsed["_0"].size(); i++)
 		{
-			printf("\tID: %i\nName: %s\n", (int)unparsed["_1"].at(i).get<json::value_t>(),
-				element.get<json::string_t>().c_str());
+			printf("\tID: %i\nName: %s\n", ((int)unparsed["_1"].at(i).front().get<json::number_integer_t>()),
+				unparsed["_0"].at(i).front().get<json::string_t>().c_str());
 			i++;
 		}
 	}
@@ -85,9 +85,9 @@ int main(int argc, char* argv[])
 		case 0:
 		{
 			auto AllUsers = DB->TrySelectValues("Local", { "*" }, { " WHERE _2 = 0" });
-			for (auto CurrUser: AllUsers)
+			for (size_t i = 0; i < AllUsers["_N"].size(); i++)
 			{
-				ConnectFunc(CurrUser.second["_0"].get<json::string_t>(), CurrUser.second["_1"].get<json::string_t>());
+				ConnectFunc(AllUsers.at(i).get<json::string_t>(), AllUsers["_1"].at(i).get<json::string_t>());
 			}
 			break;
 		}
@@ -247,19 +247,19 @@ int main(int argc, char* argv[])
 			{
 				Text.clear();
 				system("cls");
-				printf("Enter ID User Here (-1 Means That 'To All Users'): ");
+				printf("Enter ID User Here (-1 Means That 'To All Users That Are Online'): ");
 				cin >> Text;
 
 				if (Text == "-1")
 				{
-					auto AllUsersID = DB->TrySelectValues("Local", { "_N" });
+					auto AllUsersID = DB->TrySelectValues("Local", { "_N" }, { " WHERE _N = 1" });
 					vector<swl::Packet> packet;
 
 					for (auto ID: AllUsersID)
 					{
 						packet.push_back(swl::Packet());
 						json data = json::parse(packet.back().CreateMessage()->getData());
-						data["data"]["body"]["_0"] = atoi(ID.first.c_str());
+						data["data"]["body"]["_0"] = ID.back().get<json::number_integer_t>();
 						data["data"]["body"]["_1"] = 0.016f;
 						data["data"]["body"]["_2"] = "01.08.16.wav";
 						packet.back().FillIn(swl::Packet::Header(swl::Packet::Type::PlaySound), data);

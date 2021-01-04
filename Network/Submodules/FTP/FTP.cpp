@@ -57,16 +57,16 @@ void addAccess(const std::string& filename, const std::string& authorname, const
 	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
 	auto Row = AuthorList.begin();
 
-	if (Row->second["_0"].is_null() || (Row->second["_0"].is_string() && Row->second["_0"].get<json::string_t>().empty()))
-		Row->second["_0"] = {};
-	else if ((Row->second["_0"].is_string() && !Row->second["_0"].get<json::string_t>().empty()))
-		Row->second["_0"] = json::parse(Row->second["_0"].get<json::string_t>());
+	//if (Row->second["_0"].is_null() || (Row->second["_0"].is_string() && Row->second["_0"].get<json::string_t>().empty()))
+	//	Row->second["_0"] = {};
+	//else if ((Row->second["_0"].is_string() && !Row->second["_0"].get<json::string_t>().empty()))
+	//	Row->second["_0"] = json::parse(Row->second["_0"].get<json::string_t>());
 
-	if (Row->second["_0"].dump().find(filename) == std::string::npos)
-	{
-		Row->second["_0"].push_back(filename);
-		DB->TryInsertValues("user_wright", { username }, { Row->second["_0"].dump() }, { "Authorname = '" + authorname + "'" });
-	}
+	//if (Row->second["_0"].dump().find(filename) == std::string::npos)
+	//{
+	//	Row->second["_0"].push_back(filename);
+	//	DB->TryInsertValues("user_wright", { username }, { Row->second["_0"].dump() }, { "Authorname = '" + authorname + "'" });
+	//}
 }
 
 void removeAccess(const std::string& filename, const std::string& authorname, const std::string& username)
@@ -76,11 +76,11 @@ void removeAccess(const std::string& filename, const std::string& authorname, co
 
 	//OutputDebugStringA(Row->second["_0"].dump().c_str());
 	
-	if (Row->second["_0"].dump() != "\"\"")
-		Row->second["_0"].dump().erase(Row->second["_0"].dump().find(filename), Row->second["_0"].dump().find(filename) + filename.size());
+	//if (Row.key() != "\"\"")
+		//Row.key().(Row.key().find(filename), Row.key().find(filename) + filename.size());
 
-	DB->TryInsertValues("user_wright", { username },
-		{ Row->second["_0"].dump() != "\"\"" ? Row->second["_0"].dump() : "" }, { "Authorname = '" + authorname + "'" });
+	//DB->TryInsertValues("user_wright", { username },
+	//	{ Row.key().dump() != "\"\"" ? Row.key().dump() : "" }, { "Authorname = '" + authorname + "'" });
 }
 
 bool hasUserAccess(const std::string& filename, const std::string& authorname, const std::string& username)
@@ -96,12 +96,12 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 			return false; //no file in author folder
 	}
 
-	auto UserAccess = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
+	auto UserAccess = DB->TrySelectValues("user_wright", { "*" });
 
 	if (UserAccess.size() == 0)
 		return false; //no author
 
-	if (UserAccess.begin()->second["_0"].dump().find(filename) != std::string::npos)
+	if (UserAccess.begin().key().find(filename) != std::string::npos)
 	{
 		path authorpath = _getcwd(nullptr, 1024);
 		authorpath += "\\" + authorname + "\\" + filename;
@@ -124,13 +124,13 @@ int main()
 		"192.168.1.2"
 #endif
 		, "gb_z_rod2_rf");
-	//addUser("user3");
-	//std::cerr << hasUserAccess("doc.doc", "user2", "user1");
-	//addAccess("text.text", "user1", "user3");
-	//std::cerr << hasUserAccess("text.text", "user1", "user3");
-	//addAccess("text.text", "user3", "user1");
-	//std::cerr << hasUserAccess("text.text", "user3", "user1");
-	//removeAccess("text1.text", "user1", "user2");
+//	addUser("user3");
+	std::cerr << hasUserAccess("doc.doc", "user2", "user1");
+	addAccess("text.text", "user1", "user3");
+	std::cerr << hasUserAccess("text.text", "user1", "user3");
+	addAccess("text.text", "user3", "user1");
+	std::cerr << hasUserAccess("text.text", "user3", "user1");
+	removeAccess("text1.text", "user1", "user2");
 
 	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 	local_root += "/";
@@ -152,16 +152,17 @@ int main()
 	auto AllUsers = DB->TrySelectValues("Local", { "*" });
 
 	local_root += "Users/";
-	for (auto ThisUser: AllUsers)
+
+	for (size_t i = 0; i < AllUsers["_N"].size(); i++)
 	{
-		auto ThisPath = local_root.string() + ThisUser.second["_0"].get<std::string>();
+		auto ThisPath = local_root.string() + AllUsers["_0"].at(i).get<std::string>();
 		if (!exists(ThisPath))
 			create_directories(ThisPath);
-		if (ThisUser.second["_3"].get<int>() == 1)
-			server.addUser(ThisUser.second["_0"], ThisUser.second["_1"], (_getcwd(nullptr, 1024) +
+		if (AllUsers["_3"].at(i).get<json::number_integer_t>() == 1)
+			server.addUser(AllUsers["_0"].at(i), AllUsers["_1"].at(i), (_getcwd(nullptr, 1024) +
 				std::string("Workspace")), fineftp::Permission::All);
 		else
-			server.addUser(ThisUser.second["_0"], ThisUser.second["_1"], ThisPath, fineftp::Permission::FileWrite);
+			server.addUser(AllUsers["_0"].at(i), AllUsers["_1"].at(i), ThisPath, fineftp::Permission::FileWrite);
 	}
 	local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 	local_root += "/Workspace/";

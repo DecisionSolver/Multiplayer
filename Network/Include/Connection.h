@@ -77,7 +77,7 @@ private:
 	std::atomic<bool> m_stopped;
 	asio::streambuf m_receiveBuffer;
 
-	mutable std::mutex m_get_packet, m_disconnect, m_error;
+	mutable std::mutex m_disconnect, m_error;
 
 	std::condition_variable error;
 	std::atomic_bool IsError = false;

@@ -421,13 +421,13 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								// If Successful Then Send Answer About It
 								swl::Packet Answer = swl::Packet();
 								json pack = json::parse(Answer.CreateAnswer()->getData());
-								if (!Obj.empty() && !Obj.front().second.empty())
+								if (!Obj.empty())
 								{
 									pack["data"]["body"]["_0"] = "OK";
 
-									connection->SetMetaDB_User((int)Obj.back().second["_N"].get<json::value_t>());
+									connection->SetMetaDB_User((int)Obj["_N"].front().get<json::number_integer_t>());
 
-									if ((int)Obj.back().second["_2"].get<json::value_t>() == 1)
+									if (Obj["_2"].front().get<json::number_integer_t>() == 1)
 										pack["data"]["body"]["_0"] = "AlreadyOnl";
 								}
 								else
@@ -573,16 +573,16 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						// Get All Users Who Is Online Now Or Not
 						auto IsOnline = User->TrySelectValues("Local", { "_2, _N" });
 
-						std::map<asio::ip::udp::endpoint, Connection::SharedPtr>::iterator itConnection;
+						std::map<asio::ip::udp::endpoint, Connection::SharedPtr>::iterator itConnection = m_connections.end();
 						if (!IsOnline.empty())
 						{
 							for (auto It: IsOnline)
 							{
 								// If Isn't Online Then Disconnect It
-								if (!It.second.empty() &&
-									(It.second.find("_N") != It.second.end() &&
-										It.second.find("_2") != It.second.end() &&
-										(int)It.second["_2"].get<json::value_t>() == 0))
+								if (!It.empty() &&
+									(It.find("_N") != It.end() &&
+										It.find("_2") != It.end() &&
+										It["_2"].get<json::number_integer_t>() == 0))
 								{
 									itConnection = std::find_if(m_connections.begin(), m_connections.end(),
 										[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
@@ -590,7 +590,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 										if (ThisConn.second &&
 											(ThisConn.second->GetLogged() || ThisConn.second->IsConnected() &&
 											!ThisConn.second->GetStopped()) &&
-											ThisConn.second->GetMetaDB_User() == (int)It.second["_N"].get<json::value_t>())
+											ThisConn.second->GetMetaDB_User() == It["_N"].get<json::number_integer_t>())
 											return true;
 										return false;
 									});

@@ -40,7 +40,7 @@ namespace mysql
 	// Methods																					//
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	Client::Status Client::Connect(const std::string& user, const std::string& password, const std::string& host,	//
 		const std::string DB, const unsigned short& port, const std::string charset)
 	{
@@ -61,7 +61,7 @@ namespace mysql
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::list<std::pair<std::string, nlohmann::json>> Client::TrySelectValues(const std::string & name_table,				//
+	nlohmann::json Client::TrySelectValues(const std::string & name_table,													//
 		const std::vector<std::string>& name_columns, const std::vector<std::string> & condition)							//
 	{
 		return impl->TrySelectValues(name_table, name_columns, condition);

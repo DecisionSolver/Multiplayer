@@ -42,7 +42,7 @@ namespace mysql
 		// Methods                                   //
 		///////////////////////////////////////////////
 
-		std::list<std::pair<std::string, nlohmann::json>> SelectValues(const std::string& name_table,
+		nlohmann::json SelectValues(const std::string& name_table,
 			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {});
 
 		void UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,
@@ -51,7 +51,6 @@ namespace mysql
 		void InsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
 			const std::vector<std::string>& values);
 	};
-
 
 	/////////////////////////////////////////////////////////////////////////////////
 	// Definition of the most common names   	           	  	 				   //

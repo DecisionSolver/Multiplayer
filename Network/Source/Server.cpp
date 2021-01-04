@@ -31,13 +31,10 @@ namespace net
 		{
 			json Arr;
 			auto Obj = User->TrySelectValues("Local", { "*" }, { " WHERE _2 = 1" });
-			for (const auto &Next: Obj)
+			for (size_t i = 0; i < Obj["_N"].size(); i++)
 			{
-				if (!Next.second.empty())
-				{
-					Arr["_1"].push_back((int)Next.second["_N"].get<json::value_t>());
-					Arr["_0"].push_back(Next.second["_0"].get<json::string_t>());
-				}
+				Arr["_1"].push_back(Obj["_N"].at(i).back().get<json::number_integer_t>());
+				Arr["_0"].push_back(Obj["_0"].at(i).back().get<json::string_t>());
 			}
 			swl::Packet Answer = swl::Packet();
 			json pack = json::parse(Answer.CreateAnswer()->getData());

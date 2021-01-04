@@ -205,7 +205,7 @@ namespace mysql
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::list<std::pair<std::string, nlohmann::json>> Impl::TrySelectValues(const std::string &name_table,				 //
+	nlohmann::json Impl::TrySelectValues(const std::string &name_table,													 //
 		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)						 //
 	{
 		if (!wasSelectedDB)

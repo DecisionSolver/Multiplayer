@@ -7,6 +7,7 @@
 
 //--------------------------------------------------------------------
 size_t Connection::m_nextClientId(0);
+std::mutex m_get_packet;
 
 //--------------------------------------------------------------------
 Connection::SharedPtr Connection::Create(ConnectionManager *connectionManager, asio::ip::tcp::socket &socket)
@@ -293,10 +294,11 @@ void Connection::DoReceive()
 		printf("Received data from client %zd: %s\n", self->m_clientId, data.c_str());
 
 		swl::Packet newPacket = swl::Packet();
-		if (newPacket.onReceive(data.c_str()))
+		if (!data.empty() && newPacket.onReceive(data))
 		{
-			if (self->m_owner && 
-				(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server || 
+			std::lock_guard<std::mutex> get_packet(m_get_packet);
+			if (self->m_owner &&
+				(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ||
 				(self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP && !self->GetLogged())))
 			{
 				if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
@@ -333,7 +335,7 @@ void Connection::DoReceive()
 								Connection::SharedPtr>(self->remote_endpoint(), New));
 						}
 					}
-					if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP 
+					if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP
 						&& itConnection != ConnectionManager::m_connections.end())
 						itConnection->second->packet_queue.insert(
 							std::pair<swl::Packet::Type,

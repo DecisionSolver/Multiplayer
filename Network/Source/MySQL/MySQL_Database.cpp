@@ -33,10 +33,11 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	std::list<std::pair<std::string, json>> Database::SelectValues(const std::string &name_table,			//
+	json Database::SelectValues(const std::string &name_table,												//
 		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)			//
 	{
 		std::string temp;
+		size_t ID = 0;
 
 		if (name_columns.empty())
 		{
@@ -48,7 +49,8 @@ namespace mysql
 		{
 			for (const auto &piece: name_columns)
 			{
-				temp += piece + ",";
+				temp += piece + " AS " + "'_" + std::to_string(ID) + "',";
+				ID++;
 			}
 			temp.pop_back();
 		}
@@ -74,49 +76,44 @@ namespace mysql
 		else
 			ResultExec = impl->Query("SELECT " + temp + " FROM " + name_table + ";");
 
-		std::list<std::pair<std::string, json>> result;
+		json js;
 		if (!ResultExec)
-			return result;
+			return js;
 		try
 		{
 			while (ResultExec->next())
 			{
-				json js;
-				if (ResultExec->findColumn("_N") > 0)
-					js["_N"] = ResultExec->getInt("_N");
-				if (ResultExec->findColumn("_0") > 0)
+				auto MetaData = ResultExec->getMetaData();
+				for (size_t i = 1; i <= MetaData->getColumnCount(); i++)
 				{
-					js["_0"] = ResultExec->getString("_0");
-					if ((js["_0"].is_string() && !js["_0"].get<json::string_t>().empty() &&
-						(js["_0"].dump().find("[") != std::string::npos &&
-							js["_0"].dump().rfind("]") != std::string::npos)))
-						js["_0"] = json::parse(js["_0"].get<json::string_t>());
-				}
-				if (ResultExec->findColumn("_1") > 0)
-				{
-					js["_1"] = ResultExec->getString("_1");
-					if ((js["_1"].is_string() && !js["_1"].get<json::string_t>().empty() &&
-						(js["_1"].dump().find("[") != std::string::npos &&
-							js["_1"].dump().rfind("]") != std::string::npos)))
-						js["_1"] = json::parse(js["_1"].get<json::string_t>());
-				}
-				if (ResultExec->findColumn("_2") > 0)
-					js["_2"] = ResultExec->getInt("_2");
-				if (ResultExec->findColumn("_3") > 0)
-					js["_3"] = ResultExec->getInt("_3");
+					int colType = MetaData->getColumnType(i);
+					std::string ColumnName = MetaData->getColumnLabel(i);
 
-				if (js.find("_N") != js.end())
-					result.push_back({
-					 (js["_N"].is_number() ?
-						std::to_string((int)js["_N"].get<json::value_t>()) :
-						js["_N"].get<json::string_t>()),
-						js });
-				else
-					result.push_back({
-						(js.front().is_number() ?
-						std::to_string((int)js.front().get<json::value_t>()) :
-						js.front().get<json::string_t>()),
-						js });
+					switch (colType)
+					{
+					case sql::DataType::BIT:
+					case sql::DataType::INTEGER:
+					case sql::DataType::NUMERIC:
+					case sql::DataType::TINYINT:
+					case sql::DataType::SMALLINT:
+					case sql::DataType::BIGINT:
+						js[ColumnName].push_back(ResultExec->getInt64(ColumnName));
+						break;
+					case sql::DataType::REAL:
+					case sql::DataType::DECIMAL:
+					case sql::DataType::DOUBLE:
+						js[ColumnName].push_back(ResultExec->getDouble(ColumnName));
+						break;
+					case sql::DataType::CHAR:
+					case sql::DataType::VARCHAR:
+					case sql::DataType::LONGVARCHAR:
+					case sql::DataType::BINARY:
+					case sql::DataType::VARBINARY:
+					case sql::DataType::LONGVARBINARY:
+						js[ColumnName].push_back(ResultExec->getString(ColumnName));
+						break;
+					}
+				}
 			}
 		}
 		catch (sql::SQLException &e)
@@ -130,7 +127,7 @@ namespace mysql
 
 		if (ResultExec)
 			delete ResultExec;
-		return result;
+		return js;
 	}
 
 

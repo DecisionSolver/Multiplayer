@@ -205,13 +205,12 @@ namespace swl
 		//}
 		return getData();
 	}
-	Packet *Packet::onReceive(const char *_data)
+	Packet *Packet::onReceive(std::string NewData)
 	{
 		try
 		{
-			std::string NewData = _data;
-			NewData.erase(NewData.find("#"), NewData.length());
 			if (NewData.empty() || NewData.find("header") == std::string::npos) return this;
+			NewData.erase(NewData.find("#"), NewData.length());
 			json js = json::parse(NewData);
 
 			if (js.empty()) return this;
