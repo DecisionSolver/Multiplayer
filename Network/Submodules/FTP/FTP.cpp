@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <string>
+#include <algorithm>
 
 #include "MySQL/MySQL_Client.h"
 #include "MySQL/MySQL_Impl.h"
@@ -55,32 +56,33 @@ void addUser(const std::string& username)
 void addAccess(const std::string& filename, const std::string& authorname, const std::string& username)
 {
 	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
-	auto Row = AuthorList.begin();
 
-	//if (Row->second["_0"].is_null() || (Row->second["_0"].is_string() && Row->second["_0"].get<json::string_t>().empty()))
-	//	Row->second["_0"] = {};
-	//else if ((Row->second["_0"].is_string() && !Row->second["_0"].get<json::string_t>().empty()))
-	//	Row->second["_0"] = json::parse(Row->second["_0"].get<json::string_t>());
+	if (!AuthorList["f"].is_array() || AuthorList["f"].empty())
+		AuthorList.clear();
 
-	//if (Row->second["_0"].dump().find(filename) == std::string::npos)
-	//{
-	//	Row->second["_0"].push_back(filename);
-	//	DB->TryInsertValues("user_wright", { username }, { Row->second["_0"].dump() }, { "Authorname = '" + authorname + "'" });
-	//}
+	if (AuthorList["f"].dump().find(filename) == std::string::npos)
+	{
+		AuthorList["f"].push_back(filename);
+		DB->TryInsertValues("user_wright", { username }, { AuthorList.dump() }, { "Authorname = '" + authorname + "'" });
+	}
 }
 
-void removeAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+void removeAccess(const std::string &filename, const std::string& authorname, const std::string& username)
 {
 	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
-	auto Row = AuthorList.begin();
 
-	//OutputDebugStringA(Row->second["_0"].dump().c_str());
-	
-	//if (Row.key() != "\"\"")
-		//Row.key().(Row.key().find(filename), Row.key().find(filename) + filename.size());
+	for(auto it = AuthorList["f"].begin(); it < AuthorList["f"].end(); it++)
+		if (it.value() == filename)
+		{
+			AuthorList["f"].erase(it - AuthorList["f"].begin());
+			break;
+		}
+		
 
-	//DB->TryInsertValues("user_wright", { username },
-	//	{ Row.key().dump() != "\"\"" ? Row.key().dump() : "" }, { "Authorname = '" + authorname + "'" });
+	if(!AuthorList["f"].empty())
+		DB->TryInsertValues("user_wright", { username }, { AuthorList.dump() }, { "Authorname = '" + authorname + "'" });
+	else
+		DB->TryInsertValues("user_wright", { username }, { "" }, { "Authorname = '" + authorname + "'" });
 }
 
 bool hasUserAccess(const std::string& filename, const std::string& authorname, const std::string& username)
@@ -96,12 +98,12 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 			return false; //no file in author folder
 	}
 
-	auto UserAccess = DB->TrySelectValues("user_wright", { "*" });
+	auto UserAccess = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
 
-	if (UserAccess.size() == 0)
+	if (UserAccess["f"].empty())
 		return false; //no author
 
-	if (UserAccess.begin().key().find(filename) != std::string::npos)
+	if (UserAccess["f"].dump().find(filename) != std::string::npos)
 	{
 		path authorpath = _getcwd(nullptr, 1024);
 		authorpath += "\\" + authorname + "\\" + filename;
@@ -124,13 +126,14 @@ int main()
 		"192.168.1.2"
 #endif
 		, "gb_z_rod2_rf");
-//	addUser("user3");
+
+	/*addAccess("doc.doc", "user2", "user1");
 	std::cerr << hasUserAccess("doc.doc", "user2", "user1");
 	addAccess("text.text", "user1", "user3");
 	std::cerr << hasUserAccess("text.text", "user1", "user3");
 	addAccess("text.text", "user3", "user1");
 	std::cerr << hasUserAccess("text.text", "user3", "user1");
-	removeAccess("text1.text", "user1", "user2");
+	removeAccess({ "text1.text" }, "user1", "user2");*/
 
 	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 	local_root += "/";
