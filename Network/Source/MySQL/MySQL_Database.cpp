@@ -76,7 +76,7 @@ namespace mysql
 		else
 			ResultExec = impl->Query("SELECT " + temp + " FROM " + name_table + ";");
 
-		json js;
+		json js = {};
 		if (!ResultExec)
 			return js;
 		try
@@ -110,8 +110,17 @@ namespace mysql
 					case sql::DataType::BINARY:
 					case sql::DataType::VARBINARY:
 					case sql::DataType::LONGVARBINARY:
-						js[ColumnName].push_back(ResultExec->getString(ColumnName));
+					{
+						std::string str = ResultExec->getString(ColumnName).c_str();
+						json _js = json::parse(str);
+						if (!str.empty() && !_js.empty() && _js.is_object())
+							js.insert(_js.begin(), _js.end());
+						else if (_js.is_array())
+							js[ColumnName].push_back(json({_js})[0]);
+						else
+							js[ColumnName].push_back(str.empty() ? "" : _js);
 						break;
+					}
 					}
 				}
 			}
