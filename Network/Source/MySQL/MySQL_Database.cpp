@@ -112,19 +112,23 @@ namespace mysql
 					case sql::DataType::LONGVARBINARY:
 					{
 						std::string str = ResultExec->getString(ColumnName).c_str();
-						json _js = json::parse(str);
-						if (!str.empty() && !_js.empty() && _js.is_object())
+						json _js;
+						if (!str.empty())
 						{
-							for (auto&[key, val]: _js.items())
+							_js = json::parse(str);
+							if (!_js.empty() && _js.is_object())
 							{
-								for (auto&[_, elm]: val.items())
+								for (auto&[key, val]: _js.items())
 								{
-									js[key].push_back(elm);
+									for (auto&[_, elm]: val.items())
+									{
+										js[key].push_back(elm);
+									}
 								}
 							}
+							else if (_js.is_array())
+								js[ColumnName].push_back(json({ _js })[0]);
 						}
-						else if (_js.is_array())
-							js[ColumnName].push_back(json({_js})[0]);
 						else
 							js[ColumnName].push_back(str.empty() ? "" : _js);
 						break;
