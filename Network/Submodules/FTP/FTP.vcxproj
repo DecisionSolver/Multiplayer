@@ -31,7 +31,6 @@
     <ProjectGuid>{6C0F743C-BCDB-47E3-9248-3F5302390E41}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>FTP</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -132,6 +131,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
