@@ -114,7 +114,15 @@ namespace mysql
 						std::string str = ResultExec->getString(ColumnName).c_str();
 						json _js = json::parse(str);
 						if (!str.empty() && !_js.empty() && _js.is_object())
-							js.insert(_js.begin(), _js.end());
+						{
+							for (auto&[key, val]: _js.items())
+							{
+								for (auto&[_, elm]: val.items())
+								{
+									js[key].push_back(elm);
+								}
+							}
+						}
 						else if (_js.is_array())
 							js[ColumnName].push_back(json({_js})[0]);
 						else
