@@ -99,7 +99,7 @@ void FTPClient::SendFile(const boost::filesystem::path &FilePath)
 		return;
 	}
 	curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-	curl_easy_setopt(curl, CURLOPT_URL, ("ftp://" + IP + "/" + UserName + "/" + FilePath.filename().string()).c_str());
+	curl_easy_setopt(curl, CURLOPT_URL, ("ftp://" + IP + "/Users/" + UserName + "/" + FilePath.filename().string()).c_str());
 	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, getcontentlengthfunc);
 	curl_easy_setopt(curl, CURLOPT_HEADERDATA, &uploaded_len);
 	curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)uploaded_len);
@@ -130,7 +130,7 @@ void FTPClient::SendFile(const boost::filesystem::path &FilePath)
 	
 	fclose(File); /* close the local file */
 	
-	if (result != CURLE_OK)
+	if (result != CURLE_OK && result != CURLE_PARTIAL_FILE)
 		MessageBoxA(0, curl_easy_strerror(result), "ERROR", MB_OK);
 	curl_easy_setopt(curl, CURLOPT_UPLOAD, 0L);
 }
@@ -163,6 +163,8 @@ bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
 {
 	if (curl)
 	{
+		curl_easy_setopt(curl, CURLOPT_FTP_USE_EPSV, 0);
+		curl_easy_setopt(curl, CURLOPT_FTP_SKIP_PASV_IP, 1);
 		curl_easy_setopt(curl, CURLOPT_USERPWD, (Login + ":" + Pass).c_str());
 		curl_easy_setopt(curl, CURLOPT_URL, ("ftp://" + ServerIP).c_str());
 		curl_easy_setopt(curl, CURLOPT_PORT, Port > 0 ? Port : port_);
