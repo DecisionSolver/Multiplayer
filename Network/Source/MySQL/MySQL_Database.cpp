@@ -40,10 +40,7 @@ namespace mysql
 		size_t ID = 0;
 
 		if (name_columns.empty())
-		{
 			throw sql::SQLException("No One Colunms Weren't Selected!");
-			return {};
-		}
 
 		if (name_columns.back().back() != '*')
 		{
@@ -87,7 +84,7 @@ namespace mysql
 				for (size_t i = 1; i <= MetaData->getColumnCount(); i++)
 				{
 					int colType = MetaData->getColumnType(i);
-					std::string ColumnName = MetaData->getColumnLabel(i);
+					std::string ColumnName = "_" + std::to_string(ID), ColumnID = MetaData->getColumnLabel(i);
 
 					switch (colType)
 					{
@@ -97,12 +94,12 @@ namespace mysql
 					case sql::DataType::TINYINT:
 					case sql::DataType::SMALLINT:
 					case sql::DataType::BIGINT:
-						js[ColumnName].push_back(ResultExec->getInt64(ColumnName));
+						js[ColumnName].push_back(ResultExec->getInt64(ColumnID));
 						break;
 					case sql::DataType::REAL:
 					case sql::DataType::DECIMAL:
 					case sql::DataType::DOUBLE:
-						js[ColumnName].push_back(ResultExec->getDouble(ColumnName));
+						js[ColumnName].push_back(ResultExec->getDouble(ColumnID));
 						break;
 					case sql::DataType::CHAR:
 					case sql::DataType::VARCHAR:
@@ -111,11 +108,18 @@ namespace mysql
 					case sql::DataType::VARBINARY:
 					case sql::DataType::LONGVARBINARY:
 					{
-						std::string str = ResultExec->getString(ColumnName).c_str();
+						std::string str = ResultExec->getString(ColumnID).c_str();
 						json _js;
 						if (!str.empty())
 						{
-							_js = json::parse(str);
+							try
+							{
+								_js = json::parse(str);
+							}
+							catch (json::exception)
+							{
+								_js = str;
+							}
 							if (!_js.empty() && _js.is_object())
 							{
 								for (auto&[key, val]: _js.items())
@@ -125,15 +129,20 @@ namespace mysql
 										js[key].push_back(elm);
 									}
 								}
+								break;
 							}
 							else if (_js.is_array())
+							{
 								js[ColumnName].push_back(json({ _js })[0]);
+								break;
+							}
 						}
-						else
-							js[ColumnName].push_back(str.empty() ? "" : _js);
+						js[ColumnName] = (str.empty() ? "" : _js);
 						break;
 					}
 					}
+
+					ID++;
 				}
 			}
 		}

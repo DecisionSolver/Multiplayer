@@ -22,6 +22,9 @@
     <Filter Include="Include Files\MySQL">
       <UniqueIdentifier>{e4990491-1169-4824-937c-a69514f83895}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\ODBC">
+      <UniqueIdentifier>{00cb0518-1a26-4ca0-af54-de3b94917baf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Client.cpp">
@@ -62,6 +65,9 @@
     </ClCompile>
     <ClCompile Include="Source\FTPClient.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ODBC\ODBC_Impl.cpp">
+      <Filter>Source Files\ODBC</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -109,6 +115,9 @@
     </ClInclude>
     <ClInclude Include="Include\FTPClient.h">
       <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ODBC\ODBC_Impl.h">
+      <Filter>Source Files\ODBC</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

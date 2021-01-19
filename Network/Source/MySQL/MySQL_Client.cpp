@@ -41,8 +41,8 @@ namespace mysql
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	Client::Status Client::Connect(const std::string& user, const std::string& password, const std::string& host,	//
-		const std::string DB, const unsigned short& port, const std::string charset)
+	Client::Status Client::Connect(const std::string &user, const std::string &password, const std::string &host,	//
+		const std::string &DB, const unsigned short &port, const std::string &charset)
 	{
 		try
 		{
@@ -61,15 +61,15 @@ namespace mysql
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	nlohmann::json Client::TrySelectValues(const std::string & name_table,													//
-		const std::vector<std::string>& name_columns, const std::vector<std::string> & condition)							//
+	nlohmann::json Client::TrySelectValues(const std::string &name_table,													//
+		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)							//
 	{
 		return impl->TrySelectValues(name_table, name_columns, condition);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::TryInsertValues(const std::string & name_table, const std::vector<std::string>& name_columns,			//
-		const std::vector<std::string>& values, const std::vector<std::string>& condition)								//
+	void Client::TryInsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,			//
+		const std::vector<std::string> &values, const std::vector<std::string> &condition)								//
 	{
 		impl->TryInsertValues(name_table, name_columns, values, condition);
 	}
