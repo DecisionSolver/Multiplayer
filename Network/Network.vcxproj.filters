@@ -48,12 +48,6 @@
     <ClCompile Include="Source\MySQL\MySQL_Client.cpp">
       <Filter>Source Files\MySQL</Filter>
     </ClCompile>
-    <ClCompile Include="Source\MySQL\MySQL_Database.cpp">
-      <Filter>Source Files\MySQL</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\MySQL\MySQL_Impl.cpp">
-      <Filter>Source Files\MySQL</Filter>
-    </ClCompile>
     <ClCompile Include="Source\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -108,9 +102,6 @@
       <Filter>Include Files\MySQL</Filter>
     </ClInclude>
     <ClInclude Include="Include\MySQL\MySQL_Client.h">
-      <Filter>Include Files\MySQL</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\MySQL\MySQL_Database.h">
       <Filter>Include Files\MySQL</Filter>
     </ClInclude>
     <ClInclude Include="Include\FTPClient.h">

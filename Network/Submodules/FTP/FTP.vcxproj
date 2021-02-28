@@ -246,8 +246,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Source\MySQL\MySQL_Client.cpp" />
-    <ClCompile Include="..\..\Source\MySQL\MySQL_Database.cpp" />
-    <ClCompile Include="..\..\Source\MySQL\MySQL_Impl.cpp" />
     <ClCompile Include="FTP.cpp" />
     <ClCompile Include="Server\fineftp-server\src\filesystem.cpp" />
     <ClCompile Include="Server\fineftp-server\src\ftp_session.cpp" />
@@ -258,7 +256,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\Include\MySQL\MySQL_Client.h" />
     <ClInclude Include="..\..\Include\MySQL\MySQL_Config.h" />
-    <ClInclude Include="..\..\Include\MySQL\MySQL_Database.h" />
     <ClInclude Include="Server\fineftp-server\include\fineftp\permissions.h" />
     <ClInclude Include="Server\fineftp-server\include\fineftp\server.h" />
     <ClInclude Include="Server\fineftp-server\src\filesystem.h" />

@@ -11,7 +11,6 @@
 #include <functional>
 
 #include "MySQL/MySQL_Client.h"
-#include "MySQL/MySQL_Impl.h"
 
 //--------------------------------------------------------------------
 class ConnectionManager

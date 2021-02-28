@@ -6,7 +6,6 @@
 #include <algorithm>
 
 #include "MySQL/MySQL_Client.h"
-#include "MySQL/MySQL_Impl.h"
 
 #include <direct.h>
 #include <boost/filesystem.hpp>
@@ -24,7 +23,7 @@ using namespace boost::filesystem;
 #include <hex.h>
 #include <Shellapi.h>
 
-std::shared_ptr<mysql::Impl> DB = std::make_shared<mysql::Impl>();
+std::shared_ptr<mysql::Client> DB = std::make_shared<mysql::Client>();
 
 path Programm;
 std::string Hash2;
@@ -50,7 +49,7 @@ const std::string md5_from_file(const std::string& path)
 void addUser(const std::string& username)
 {
 	DB->CreateColumn("user_wright", username, "TEXT", "", {});
-	DB->InsertValues("user_wright", { "Authorname" }, { username });
+	DB->TryInsertValues("user_wright", { "Authorname" }, { username });
 }
 
 void addAccess(const std::string& filename, const std::string& authorname, const std::string& username)

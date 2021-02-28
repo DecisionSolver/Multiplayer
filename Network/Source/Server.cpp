@@ -161,7 +161,7 @@ namespace net
 #else
 			"188.210.240.246"
 #endif
-			, "gb_z_rod2_rf") == mysql::Impl::Done)
+			, "gb_z_rod2_rf") == mysql::Client::Done)
 			WaitForMySQL.notify_all();
 		else
 		{

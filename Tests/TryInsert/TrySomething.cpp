@@ -9,11 +9,10 @@
 
 using namespace std;
 #include "MySQL/MySQL_Client.h"
-#include "MySQL/MySQL_Impl.h"
 #include "Client.hpp"
 #include "Packet.hpp"
 
-shared_ptr<mysql::Impl> DB = make_shared<mysql::Impl>();
+shared_ptr<mysql::Client> DB = make_shared<mysql::Client>();
 vector<shared_ptr<net::Client>> Users;
 
 #define IP swl::IPEndpoint("127.0.0.1")
