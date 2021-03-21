@@ -18,7 +18,7 @@ vector<shared_ptr<net::Client>> Users;
 #define IP swl::IPEndpoint("127.0.0.1")
 #define PORT 20675
 
-bool UseRepeater = false;
+bool UseRepeater = false, UseClear = true;
 void ConnectFunc(string Login, string Pass)
 {
 	Users.push_back(make_shared<net::Client>(swl::IPEndpoint(""), ConnectionManager::TypeProtocol::TCP, 0));
@@ -178,6 +178,8 @@ int main(int argc, char* argv[])
 
 			printf("\t[5] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
 			
+			printf("\t[6] - Use Clear Screen After Command (%s - is now)\n", UseClear ? "ON" : "OFF");
+
 			printf(": ");
 			cin >> Choice;
 			switch (Choice)
@@ -239,6 +241,13 @@ int main(int argc, char* argv[])
 					t.detach();
 				else
 					t.join();
+
+				break;
+			}
+			case 1:
+			{
+				// Get List Of Current Game Objects Project
+
 
 				break;
 			}
@@ -316,9 +325,20 @@ int main(int argc, char* argv[])
 				UseRepeater = !UseRepeater;
 				break;
 			}
+			case 6:
+			{
+				UseClear = !UseClear;
+				break;
+			}
 			}
 			if (Choice == 4)
 				break;
+
+			if (UseClear)
+			{
+				Sleep(1000);
+				system("cls");
+			}
 		}
 	}
 

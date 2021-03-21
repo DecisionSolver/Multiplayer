@@ -34,7 +34,7 @@ namespace fineftp
   {
   public:
     /**
-     * @brief Creates an FTP Server instance that will listen on the the given control port.
+     * @brief Creates an FTP Server instance that will listen on the the given control port and accept connections from the given network interface.
      * 
      * If no port is provided, the default FTP Port 21 is used. If you want to
      * use that port, make sure that your application runs as root.
@@ -43,6 +43,26 @@ namespace fineftp
      * free port port. Use port=0, if that behaviour is desired. The chosen port
      * can be determined by with getPort().
      * 
+     * @param port: The port to start the FTP server on. Defaults to 21.
+     * @param host: The host to accept incoming connections from.
+     */
+    FtpServer(const std::string& address, uint16_t port = 21);
+
+    /**
+     * @brief Creates an FTP Server instance that will listen on the the given control port.
+     * 
+     * If no port is provided, the default FTP Port 21 is used. If you want to
+     * use that port, make sure that your application runs as root.
+     * 
+     * Instead of using a predefined port, the operating system can choose a
+     * free port port. Use port=0, if that behaviour is desired. The chosen port
+     * can be determined by with getPort().
+     *
+     * This constructor will create an FTP Server binding to IPv4 0.0.0.0 and
+     * Thus accepting connections from any IPv4 address.
+     * For security reasons it might be desirable to bind to a specific IP
+     * address. Use FtpServer(const std::string&, uint16_t) for that purpose.
+     *
      * @param port: The port to start the FTP server on. Defaults to 21.
      */
     FtpServer(uint16_t port = 21);
@@ -117,6 +137,13 @@ namespace fineftp
      * @return The control port the server is listening on
      */
     uint16_t getPort() const;
+
+    /**
+     * @brief Get the ip address that the FTP server is listening for.
+     * 
+     * @return The ip address the FTP server is listening for.
+     */
+    std::string getAddress() const;
 
     // Non-copyable
     FtpServer(const FtpServer&) = delete;

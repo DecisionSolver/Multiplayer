@@ -70,7 +70,8 @@ public:
 	
 	asio::ip::udp::socket &GetSocketUDP() { return *m_SocketUDP; }
 
-	static std::map<asio::ip::udp::endpoint, Connection::SharedPtr> m_connections;
+	static std::map<asio::ip::udp::endpoint, Connection::SharedPtr> m_connectionsUDP;
+	static std::map<asio::ip::tcp::endpoint, Connection::SharedPtr> m_connectionsTCP;
 protected:
 	asio::io_service m_io_service;
 	asio::ip::tcp::acceptor m_acceptor;

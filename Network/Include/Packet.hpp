@@ -29,7 +29,33 @@ namespace swl
 			Sync_SclChanges,
 
 			Sync_NewNodeName,
-			Sync_NewNode
+			Sync_NewNode,
+
+			// JSON e.g. Name Project, Name Each GO (count + ID), Each GO Parameter (transformations, etc)
+			// "New Project":
+			// {
+			//		"First GO":
+			//		{
+			//			"transformations": {
+			//				"pos": [0,0,0],
+			//				"rot": [0,0,0],
+			//				"scl": [0,0,0]
+			//			},
+			//		},
+			//		...
+			// }
+			Get_MetaData_Project_Ex,
+
+			// JSON e.g. Name Each GO (count + ID)
+			//
+			// {
+			//		"First GO":
+			//		{
+			//			...
+			//		},
+			//		...
+			// }
+			Get_MetaData_Project
 		};
 
 		struct Header

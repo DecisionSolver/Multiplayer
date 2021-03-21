@@ -23,3 +23,5 @@ using namespace std::chrono_literals;
 using asio::ip::tcp;
 // for convenience
 using json = nlohmann::json;
+
+#include "logger.h"

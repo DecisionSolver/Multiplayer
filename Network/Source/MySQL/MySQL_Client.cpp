@@ -332,13 +332,17 @@ namespace mysql
 			return js;
 		try
 		{
+			// Next Column
 			while (ResultExec->next())
 			{
+				// In This Column (Horizontal, Left-Right Direction)
 				auto MetaData = ResultExec->getMetaData();
 				for (size_t i = 1; i <= MetaData->getColumnCount(); i++)
 				{
 					int colType = MetaData->getColumnType(i);
-					std::string ColumnName = "_" + std::to_string(ID), ColumnID = MetaData->getColumnLabel(i);
+					std::string ColumnName, /*"_" + std::to_string(ID),*/ ColumnID = MetaData->getColumnLabel(i);
+					
+					ColumnName = ColumnID;
 
 					switch (colType)
 					{
@@ -363,6 +367,15 @@ namespace mysql
 					case sql::DataType::LONGVARBINARY:
 					{
 						std::string str = ResultExec->getString(ColumnID).c_str();
+
+						// To Avoid If It Is Not String At All (Like Number) Because JSON Parse "STRING"
+						// From Only Numbers Like NUMBER type!
+						if (!str.empty() && (str.front() != '"' && str.back() != '"'))
+						{
+							str.insert(str.begin(), '"');
+							str.insert(str.end(), '"');
+						}
+
 						json _js;
 						if (!str.empty())
 						{
@@ -391,7 +404,7 @@ namespace mysql
 								break;
 							}
 						}
-						js[ColumnName] = (str.empty() ? "" : _js);
+						js[ColumnName].push_back(str.empty() ? "" : _js);
 						break;
 					}
 					}

@@ -19,7 +19,7 @@
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{011f9682-7d6f-47de-b521-29d1f1152f3b}</ProjectGuid>
     <RootNamespace>Network</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -86,7 +86,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\FTP\fineftp-server\include;$(SolutionDir)Network\Submodules\Boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\FTP\fineftp-server\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -118,7 +118,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;G:\DecisionSolver\submodules;$(SolutionDir)Network\Submodules\boost\asio\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules\SelfLogger;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -183,6 +183,7 @@
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Server.cpp" />
     <ClCompile Include="Source\Socket.cpp" />
+    <ClCompile Include="Submodules\SelfLogger\logger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Client.hpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="Include\pch.h" />
     <ClInclude Include="Include\Server.hpp" />
     <ClInclude Include="Include\Socket.hpp" />
+    <ClInclude Include="Submodules\SelfLogger\logger.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -248,8 +248,8 @@ void Connection::DoReceive()
 			if (self->m_owner && (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP &&
 				self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server))
 			{
-				itConnection = std::find_if(ConnectionManager::m_connections.begin(),
-					ConnectionManager::m_connections.end(),
+				itConnection = std::find_if(ConnectionManager::m_connectionsUDP.begin(),
+					ConnectionManager::m_connectionsUDP.end(),
 					[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
 				{
 					if (ThisConn.second == self)
@@ -257,8 +257,8 @@ void Connection::DoReceive()
 					return false;
 				});
 
-				if (itConnection != ConnectionManager::m_connections.end())
-					ConnectionManager::m_connections.erase(itConnection);
+				if (itConnection != ConnectionManager::m_connectionsUDP.end())
+					ConnectionManager::m_connectionsUDP.erase(itConnection);
 			}
 			// Check if the other side hung up
 			if (errorCode == asio::error::make_error_code(asio::error::eof))
@@ -303,8 +303,8 @@ void Connection::DoReceive()
 			{
 				if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
 				{
-					itConnection = std::find_if(ConnectionManager::m_connections.begin(),
-						ConnectionManager::m_connections.end(),
+					itConnection = std::find_if(ConnectionManager::m_connectionsUDP.begin(),
+						ConnectionManager::m_connectionsUDP.end(),
 						[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
 					{
 						if (ThisConn.first == self->remote_endpoint())
@@ -321,7 +321,7 @@ void Connection::DoReceive()
 						newPacket.getHeader().type == swl::Packet::Type::Connection &&
 						!newPacket.getHeader().IsAnswer)
 					{
-						if (itConnection == ConnectionManager::m_connections.end())
+						if (itConnection == ConnectionManager::m_connectionsUDP.end())
 						{
 							self->SetConnected(true);
 							self->isLogged = false;
@@ -331,12 +331,11 @@ void Connection::DoReceive()
 								std::pair<swl::Packet::Type,
 								swl::Packet>((swl::Packet::Type)newPacket.getHeader().type, newPacket));
 
-							ConnectionManager::m_connections.insert(std::pair<asio::ip::udp::endpoint,
-								Connection::SharedPtr>(self->remote_endpoint(), New));
+							ConnectionManager::m_connectionsUDP[self->remote_endpoint()] = New;
 						}
 					}
 					if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP
-						&& itConnection != ConnectionManager::m_connections.end())
+						&& itConnection != ConnectionManager::m_connectionsUDP.end())
 						itConnection->second->packet_queue.insert(
 							std::pair<swl::Packet::Type,
 							swl::Packet>((swl::Packet::Type)newPacket.getHeader().type, newPacket));

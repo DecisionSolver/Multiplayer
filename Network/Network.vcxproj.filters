@@ -63,6 +63,9 @@
     <ClCompile Include="Source\ODBC\ODBC_Impl.cpp">
       <Filter>Source Files\ODBC</Filter>
     </ClCompile>
+    <ClCompile Include="Submodules\SelfLogger\logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Client.hpp">
@@ -109,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="Include\ODBC\ODBC_Impl.h">
       <Filter>Source Files\ODBC</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\SelfLogger\logger.h">
+      <Filter>Include Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
