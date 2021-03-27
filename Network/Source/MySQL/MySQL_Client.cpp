@@ -58,15 +58,11 @@ namespace mysql
 		}
 		catch (sql::SQLException &e)
 		{
-			std::cout << "# ERR: SQLException in " << __FILE__;
-			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-			std::cout << "# ERR: " << e.what();
-			std::cout << " (MySQL error code: " << e.getErrorCode();
-			std::cout << ", SQLState: " << e.getSQLState() <<
-				" )" << std::endl;
+#if defined(HAS_LOGGER)
+			Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+#endif
 			return Client::Status::Error;
 		}
-		return Client::Status::Error;
 	}
 	
 	
@@ -99,16 +95,15 @@ namespace mysql
 			{
 				driver = get_driver_instance();
 				connection.reset(driver->connect(connection_properties));
-				std::cout << "Made Reconnect To Server" << std::endl;
 
+#if defined(HAS_LOGGER)
+				Logger_Info("Made Reconnect To Server");
+#endif
 				return Query(query);
 			}
-
-			std::cout << "# ERR: SQLException in " << __FILE__;
-			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-			std::cout << "# ERR: " << e.what();
-			std::cout << " (MySQL error code: " << e.getErrorCode();
-			std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+#if defined(HAS_LOGGER)
+			Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+#endif
 		}
 
 		return nullptr;
@@ -144,15 +139,15 @@ namespace mysql
 			{
 				driver = get_driver_instance();
 				connection.reset(driver->connect(connection_properties));
-				std::cout << "Made Reconnect To Server" << std::endl;
 
+#if defined(HAS_LOGGER)
+				Logger_Info("Made Reconnect To Server");
+#endif
 				Exec(query);
 			}
-			std::cout << "# ERR: SQLException in " << __FILE__;
-			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-			std::cout << "# ERR: " << e.what();
-			std::cout << " (MySQL error code: " << e.getErrorCode();
-			std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+#if defined(HAS_LOGGER)
+			Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+#endif
 		}
 	}
 
@@ -415,11 +410,9 @@ namespace mysql
 		}
 		catch (sql::SQLException &e)
 		{
-			std::cout << "# ERR: SQLException in " << __FILE__;
-			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-			std::cout << "# ERR: " << e.what();
-			std::cout << " (MySQL error code: " << e.getErrorCode();
-			std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+#if defined(HAS_LOGGER)
+		Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+#endif
 		}
 
 		if (ResultExec)

@@ -24,4 +24,7 @@ using asio::ip::tcp;
 // for convenience
 using json = nlohmann::json;
 
+#if __has_include("logger.h")
 #include "logger.h"
+#define HAS_LOGGER 1
+#endif

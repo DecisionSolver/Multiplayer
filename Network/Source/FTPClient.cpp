@@ -36,7 +36,7 @@ static size_t write_callback(void *buffer, size_t size, size_t nmemb, void *stre
 		/* open file for writing */
 		out->stream = fopen(out->filename.c_str(), "wb");
 		if (!out->stream)
-			return -1; /* failure, can't open file to write */
+			return 1; /* failure, can't open file to write */
 	}
 	if (out->stream)
 		return fwrite(buffer, size, nmemb, out->stream);
@@ -59,8 +59,9 @@ FTPClient::FTPClient()
 	/* Check for errors */
 	if (res != CURLE_OK)
 	{
-		fprintf(stderr, "curl_global_init() failed: %s\n",
-			curl_easy_strerror(res));
+#if defined(HAS_LOGGER)
+		Logger_Critical_F("curl_global_init() failed: %s\n", curl_easy_strerror(res));
+#endif
 	}
 	// Create And Init CURL
 	curl = curl_easy_init();
@@ -89,7 +90,7 @@ void FTPClient::SendFile(const boost::filesystem::path &FilePath)
 {
 	FILE *File;
 	long uploaded_len = 0; 
-	CURLcode result = CURLE_GOT_NOTHING;
+	CURLcode res = CURLE_GOT_NOTHING;
 	int c;
 	
 	File = fopen(FilePath.string().c_str(), "rb");
@@ -105,15 +106,15 @@ void FTPClient::SendFile(const boost::filesystem::path &FilePath)
 	curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)uploaded_len);
 
 	curl_easy_setopt(curl, CURLOPT_READDATA, File);
-	for (c = 0; (result != CURLE_OK) && (c < 1); c++)
+	for (c = 0; (res != CURLE_OK) && (c < 1); c++)
 	{
 		if (c)
 		{
 			curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
 			curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
 
-			result = curl_easy_perform(curl);
-			if (result != CURLE_OK)
+			res = curl_easy_perform(curl);
+			if (res != CURLE_OK)
 				continue;
 			curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
 			curl_easy_setopt(curl, CURLOPT_HEADER, 0L);
@@ -125,13 +126,17 @@ void FTPClient::SendFile(const boost::filesystem::path &FilePath)
 		else
 			curl_easy_setopt(curl, CURLOPT_APPEND, 0L);
 
-		result = curl_easy_perform(curl);
+		res = curl_easy_perform(curl);
 	}
 	
 	fclose(File); /* close the local file */
 	
-	if (result != CURLE_OK && result != CURLE_PARTIAL_FILE)
-		MessageBoxA(0, curl_easy_strerror(result), "ERROR", MB_OK);
+	if (res != CURLE_OK && res != CURLE_PARTIAL_FILE)
+	{
+#if defined(HAS_LOGGER)
+		Logger_Critical_F("SendFile() failed: %s\n", curl_easy_strerror(res));
+#endif
+	}
 	curl_easy_setopt(curl, CURLOPT_UPLOAD, 0L);
 }
 
@@ -150,7 +155,11 @@ void FTPClient::ReceiveFile(const boost::filesystem::path &FilePath, const boost
 
 	CURLcode res = curl_easy_perform(curl);
 	if (CURLE_OK != res)
-		MessageBoxA(0, curl_easy_strerror(res), "ERROR", MB_OK);
+	{
+#if defined(HAS_LOGGER)
+		Logger_Critical_F("ReceiveFile() failed: %s\n", curl_easy_strerror(res));
+#endif
+	}
 	else
 	{
 		if (ftpfile.stream)
@@ -172,8 +181,10 @@ bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
 		CURLcode res = curl_easy_perform(curl);
 		if (CURLE_OK != res)
 		{
+#if defined(HAS_LOGGER)
+			Logger_Critical_F("Connect() failed: %s\n", curl_easy_strerror(res));
+#endif
 			/* we failed */
-			MessageBoxA(0, curl_easy_strerror(res), "ERROR", MB_OK);
 			return false;
 		}
 		else

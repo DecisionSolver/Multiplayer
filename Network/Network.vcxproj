@@ -178,7 +178,6 @@
     <ClCompile Include="Source\FTPClient.cpp" />
     <ClCompile Include="Source\IPEndpoint.cpp" />
     <ClCompile Include="Source\MySQL\MySQL_Client.cpp" />
-    <ClCompile Include="Source\ODBC\ODBC_Impl.cpp" />
     <ClCompile Include="Source\Packet.cpp" />
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Server.cpp" />
@@ -196,7 +195,6 @@
     <ClInclude Include="Include\LZ4\lz4hc.h" />
     <ClInclude Include="Include\MySQL\MySQL_Client.h" />
     <ClInclude Include="Include\MySQL\MySQL_Config.h" />
-    <ClInclude Include="Include\ODBC\ODBC_Impl.h" />
     <ClInclude Include="Include\Packet.hpp" />
     <ClInclude Include="Include\pch.h" />
     <ClInclude Include="Include\Server.hpp" />

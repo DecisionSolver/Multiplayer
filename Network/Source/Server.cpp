@@ -295,7 +295,9 @@ namespace net
 			WaitForMySQL.notify_all();
 		else
 		{
-			printf("Something Is Went Wrong With Connection To MySQL Server!\n");
+#if defined(HAS_LOGGER)
+		Logger_Critical("Something Is Went Wrong With Connection To MySQL Server!");
+#endif
 			WaitForMySQL.notify_all();
 		}
 		// Set All Users To Offline

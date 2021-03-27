@@ -48,7 +48,10 @@ Connection::Connection(ConnectionManager *connectionManager, asio::ip::tcp::sock
 	, m_sending(false)
 	, m_allReadData()
 {
-	printf("Client connection with id %zd has been created.\n", m_clientId);
+#if defined(HAS_LOGGER)
+	Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
+#endif
+	
 	Curr = Last = std::chrono::high_resolution_clock::now();
 
 	ftpClient = std::make_shared<FTPClient>();
@@ -65,7 +68,10 @@ Connection::Connection(ConnectionManager *connectionManager):
 	, m_sending(false)
 	, m_allReadData()
 {
-	printf("Client connection with id %zd has been created.\n", m_clientId);
+#if defined(HAS_LOGGER)
+	Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
+#endif
+
 	Curr = Last = std::chrono::high_resolution_clock::now();
 
 	ftpClient = std::make_shared<FTPClient>();
@@ -76,12 +82,18 @@ Connection::~Connection()
 {
 	Connected = false;
 	// Boost uses RAII, so we don't have anything to do. Let thier destructors take care of business
-	printf("Client connection with id %zd has been destroyed.\n", m_clientId);
+#if defined(HAS_LOGGER)
+	Logger_Info_F("Client connection with id %zd has been destroyed.\n", m_clientId);
+#endif
 }
 
 //--------------------------------------------------------------------
 void Connection::Start()
 {
+#if defined(HAS_LOGGER)
+	Logger_Info_F("Client(%zd) Awaits Messages.\n", m_clientId);
+#endif
+
 	DoReceive();
 	Curr = std::chrono::high_resolution_clock::now();
 }
@@ -89,6 +101,10 @@ void Connection::Start()
 //--------------------------------------------------------------------
 void Connection::Stop()
 {
+#if defined(HAS_LOGGER)
+	Logger_Info_F("Client(%zd) Stops.\n", m_clientId);
+#endif
+
 	std::unique_lock<std::mutex> lock(m_disconnect);
 	m_stopped = true;
 
@@ -138,8 +154,12 @@ bool Connection::GetTimer()
 
 	Last = std::chrono::high_resolution_clock::now();
 	auto Diff = (Last - Curr);
-	OutputDebugStringA(("\nFrom: " + std::to_string(this->m_clientId) + " Time: " +
-		std::to_string(std::chrono::duration_cast<std::chrono::seconds>(Diff).count()) + "\n").c_str());
+
+#if defined(HAS_LOGGER)
+	Logger_Info_F("Client(%zd) Has Time: %lld\n", m_clientId,
+		std::chrono::duration_cast<std::chrono::seconds>(Diff).count());
+#endif
+
 	if (Diff > std::chrono::seconds(60))
 		return true;
 	
@@ -194,8 +214,10 @@ void Connection::DoSend()
 
 			if (errorCode)
 			{
-				printf("An error occured while attemping to send data to client id %zd. %s\n",
+#if defined(HAS_LOGGER)
+				Logger_Critical_F("An error occured while attemping to send data to client id %zd. %s\n",
 					self->m_clientId, ErrorCodeToString(errorCode).str().c_str());
+#endif
 
 				self->getIsError() = true;
 				self->error_queue.push_back(errorCode);
@@ -212,9 +234,13 @@ void Connection::DoSend()
 			else
 				self->m_sendBuffers[1].push_back('\0');
 
-			printf("Sending data to client %zd: %s\n", self->m_clientId, self->m_sendBuffers[0].size() > 0 ?
+#if defined(HAS_LOGGER)
+			Logger_Info_F("Sending data to client %zd: %s\n",
+				self->m_clientId, self->m_sendBuffers[0].size() > 0 ?
 				self->m_sendBuffers[0].data() :
 				self->m_sendBuffers[1].data());
+#endif
+
 			self->m_sendBuffers[self->m_activeSendBufferIndex].clear();
 
 			// Check if there is more to send that has been queued up on the inactive buffer,
@@ -262,12 +288,17 @@ void Connection::DoReceive()
 			}
 			// Check if the other side hung up
 			if (errorCode == asio::error::make_error_code(asio::error::eof))
-				// This is not really an error. The client is free to hang up whenever they like
-				printf("Client %zd has disconnected.\n", self->m_clientId);
+			{	// This is not really an error. The client is free to hang up whenever they like
+#if defined(HAS_LOGGER)
+				Logger_Info_F("Client %zd has disconnected.\n", self->m_clientId);
+#endif
+			}
 			else
 			{
-				printf("An error occured while attemping to receive data from client id %zd. Error Code: %s\n",
+#if defined(HAS_LOGGER)
+				Logger_Error_F("An error occured while attemping to receive data from client id %zd. Error Code: %s\n",
 					self->m_clientId, ErrorCodeToString(errorCode).str().c_str());
+#endif
 
 				self->getIsError() = true;
 				self->error_queue.push_back(errorCode);
@@ -291,7 +322,9 @@ void Connection::DoReceive()
 			data = std::string((const char *)self->m_receiveBuffer.data().data());
 		data += "#";
 
-		printf("Received data from client %zd: %s\n", self->m_clientId, data.c_str());
+#if defined(HAS_LOGGER)
+		Logger_Info_F("Received data from client %zd: %s\n", self->m_clientId, data.c_str());
+#endif
 
 		swl::Packet newPacket = swl::Packet();
 		if (!data.empty() && newPacket.onReceive(data))

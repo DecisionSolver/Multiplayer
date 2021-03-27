@@ -244,7 +244,9 @@ namespace swl
 		}
 		catch (const json::parse_error &err)
 		{
-			std::cout << err.what() << std::endl;
+#if defined(HAS_LOGGER)
+			Logger_Critical_F("json::parse_error Failed: %s\n", err.what());
+#endif
 		}
 
 		return this;

@@ -38,7 +38,9 @@ void ConnectFunc(string Login, string Pass)
 	else
 	{
 		system("cls");
-		printf("User: %s, didn't connect to the %s", Login.c_str(), IP.toString().c_str());
+#if defined(HAS_LOGGER)
+		Logger_Error_F("User: %s, didn't connect to the %s", Login.c_str(), IP.toString().c_str());
+#endif
 	}
 }
 void GetPacketFromThread(swl::Packet packet, swl::Packet::Type NeededPacket)
@@ -49,8 +51,10 @@ void GetPacketFromThread(swl::Packet packet, swl::Packet::Type NeededPacket)
 		size_t i = 0;
 		for (size_t i = 0; i < unparsed["_0"].size(); i++)
 		{
-			printf("\tID: %i\nName: %s\n", ((int)unparsed["_1"].at(i).front().get<json::number_integer_t>()),
+#if defined(HAS_LOGGER)
+			Logger_Info_F("\tID: %i\nName: %s\n", ((int)unparsed["_1"].at(i).front().get<json::number_integer_t>()),
 				unparsed["_0"].at(i).front().get<json::string_t>().c_str());
+#endif
 			i++;
 		}
 	}
@@ -71,12 +75,14 @@ int main(int argc, char* argv[])
 	int Choice = 0;
 	while (true)
 	{
-		printf("Choice The One:\n");
-		printf("\t[0] - Login Under All Users That Are Free Now\n");
-		printf("\t[1] - Login Under Needed Account\n");
-		printf("\t[2] - Exit\n");
-
-		printf(": ");
+#if defined(HAS_LOGGER)
+		Logger_Info("Choice The One:\n");
+		Logger_Info("\t[0] - Login Under All Users That Are Free Now\n");
+		Logger_Info("\t[1] - Login Under Needed Account\n");
+		Logger_Info("\t[2] - Exit\n");
+	
+		Logger_Info(": ");
+#endif
 
 		cin >> Choice;
 		switch (Choice)
@@ -94,9 +100,13 @@ int main(int argc, char* argv[])
 		{
 			string Login, Pass;
 			system("cls");
-			printf("Enter Login Here: ");
+#if defined(HAS_LOGGER)
+			Logger_Info("Enter Login Here: ");
 			cin >> Login;
-			printf("Enter Password Here: ");
+#endif
+#if defined(HAS_LOGGER)
+			Logger_Info("Enter Password Here: ");
+#endif
 			cin >> Pass;
 
 			ConnectFunc(Login, Pass);
@@ -110,7 +120,9 @@ int main(int argc, char* argv[])
 		default:
 		{
 			system("cls");
-			printf("Unrecognized Choice. Try Another One!\n");
+#if defined(HAS_LOGGER)
+			Logger_Error("Unrecognized Choice. Try Another One!\n");
+#endif
 			continue;
 		}
 		}
@@ -167,20 +179,22 @@ int main(int argc, char* argv[])
 		while (true)
 		{
 			Sleep(1000);
-			printf("Choice The One:\n");
-			printf("\t[0] - Send Chat Message Packet\n");
-			printf("\t[1] - Send Random Coordinates Level Object\n");
-			printf("\t[2] - Send \"Sound Play\" Packet (By Default It's \"01.08.16.wav\")\n");
+#if defined(HAS_LOGGER)
+			Logger_Info("Choice The One:\n");
+			Logger_Info("\t[0] - Send Chat Message Packet\n");
+			Logger_Info("\t[1] - Send Random Coordinates Level Object\n");
+			Logger_Info("\t[2] - Send \"Sound Play\" Packet (By Default It's \"01.08.16.wav\")\n");
 
-			printf("\t[3] - Get List Online Users\n");
+			Logger_Info("\t[3] - Get List Online Users\n");
 
-			printf("\t[4] - Back To Previous Menu\n");
+			Logger_Info("\t[4] - Back To Previous Menu\n");
 
-			printf("\t[5] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
+			Logger_Info("\t[5] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
 			
-			printf("\t[6] - Use Clear Screen After Command (%s - is now)\n", UseClear ? "ON" : "OFF");
+			Logger_Info("\t[6] - Use Clear Screen After Command (%s - is now)\n", UseClear ? "ON" : "OFF");
 
-			printf(": ");
+			Logger_Info(": ");
+#endif
 			cin >> Choice;
 			switch (Choice)
 			{
@@ -188,7 +202,9 @@ int main(int argc, char* argv[])
 			{
 				Text.clear();
 				system("cls");
-				printf("Enter Message Here: ");
+#if defined(HAS_LOGGER)
+				Logger_Info("Enter Message Here: ");
+#endif
 				cin >> Text;
 
 				std::thread t = std::thread([&]
@@ -255,7 +271,9 @@ int main(int argc, char* argv[])
 			{
 				Text.clear();
 				system("cls");
-				printf("Enter ID User Here (-1 Means That 'To All Users That Are Online'): ");
+#if defined(HAS_LOGGER)
+				Logger_Info("Enter ID User Here (-1 Means That 'To All Users That Are Online'): ");
+#endif
 				cin >> Text;
 
 				if (Text == "-1")

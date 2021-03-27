@@ -136,7 +136,7 @@ int main()
 
 	local_root = local_root.generic_path();
 
-#if __has_include("../SelfLogger/logger.h")
+#if defined(HAS_LOGGER)
 	if (!exists(local_root.string() + "logs"))
 		create_directories(local_root.string() + "logs/");
 
@@ -156,7 +156,7 @@ int main()
 #endif
 		, "gb_z_rod2_rf") == mysql::Client::Done)
 	{
-#if defined(_DEBUG) && __has_include("../SelfLogger/logger.h")
+#if defined(_DEBUG) && defined(HAS_LOGGER)
 		const char *_IP =
 #if defined(_DEBUG)
 			"188.210.240.246"
@@ -166,14 +166,14 @@ int main()
 			;
 		Logger_Debug_F("Successful Connected To %s", _IP);
 #endif
-#if __has_include("../SelfLogger/logger.h")
+#if defined(HAS_LOGGER)
 
 		Logger_Info("Successful Connect To MySQL DB");
 #endif
 	}
 	else
 	{
-#if defined(_DEBUG) && __has_include("../SelfLogger/logger.h")
+#if defined(_DEBUG) && defined(HAS_LOGGER)
 		const char *_IP =
 #if defined(_DEBUG)
 			"188.210.240.246"
@@ -183,7 +183,7 @@ int main()
 			;
 		Logger_Debug_F("Failure Connected To %s", _IP);
 #endif
-#if __has_include("../SelfLogger/logger.h")
+#if defined(HAS_LOGGER)
 		Logger_Info("Failure Connect To MySQL DB");
 #endif
 		return -1;
@@ -197,7 +197,7 @@ int main()
 	std::cerr << hasUserAccess("text.text", "user3", "user1");
 	removeAccess({ "text1.text" }, "user1", "user2");*/
 
-#if __has_include("../SelfLogger/logger.h")
+#if defined(HAS_LOGGER)
 	Logger_Info_F("Current Used Path Is: %s", local_root.string().c_str());
 #endif
 
@@ -238,13 +238,13 @@ int main()
 	// performance with multiple clients, but don't over-do it.
 	if (server.start(4))
 	{
-#if __has_include("../SelfLogger/logger.h")
+#if defined(HAS_LOGGER)
 		Logger_Info_F("FTP Server Has Been Started On IP %s And Port 2121 And 4 Threads", _IP);
 #endif
 	}
 	else
 	{
-#if __has_include("../SelfLogger/logger.h")
+#if defined(HAS_LOGGER)
 		Logger_Critical("Something Is Wrong With Starting FTP Server!");
 #endif
 	}
@@ -255,7 +255,7 @@ int main()
 		std::basic_stringstream<char, std::char_traits<char>, std::allocator<char>> oss;
 		while (true)
 		{
-#if __has_include("../SelfLogger/logger.h")
+#if defined(HAS_LOGGER)
 			std::cout.rdbuf(oss.rdbuf());
 			if (!oss.str().empty())
 			{
