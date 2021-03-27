@@ -22,6 +22,12 @@
     <Filter Include="Include Files\MySQL">
       <UniqueIdentifier>{e4990491-1169-4824-937c-a69514f83895}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\ODBC">
+      <UniqueIdentifier>{dbfed624-2234-48da-8963-a8f073f4aac4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include Files\ODBC">
+      <UniqueIdentifier>{e8f2011a-1659-4942-acee-c02c2405564a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Client.cpp">
@@ -59,6 +65,12 @@
     </ClCompile>
     <ClCompile Include="Submodules\SelfLogger\logger.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SQL_Query.cpp">
+      <Filter>Include Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ODBC\ODBC.cpp">
+      <Filter>Source Files\ODBC</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -106,6 +118,12 @@
     </ClInclude>
     <ClInclude Include="Submodules\SelfLogger\logger.h">
       <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SQL_Query.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ODBC\ODBC.h">
+      <Filter>Include Files\ODBC</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

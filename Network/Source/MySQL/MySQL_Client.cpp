@@ -4,6 +4,7 @@
 ///////////////////////////////////////
 									 //
 #include "MySQL/MySQL_Client.h"		 //
+#include "SQL_Query.hpp"			 //
 									 //
 ///////////////////////////////////////
 
@@ -174,17 +175,7 @@ namespace mysql
 		else if (isReadOnly)
 			throw sql::SQLException("It's Read Only :O !");
 		else
-		{
-			std::stringstream attribute;
-
-			for (size_t cnt = 0; cnt < attributes.size() - 1; cnt++)
-				attribute << attributes.at(cnt) << " ";
-
-			attribute << attributes.back();
-
-			Exec("CREATE TABLE " + name_table + "(" + name_column + " " + type + "(" + value + ")" +
-				attribute.str() + ") DEFAULT CHARSET utf8;");
-		}
+			Exec(query::MakeCreateTableQuery(name_table, name_column, type, value, attributes));
 	}
 
 
@@ -197,23 +188,7 @@ namespace mysql
 		else if (isReadOnly)
 			throw sql::SQLException("It's Read Only :O !");
 		else
-		{
-			std::stringstream attribute;
-
-			if (!attributes.empty())
-			{
-				for (size_t cnt = 0; cnt < attributes.size() - 1; cnt++)
-					attribute << attributes.at(cnt) << " ";
-
-				attribute << attributes.back();
-			}
-			if (value.empty())
-				Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type +
-					attribute.str() + ";");
-			else
-				Exec("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
-					attribute.str() + ";");
-		}
+			Exec(query::MakeCreateColumnQuery(name_table, name_column, type, value, attributes));
 	}
 
 
@@ -226,41 +201,28 @@ namespace mysql
 		else if (isReadOnly)
 			throw sql::SQLException("It's Read Only :O !");
 		else
-		{
-			std::stringstream attribute;
-
-			if (!attributes.empty())
-			{
-				for (size_t cnt = 0; cnt < attributes.size() - 1; cnt++)
-					attribute << attributes.at(cnt) << " ";
-
-				attribute << attributes.back();
-			}
-
-			Exec("ALTER TABLE " + name_table + "\nMODIFY COLUMN " + name_column + " " + type + "(" + value + ")" +
-				attribute.str() + ";");
-		}
+			Exec(query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes));
 	}
 
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::DeleteValues(const std::string &name_table, const std::string &condition)			  //
 	{
-		Exec("DELETE FROM " + name_table + "\nWHERE " + condition + ";");
+		Exec(query::MakeDeleteValuesQuery(name_table, condition));
 	}
 
 
 	////////////////////////////////////////////////////////////////////////////////////
 	void Client::DeleteTable(const std::string &name_table)							  //
 	{
-		Exec("DROP TABLE " + name_table);
+		Exec(query::MakeDeleteTableQuery(name_table));
 	}
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::DeleteColumn(const std::string &name_table, const std::string &name_column)			//
 	{
-		Exec("ALTER TABLE " + name_table + "\nDROP COLUMN " + name_column);
+		Exec(query::MakeDeleteColumnQuery(name_table, name_column));
 	}
 
 
@@ -431,36 +393,13 @@ namespace mysql
 		if (!wasSelectedDB)
 			throw sql::SQLException("Database Was Not Selected!");
 
-		std::stringstream valueCond, value;
-		for (size_t cnt = 0; cnt < name_columns.size(); cnt++)
-			value << name_columns.at(cnt) << "='" << values.at(cnt) << "',";
-		std::string Set = value.str();
-		Set.pop_back(); // Removed ','
-
-		for (size_t i = 0; i < condition.size(); i++)
-		{
-			valueCond << condition.at(i);
-		}
-		if (!condition.empty())
-		{
-			std::string NewCond = valueCond.str();
-			size_t FPos = std::string::npos;
-			FPos = NewCond.find("WHERE");
-			if (FPos != std::string::npos)
-				NewCond.erase(FPos, strlen("WHERE"));
-			if (NewCond.back() == ';')
-				NewCond.pop_back();
-
-			Exec("UPDATE " + name_table + "\nSET " + Set + "\nWHERE " + NewCond + ";");
-		}
-		else
-			Exec("UPDATE " + name_table + "\nSET " + Set);
+		Exec(query::MakeUpdateValuesQuery(name_table, name_columns, values, condition));
 	}
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::TryInsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,	//
-		const std::vector<std::string> &values, const std::vector<std::string> &condition)																	//
+		const std::vector<std::string> &values)																	//
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
@@ -468,31 +407,6 @@ namespace mysql
 		if (!wasSelectedDB)
 			throw sql::SQLException("Database Was Not Selected!");
 
-		std::stringstream name_column;
-		std::string temp;
-
-		if (!name_columns.empty())
-		{
-			for (size_t cnt = 0; cnt < name_columns.size() - 1; cnt++)
-				name_column << name_columns.at(cnt) + ", ";
-
-			name_column << name_columns.back();
-		}
-
-		if (!values.empty())
-		{
-			temp.insert(0, "(");
-			for (size_t i = 0; i < values.size(); i++)
-			{
-				temp.insert(temp.size(), "'" + values.at(i) + "',");
-			}
-			temp.pop_back(); // Remove ','
-			temp.push_back(')');
-
-
-			Exec("INSERT " + name_table + "(" + name_column.str() + ")" + "VALUES" + temp);
-		}
-		else
-			Exec("INSERT " + name_table + "() VALUES()");
+		Exec(query::MakeInsertValuesQuery(name_table, name_columns, values));
 	}
 } // namespace mysql

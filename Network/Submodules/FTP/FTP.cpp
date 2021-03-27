@@ -65,7 +65,7 @@ void addAccess(const std::string& filename, const std::string& authorname, const
 	if (AuthorList["f"].dump().find(filename) == std::string::npos)
 	{
 		AuthorList["f"].push_back(filename);
-		DB->TryInsertValues("user_wright", { username }, { AuthorList.dump() }, { "Authorname = '" + authorname + "'" });
+		DB->TryUpdateValues("user_wright", { username }, { AuthorList.dump() }, { "Authorname = '" + authorname + "'" });
 	}
 }
 
@@ -82,9 +82,9 @@ void removeAccess(const std::string &filename, const std::string& authorname, co
 		
 
 	if(!AuthorList["f"].empty())
-		DB->TryInsertValues("user_wright", { username }, { AuthorList.dump() }, { "Authorname = '" + authorname + "'" });
+		DB->TryUpdateValues("user_wright", { username }, { AuthorList.dump() }, { "Authorname = '" + authorname + "'" });
 	else
-		DB->TryInsertValues("user_wright", { username }, { "" }, { "Authorname = '" + authorname + "'" });
+		DB->TryUpdateValues("user_wright", { username }, { "" }, { "Authorname = '" + authorname + "'" });
 }
 
 bool hasUserAccess(const std::string& filename, const std::string& authorname, const std::string& username)
