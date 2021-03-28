@@ -10,7 +10,7 @@ namespace query
 		for (size_t cnt = 1; cnt < attributes.size(); cnt++)
 			attribute += attributes[cnt-1] + " ";
 		
-		if(!attributes.empty())
+		if (!attributes.empty())
 			attribute += attributes.back();
 
 		return ("CREATE TABLE " + name_table + "(" + name_column + " " + type + "(" + value + ")" + 
@@ -155,12 +155,10 @@ namespace query
 			temp.pop_back(); // Remove ','
 			temp.push_back(')');
 
-
-			return ("INSERT INTO " + name_table + "(" + name_column + ")" + "VALUES" + temp);
+			return ("INSERT INTO " + name_table + "(\"" + name_column + "\")" + "VALUES" + temp);
 		}
 		else
 			return ("INSERT INTO " + name_table + "() VALUES()");
 	}
-
 
 } //namespace query

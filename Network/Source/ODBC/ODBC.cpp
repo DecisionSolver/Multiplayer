@@ -164,7 +164,6 @@ namespace odbc
 	{
 		Query(query::MakeDeleteValuesQuery(name_table, condition));
 	}
-	//мда уж, ебанутые приведения типов... UNICODE в пролёте однозначнов
 
 	void ODBC::Exit()
 	{

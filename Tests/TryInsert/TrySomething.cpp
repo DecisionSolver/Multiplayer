@@ -189,9 +189,9 @@ int main(int argc, char* argv[])
 
 			Logger_Info("\t[4] - Back To Previous Menu\n");
 
-			Logger_Info("\t[5] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
+			Logger_Info_F("\t[5] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
 			
-			Logger_Info("\t[6] - Use Clear Screen After Command (%s - is now)\n", UseClear ? "ON" : "OFF");
+			Logger_Info_F("\t[6] - Use Clear Screen After Command (%s - is now)\n", UseClear ? "ON" : "OFF");
 
 			Logger_Info(": ");
 #endif
