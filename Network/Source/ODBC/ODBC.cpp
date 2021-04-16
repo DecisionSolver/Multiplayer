@@ -18,7 +18,7 @@ namespace odbc
 		if (PrintError(hEnv, SQL_HANDLE_ENV, SQLAllocHandle(SQL_HANDLE_DBC, hEnv, &hDbc)))
 			return;
 
-		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLDriverConnectA(hDbc, NULL, (SQLCHAR*)(("Driver={" + driver + "};Dbq=" + path + ";" + attributes + ";" + password + ";").c_str()), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT)))
+		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLDriverConnectA(hDbc, NULL, (SQLCHAR*)(("Driver={" + driver + "};Dbq=" + path + ";" + attributes + ";PWD=" + password + ";").c_str()), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_NOPROMPT)))
 			return;
 
 		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt)))
@@ -34,19 +34,21 @@ namespace odbc
 
 		if (e == SQL_INVALID_HANDLE)
 		{
-			fwprintf(stderr, L"Invalid handle!\n");
-			return false;
-		}
 
-		if (e == SQL_ERROR)
-			std::cerr << "Critical error: ";
+#if defined(HAS_LOGGER)
+			Logger_Critical("Invalid handle!\n");
+#endif 
+			return true;
+		}
 
 		while (SQLGetDiagRecA(hType, hHandle, ++iRec, wszState, &iError, wszMessage, (SQLSMALLINT)(sizeof(wszMessage) / sizeof(CHAR)), (SQLSMALLINT*)NULL) == SQL_SUCCESS)
 		{
 			// Hide data truncated..
 			if (strncmp((const char*)wszState, "01004", 5))
 			{
-				fprintf(stderr, "[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
+#if defined(HAS_LOGGER)
+				Logger_Error_F("[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
+#endif
 			}
 		}
 
@@ -74,19 +76,91 @@ namespace odbc
 
 			if (sNumResults > 0)
 			{
+				char buf[2048], type[100];
+				std::vector<std::pair<std::string, std::string>> columnNames = {};
+				int* attr = nullptr;
+
+				for (int i = 1; i <= sNumResults; i++)
+				{
+					PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i, SQL_COLUMN_NAME, buf, sizeof(buf), NULL, NULL));
+					PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i, SQL_COLUMN_TYPE, attr, SQL_IS_INTEGER, NULL, NULL));
+					columnNames.push_back({buf, type});
+				}
+					
 				while (SQLFetch(hStmt) == SQL_SUCCESS)
 				{
 					for (int i = 1; i <= sNumResults; i++)
 					{
 						SQLINTEGER indicator;
-						char buf[512];
 
 						if (SQLGetData(hStmt, i, SQL_C_CHAR, buf, sizeof(buf), &indicator) == SQL_SUCCESS)
 						{
 							if (indicator == SQL_NULL_DATA)
-								strcpy(buf, "NULL");
+							{
+								res[columnNames[i - 1].first].push_back("NULL");
+								continue;
+							}
 
-							res[i].push_back(buf);
+							if(columnNames[i - 1].second.c_str() == "BIT" ||
+							   columnNames[i - 1].second.c_str() == "INTEGER" ||
+							   columnNames[i - 1].second.c_str() == "NUMERIC" ||
+							   columnNames[i - 1].second.c_str() == "TINYINT" || 
+							   columnNames[i - 1].second.c_str() == "SMALLINT" || 
+							   columnNames[i - 1].second.c_str() == "BIGINT")
+									res[columnNames[i-1].first].push_back(atoi(buf));
+							else if(columnNames[i - 1].second.c_str() == "REAL" || 
+								columnNames[i - 1].second.c_str() == "DECIMAL" || 
+								columnNames[i - 1].second.c_str() == "DOUBLE")
+									res[columnNames[i-1].first].push_back(atof(buf));
+							else if(columnNames[i - 1].second.c_str() == "CHAR" || 
+								columnNames[i - 1].second.c_str() == "VARCHAR" || 
+								columnNames[i - 1].second.c_str() == "LONGVARCHAR" || 
+								columnNames[i - 1].second.c_str() == "BINARY" || 
+								columnNames[i - 1].second.c_str() == "VARBINARY" || 
+								columnNames[i - 1].second.c_str() == "LONGVARBINARY")
+								{
+									std::string str = buf;
+
+									// To Avoid If It Is Not String At All (Like Number) Because JSON Parse "STRING"
+									// From Only Numbers Like NUMBER type!
+									if (!str.empty() && (str.front() != '"' && str.back() != '"'))
+									{
+										str.insert(str.begin(), '"');
+										str.insert(str.end(), '"');
+									}
+
+									json _js;
+									if (!str.empty())
+									{
+										try
+										{
+											_js = json::parse(str);
+										}
+										catch (json::exception)
+										{
+											_js = str;
+										}
+										if (!_js.empty() && _js.is_object())
+										{
+											for (auto& [key, val] : _js.items())
+											{
+												for (auto& [_, elm] : val.items())
+												{
+													res[key].push_back(elm);
+												}
+											}
+											break;
+										}
+										else if (_js.is_array())
+										{
+											res[columnNames[i-1].first].push_back(json({ _js })[0]);
+											break;
+										}
+									}
+									res[columnNames[i - 1].first].push_back(str.empty() ? "" : _js);
+									break;
+								}
+							
 						}
 					}
 				}
@@ -102,7 +176,9 @@ namespace odbc
 		}
 
 		default:
-			fwprintf(stderr, L"Unexpected return code %hd!\n", RetCode);
+#if defined(HAS_LOGGER)
+			Logger_Critical_F("Unexpected return code %hd!\n", RetCode);
+#endif
 		}
 
 		PrintError(hStmt, SQL_HANDLE_STMT, SQLFreeStmt(hStmt, SQL_CLOSE));

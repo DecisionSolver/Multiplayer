@@ -25,6 +25,7 @@ using namespace boost::filesystem;
 #include <files.h>
 #include <hex.h>
 #include <Shellapi.h>
+#include "ODBC/ODBC.h"
 
 std::shared_ptr<mysql::Client> DB = std::make_shared<mysql::Client>();
 
@@ -123,6 +124,10 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 int main()
 {
 	setlocale(LC_ALL, "Russian");
+
+	//odbc::ODBC db; //Some tests
+	//db.Connect("Microsoft Access Driver (*.mdb)", "F:\\Programming\\C++\\Project\\ODBC\\ODBC\\test.MDB", "READONLY=false", "12345");
+	//std::cout << db.SelectValues("table1", { "*" });
 
 	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
 
