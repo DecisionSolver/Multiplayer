@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "IPEndpoint.hpp"
 
-namespace swl
+namespace network
 {
 	IPEndpoint::IPEndpoint() : ip{}
 	{

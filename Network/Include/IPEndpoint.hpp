@@ -1,7 +1,7 @@
 #pragma once
 #include "pch.h"
 
-namespace swl
+namespace network
 {
 	class IPEndpoint
 	{

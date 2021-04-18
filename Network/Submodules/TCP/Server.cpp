@@ -11,7 +11,7 @@
 #include "Client.hpp"
 
 using namespace net;
-using namespace swl;
+using namespace network;
 #include <conio.h>
 
 int main()

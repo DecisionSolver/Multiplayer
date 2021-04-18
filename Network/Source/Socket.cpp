@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Socket.hpp"
 
-namespace swl
+namespace network
 {
 	Socket::Socket(asio::io_service &io_service, tcp::socket handle): io_service(io_service), handle(std::move(handle))
 	{

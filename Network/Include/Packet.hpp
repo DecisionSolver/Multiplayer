@@ -3,7 +3,7 @@
 
 // for convenience
 using json = nlohmann::json;
-namespace swl
+namespace network
 {
 	class TCPSocket;
 	class UDPSocket;
@@ -18,6 +18,7 @@ namespace swl
 			Connection,
 			Disconnection,
 			PlaySound,
+			PlayVoice,
 
 			// Server
 			ClosedServerByUpdate,
@@ -67,7 +68,7 @@ namespace swl
 			uint8_t Settings = 0; // IsCompressed etc...
 			int type;
 			bool IsAnswer = false; // Sets Only When Comes In onReceive Function
-			size_t OrigSize = 0;
+			size_t OrigSize = 0u;
 
 			Header(Type NewType): type(NewType), Settings(0) {}
 			Header(Type NewType, uint8_t NewSettings): type(NewType), Settings(NewSettings) {}
@@ -77,35 +78,44 @@ namespace swl
 		Packet() {}
 		Packet(const Packet& from)
 		{
-			data = from.data;
+			data << from.data.rdbuf();
 			_H = from._H;
 		}
 		virtual ~Packet() {}
 
 		void clear();
 		size_t getSize() const;
-		std::string getData() const;
+		std::stringstream &getData();
 
 		// Filling data
-		void FillIn(json NewData);
-		void FillIn(Header NewHeader, json NewData);
+		void FillIn(std::stringstream &Data);
+		void FillIn(Header NewHeader, std::stringstream &Data);
+		void FillIn(const json &Data);
+		void FillIn(const Header &NewHeader, const json &Data);
 
-		operator bool() { return !data.empty(); }
-		Header getHeader() { return _H; }
+		Packet *operator =(Packet &pack)
+		{
+			data << pack.data.rdbuf();
+			_H = pack._H;
+			return this;
+		}
+
+		operator bool();
+		Header getHeader() const { return _H; }
 
 		Packet *CreateAnswer();
 		Packet *CreateMessage();
 		Packet *CreateMySQL();
 		Packet *CreateDisconnect();
 		
-		Packet *onReceive(std::string NewData);
+		Packet *onReceive(std::stringstream &Data);
 	protected:
 		friend TCPSocket;
 		friend UDPSocket;
-		std::string onSend();
+		std::stringstream &onSend();
 	private:
 		Header _H;
-		std::string data;
+		std::stringstream data;
 
 		json Message, MySQL_Request, Answer_Request;
 	};

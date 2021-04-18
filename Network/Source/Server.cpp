@@ -8,8 +8,8 @@ namespace net
 	{
 		if (!connection) return;
 
-		swl::Packet packet = swl::Packet();
-		connection->GetPacket(packet, swl::Packet::Type::Chat);
+		network::Packet packet = network::Packet();
+		connection->GetPacket(packet, network::Packet::Type::Chat);
 		if (packet)
 		{
 			if (_Proto == TypeProtocol::TCP)
@@ -18,11 +18,11 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateMessage()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Chat), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Chat), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -32,18 +32,18 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateMessage()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Chat), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Chat), pack);
 					Next.second->Send(Answer);
 				}
 			}
 			packet.clear();
 		}
 
-		connection->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
+		connection->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 		if (packet)
 		{
 			json Arr;
@@ -53,16 +53,16 @@ namespace net
 				Arr["_1"].push_back(Obj["_N"].at(i).back().get<json::number_integer_t>());
 				Arr["_0"].push_back(Obj["_0"].at(i).back().get<json::string_t>());
 			}
-			swl::Packet Answer = swl::Packet();
+			network::Packet Answer = network::Packet();
 			json pack = json::parse(Answer.CreateAnswer()->getData());
 			pack["data"]["body"]["_0"] = Arr["_0"]; // ID MySQL
 			pack["data"]["body"]["_1"] = Arr["_1"]; // Login
-			Answer.FillIn(swl::Packet::Header(swl::Packet::Type::GetListUsersOnline), pack);
+			Answer.FillIn(network::Packet::Header(network::Packet::Type::GetListUsersOnline), pack);
 			connection->Send(Answer);
 			packet.clear();
 		}
 
-		connection->GetPacket(packet, swl::Packet::Type::PlaySound);
+		connection->GetPacket(packet, network::Packet::Type::PlaySound);
 		if (packet)
 		{
 			json unparse = json::parse(packet.getData());
@@ -70,33 +70,75 @@ namespace net
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
-					if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>()) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::PlaySound), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::PlaySound), pack);
 					Next.second->Send(Answer);
-					break;
+					if (unparse["_0"].get<int>() != -1)
+						break;
+					else if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>())
+						continue;
 				}
 			}
 			else if (_Proto == TypeProtocol::UDP)
 			{
 				for (auto &Next: m_connectionsUDP)
 				{
-					if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>()) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::PlaySound), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::PlaySound), pack);
 					Next.second->Send(Answer);
-					break;
+					if (unparse["_0"].get<int>() != -1)
+						break;
+					else if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>())
+						continue;
 				}
 			}
 			packet.clear();
 		}
-		connection->GetPacket(packet, swl::Packet::Type::Sync_PosChanges);
+		connection->GetPacket(packet, network::Packet::Type::PlayVoice);
+		if (packet)
+		{
+			json unparse = json::parse(packet.getData());
+			if (_Proto == TypeProtocol::TCP)
+			{
+				for (auto &Next: m_connectionsTCP)
+				{
+					network::Packet Answer = network::Packet();
+					json pack = json::parse(Answer.CreateAnswer()->getData());
+					pack["data"]["body"].clear();
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::PlayVoice), pack);
+					Next.second->Send(Answer);
+					if (unparse["_0"].get<int>() != -1)
+						break;
+					else if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>())
+						continue;
+				}
+			}
+			else if (_Proto == TypeProtocol::UDP)
+			{
+				for (auto &Next: m_connectionsUDP)
+				{
+					network::Packet Answer = network::Packet();
+					json pack = json::parse(Answer.CreateAnswer()->getData());
+					pack["data"]["body"].clear();
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::PlayVoice), pack);
+					Next.second->Send(Answer);
+					if (unparse["_0"].get<int>() != -1)
+						break;
+					else if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>())
+						continue;
+				}
+			}
+			packet.clear();
+		}
+		connection->GetPacket(packet, network::Packet::Type::Sync_PosChanges);
 		if (packet)
 		{
 			json unparse = json::parse(packet.getData());
@@ -106,11 +148,11 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_PosChanges), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_PosChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -120,17 +162,17 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_PosChanges), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_PosChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
 			packet.clear();
 		}
-		connection->GetPacket(packet, swl::Packet::Type::Sync_RotChanges);
+		connection->GetPacket(packet, network::Packet::Type::Sync_RotChanges);
 		if (packet)
 		{
 			json unparse = json::parse(packet.getData());
@@ -140,11 +182,11 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_RotChanges), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_RotChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -154,52 +196,18 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_RotChanges), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_RotChanges), pack);
 					Next.second->Send(Answer);
 				}
 
 			}
 			packet.clear();
 		}
-		connection->GetPacket(packet, swl::Packet::Type::Sync_SclChanges);
-		if (packet)
-		{
-			json unparse = json::parse(packet.getData());
-			if (_Proto == TypeProtocol::TCP)
-			{
-				for (auto &Next: m_connectionsTCP)
-			{
-				// Not To ME!!!
-				if (connection == Next.second) continue;
-				swl::Packet Answer = swl::Packet();
-				json pack = json::parse(Answer.CreateAnswer()->getData());
-				pack["data"]["body"].clear();
-				pack["data"]["body"] = json::parse(packet.getData());
-				Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_SclChanges), pack);
-				Next.second->Send(Answer);
-			}
-			}
-			else if (_Proto == TypeProtocol::UDP)
-			{
-				for (auto &Next: m_connectionsUDP)
-				{
-					// Not To ME!!!
-					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_SclChanges), pack);
-					Next.second->Send(Answer);
-				}
-			}
-			packet.clear();
-		}
-		connection->GetPacket(packet, swl::Packet::Type::Sync_NewNodeName);
+		connection->GetPacket(packet, network::Packet::Type::Sync_SclChanges);
 		if (packet)
 		{
 			json unparse = json::parse(packet.getData());
@@ -209,11 +217,11 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_NewNodeName), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_SclChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -223,17 +231,17 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_NewNodeName), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_SclChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
 			packet.clear();
 		}
-		connection->GetPacket(packet, swl::Packet::Type::Sync_NewNode);
+		connection->GetPacket(packet, network::Packet::Type::Sync_NewNodeName);
 		if (packet)
 		{
 			json unparse = json::parse(packet.getData());
@@ -243,11 +251,11 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_NewNode), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_NewNodeName), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -257,22 +265,56 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					swl::Packet Answer = swl::Packet();
+					network::Packet Answer = network::Packet();
 					json pack = json::parse(Answer.CreateAnswer()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] = json::parse(packet.getData());
-					Answer.FillIn(swl::Packet::Header(swl::Packet::Type::Sync_NewNode), pack);
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_NewNodeName), pack);
 					Next.second->Send(Answer);
 				}
 			}
 			packet.clear();
 		}
-		connection->GetPacket(packet, swl::Packet::Type::Get_MetaData_Project);
+		connection->GetPacket(packet, network::Packet::Type::Sync_NewNode);
+		if (packet)
+		{
+			json unparse = json::parse(packet.getData());
+			if (_Proto == TypeProtocol::TCP)
+			{
+				for (auto &Next: m_connectionsTCP)
+				{
+					// Not To ME!!!
+					if (connection == Next.second) continue;
+					network::Packet Answer = network::Packet();
+					json pack = json::parse(Answer.CreateAnswer()->getData());
+					pack["data"]["body"].clear();
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_NewNode), pack);
+					Next.second->Send(Answer);
+				}
+			}
+			else if (_Proto == TypeProtocol::UDP)
+			{
+				for (auto &Next: m_connectionsUDP)
+				{
+					// Not To ME!!!
+					if (connection == Next.second) continue;
+					network::Packet Answer = network::Packet();
+					json pack = json::parse(Answer.CreateAnswer()->getData());
+					pack["data"]["body"].clear();
+					pack["data"]["body"] << packet.getData();
+					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_NewNode), pack);
+					Next.second->Send(Answer);
+				}
+			}
+			packet.clear();
+		}
+		connection->GetPacket(packet, network::Packet::Type::Get_MetaData_Project);
 		if (packet)
 		{
 
 		}
-		connection->GetPacket(packet, swl::Packet::Type::Get_MetaData_Project_Ex);
+		connection->GetPacket(packet, network::Packet::Type::Get_MetaData_Project_Ex);
 		if (packet)
 		{
 

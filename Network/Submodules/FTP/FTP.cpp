@@ -92,7 +92,7 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 {
 	if (username == authorname)
 	{
-		path authorpath = _getcwd(nullptr, 1024);
+		path authorpath = _getcwd(nullptr, UINT16_MAX);
 		authorpath += "\\" + authorname + "\\" + filename;
 		ifstream targetfile{ authorpath };
 		if (targetfile.is_open())
@@ -108,7 +108,7 @@ bool hasUserAccess(const std::string& filename, const std::string& authorname, c
 
 	if (UserAccess["f"].dump().find(filename) != std::string::npos)
 	{
-		path authorpath = _getcwd(nullptr, 1024);
+		path authorpath = _getcwd(nullptr, UINT16_MAX);
 		authorpath += "\\" + authorname + "\\" + filename;
 		ifstream targetfile{ authorpath };
 		if (targetfile.is_open())
@@ -125,11 +125,11 @@ int main()
 {
 	setlocale(LC_ALL, "Russian");
 
-	//odbc::ODBC db; //Some tests
-	//db.Connect("Microsoft Access Driver (*.mdb)", "F:\\Programming\\C++\\Project\\ODBC\\ODBC\\test.MDB", "READONLY=false", "12345");
-	//std::cout << db.SelectValues("table1", { "*" });
+	odbc::ODBC db; //Some tests
+	db.Connect("Microsoft Access Driver (*.mdb)", "E:\\test.MDB", "READONLY=false", "12345");
+	std::cout << db.SelectValues("table1", { "*" });
 
-	path local_root = _getcwd(nullptr, 1024); // The backslash at the end is necessary!
+	path local_root = _getcwd(nullptr, UINT16_MAX); // The backslash at the end is necessary!
 
 	local_root += "/";
 	if (!exists(local_root.string() + "Workspace"))
@@ -255,22 +255,22 @@ int main()
 	}
 
 	// Prevent the application from exiting immediatelly
-	std::thread([&]
-	{
-		std::basic_stringstream<char, std::char_traits<char>, std::allocator<char>> oss;
-		while (true)
-		{
-#if defined(HAS_LOGGER)
-			std::cout.rdbuf(oss.rdbuf());
-			if (!oss.str().empty())
-			{
-				Logger_Info_F("FTP Server: %s", oss.str().c_str());
-				oss.str("");
-			}
-#endif
-		}
-	}
-	).detach();
+//	std::thread([&]
+//	{
+//		std::basic_stringstream<char, std::char_traits<char>, std::allocator<char>> oss;
+//		while (true)
+//		{
+//#if defined(HAS_LOGGER)
+//			std::cout.rdbuf(oss.rdbuf());
+//			if (!oss.str().empty())
+//			{
+//				Logger_Info_F("FTP Server: %s", oss.str().c_str());
+//				oss.str("");
+//			}
+//#endif
+//		}
+//	}
+//	).detach();
 
 	for (;;)
 	{

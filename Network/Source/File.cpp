@@ -6,7 +6,7 @@
 
 #include <Client.hpp>
 #include <Server.hpp>
-namespace swl
+namespace network
 {
 	bool FileTransfer::SeparateFileIntoPackets(std::string FileName, size_t HowManyParts, int ID_Recipient)
 	{
@@ -24,7 +24,7 @@ namespace swl
 		length = static_cast<int>(fileIn.tellg());
 		fileIn.seekg(0, std::ios::beg);
 
-		swl::Packet newPacket = swl::Packet();
+		network::Packet newPacket = network::Packet();
 		std::shared_ptr<std::vector<char>>buffer = std::make_shared<std::vector<char>>(1024 * 1024 * 1);
 		try
 		{
@@ -55,7 +55,7 @@ namespace swl
 					// Read By Parts And Add To New Packet
 
 					json data = newPacket.CreateAnswer();
-					data["header"]["_t"] = swl::Packet::Type::File;
+					data["header"]["_t"] = network::Packet::Type::File;
 					data["data"]["body"]["_0"] = NewBuff.data();
 
 					data["data"]["_i"] = i + 1 == HowManyParts ? 255 : i;
@@ -81,7 +81,7 @@ namespace swl
 				buffer->resize(static_cast<size_t>(bytes_read));
 
 				json data = newPacket.CreateAnswer();
-				data["header"]["_t"] = swl::Packet::Type::File;
+				data["header"]["_t"] = network::Packet::Type::File;
 				data["data"]["body"]["_0"] = buffer->data();
 				data["data"]["_i"] = 255;
 				if (ID_Recipient > -1)
@@ -106,15 +106,15 @@ namespace swl
 	}
 
 	// Use It Only In Client->SEND!
-	void FileTransfer::Worker(std::shared_ptr<swl::TCPClient> this_client)
+	void FileTransfer::Worker(std::shared_ptr<network::TCPClient> this_client)
 	{
 		/*if (!this_client)
 			return;
-		std::thread([&](std::shared_ptr<swl::TCPClient> this_client)
+		std::thread([&](std::shared_ptr<network::TCPClient> this_client)
 		{
 			uint32_t ID = 0;
 
-			std::list<swl::Packet>::iterator Obj = packets.begin();
+			std::list<network::Packet>::iterator Obj = packets.begin();
 			int PacketID = 0;
 			do
 			{
@@ -122,13 +122,13 @@ namespace swl
 				this_client->send(*Obj);
 				// Do Send!
 
-				swl::Packet Packet = swl::Packet();
+				network::Packet Packet = network::Packet();
 				if (this_client)
 				{
 					while (true)
 					{
 						Packet.receive(this_client->getSocket()->getSocket());
-						if (Packet && Packet.getHeader().type & (swl::Packet::Type::Answer << swl::Packet::Type::File))
+						if (Packet && Packet.getHeader().type & (network::Packet::Type::Answer << network::Packet::Type::File))
 						{
 							if (json::parse(Packet.getData())["data"]["body"]["_1"].get<std::string>() == "OK")
 							{
@@ -149,9 +149,9 @@ namespace swl
 	}
 
 	// Use It Only In Client->RECV!
-	void FileTransfer::Save(std::string FileName, swl::Packet Packet, swl::TCPClient *this_client)
+	void FileTransfer::Save(std::string FileName, network::Packet Packet, network::TCPClient *this_client)
 	{
-		/*if (Packet && Packet.getHeader().type & (swl::Packet::Type::Answer << swl::Packet::Type::File))
+		/*if (Packet && Packet.getHeader().type & (network::Packet::Type::Answer << network::Packet::Type::File))
 		{
 			json dataJSON = json::parse(Packet.getData());
 			if (dataJSON["data"]["_i"] <= 254)
@@ -166,10 +166,10 @@ namespace swl
 
 				Packet.clear();
 				dataJSON = Packet.CreateAnswer();
-				dataJSON["header"]["_t"] = swl::Packet::Type::File;
+				dataJSON["header"]["_t"] = network::Packet::Type::File;
 				dataJSON["data"]["body"]["_1"] = "OK";
 				uint8_t newType = dataJSON["header"]["_t"].get<uint8_t>();
-				newType |= (swl::Packet::Type::Answer << swl::Packet::Type::File);
+				newType |= (network::Packet::Type::Answer << network::Packet::Type::File);
 				dataJSON["header"]["_t"] = newType;
 
 				Packet.FillIn(dataJSON);

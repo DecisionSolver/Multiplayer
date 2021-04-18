@@ -45,8 +45,9 @@ public:
 
 	bool ConnectToServer();
 	bool IsRunning() const;
-
-	void Send(std::string Packet);
+	
+	void Send(const network::Packet &Packet);
+	void Send(const std::string &Packet);
 
 	void SetCB_Accept(std::function<void(Connection::SharedPtr)> Func);
 	void SetCB_OnPacketHandle(std::function<void(Connection::SharedPtr)> Func);

@@ -8,18 +8,9 @@
 #endif
 */
 
-struct WriteThis {
-	std::stringstream  readptr;
-	size_t sizeleft;
-};
-struct FtpFile {
-	std::string filename;
-	FILE *stream;
-};
-
-static size_t getcontentlengthfunc(void *ptr, size_t size, size_t nmemb, void *stream)
+size_t FTPClient::getcontentlengthfunc(void *ptr, size_t size, size_t nmemb, void *stream)
 {
-	int r;
+	int r = 0;
 	long len = 0;
 
 	r = sscanf((LPCSTR)ptr, "Content-Length: %ld\n", &len);
@@ -29,7 +20,7 @@ static size_t getcontentlengthfunc(void *ptr, size_t size, size_t nmemb, void *s
 	return size * nmemb;
 }
 
-static size_t write_callback(void *buffer, size_t size, size_t nmemb, void *stream)
+size_t FTPClient::write_callback(void *buffer, size_t size, size_t nmemb, void *stream)
 {
 	struct FtpFile *out = (FtpFile *)stream;
 	if (!out->stream && !out->filename.empty()) {
@@ -43,7 +34,7 @@ static size_t write_callback(void *buffer, size_t size, size_t nmemb, void *stre
 	else
 		return size * nmemb;
 }
-static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
+size_t FTPClient::read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
 {
 	FILE *ThisFile = (FILE *)stream;
 	if (ferror(ThisFile))
@@ -60,7 +51,7 @@ FTPClient::FTPClient()
 	if (res != CURLE_OK)
 	{
 #if defined(HAS_LOGGER)
-		Logger_Critical_F("curl_global_init() failed: %s\n", curl_easy_strerror(res));
+		Logger_Error_F("curl_global_init() failed: %s\n", curl_easy_strerror(res));
 #endif
 	}
 	// Create And Init CURL
@@ -86,19 +77,21 @@ FTPClient::~FTPClient()
 	curl_global_cleanup();
 }
 
-void FTPClient::SendFile(const boost::filesystem::path &FilePath)
+bool FTPClient::SendFile(const boost::filesystem::path &FilePath)
 {
+	if (!Connected)
+	{
+		Logger_Warn("You're not connected to the FTP Server! Aborting!");
+		return false;
+	}
 	FILE *File;
 	long uploaded_len = 0; 
 	CURLcode res = CURLE_GOT_NOTHING;
-	int c;
+	int c = 0;
 	
 	File = fopen(FilePath.string().c_str(), "rb");
 	if (!File)
-	{
-		perror(NULL);
-		return;
-	}
+		return false;
 	curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
 	curl_easy_setopt(curl, CURLOPT_URL, ("ftp://" + IP + "/Users/" + UserName + "/" + FilePath.filename().string()).c_str());
 	curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, getcontentlengthfunc);
@@ -134,14 +127,21 @@ void FTPClient::SendFile(const boost::filesystem::path &FilePath)
 	if (res != CURLE_OK && res != CURLE_PARTIAL_FILE)
 	{
 #if defined(HAS_LOGGER)
-		Logger_Critical_F("SendFile() failed: %s\n", curl_easy_strerror(res));
+		Logger_Error_F("SendFile() failed: %s\n", curl_easy_strerror(res));
 #endif
+		return false;
 	}
 	curl_easy_setopt(curl, CURLOPT_UPLOAD, 0L);
+	return true;
 }
 
-void FTPClient::ReceiveFile(const boost::filesystem::path &FilePath, const boost::filesystem::path &Where)
+bool FTPClient::ReceiveFile(const boost::filesystem::path &FileName, const boost::filesystem::path &Where)
 {
+	if (!Connected)
+	{
+		Logger_Warn("You're not connected to the FTP Server! Aborting!");
+		return false;
+	}
 	FtpFile ftpfile =
 	{
 	   "",
@@ -149,7 +149,7 @@ void FTPClient::ReceiveFile(const boost::filesystem::path &FilePath, const boost
 	};
 	ftpfile.filename = Where.string();
 
-	curl_easy_setopt(curl, CURLOPT_URL, ("ftp://" + IP + "/" + UserName + "/" + FilePath.filename().string()).c_str());
+	curl_easy_setopt(curl, CURLOPT_URL, ("ftp://" + IP + "/Users/" + UserName + "/" + FileName.filename().string()).c_str());
 	//curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)fsize);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ftpfile);
 
@@ -157,14 +157,16 @@ void FTPClient::ReceiveFile(const boost::filesystem::path &FilePath, const boost
 	if (CURLE_OK != res)
 	{
 #if defined(HAS_LOGGER)
-		Logger_Critical_F("ReceiveFile() failed: %s\n", curl_easy_strerror(res));
+		Logger_Error_F("ReceiveFile() failed: %s\n", curl_easy_strerror(res));
 #endif
+		return false;
 	}
 	else
 	{
 		if (ftpfile.stream)
 			fclose(ftpfile.stream);
 	}
+	return true;
 }
 
 bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
@@ -182,8 +184,10 @@ bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
 		if (CURLE_OK != res)
 		{
 #if defined(HAS_LOGGER)
-			Logger_Critical_F("Connect() failed: %s\n", curl_easy_strerror(res));
+			Logger_Error_F("Connect() failed: %s\n", curl_easy_strerror(res));
 #endif
+			const_cast<bool &>(Connected) = false;
+
 			/* we failed */
 			return false;
 		}
@@ -192,6 +196,7 @@ bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
 			const_cast<std::string &>(UserName) = Login;
 			const_cast<std::string &>(IP) = ServerIP;
 			const_cast<uint16_t &>(port_) = Port;
+			const_cast<bool &>(Connected) = true;
 			return true;
 		}
 	}
@@ -205,11 +210,11 @@ void FTPClient::Disconnect()
 		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "QUIT");
 }
 
-uint16_t FTPClient::getPort()
+const uint16_t &FTPClient::getPort()
 {
 	return port_;
 }
-std::string FTPClient::getIP()
+const std::string &FTPClient::getIP()
 {
 	return IP;
 }

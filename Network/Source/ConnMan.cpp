@@ -132,7 +132,7 @@ bool ConnectionManager::ConnectToServer()
 	if (!ec || (m_SocketTCP && m_SocketTCP->is_open()) || m_SocketUDP)
 	{
 #if defined(HAS_LOGGER)
-		Logger_Info("Success Connecting! Now Sending Back-Respons");
+		Logger_Info("Success Connecting! Now Sending Back-Response");
 #endif
 		if (_Proto == TypeProtocol::UDP)
 		{
@@ -145,10 +145,10 @@ bool ConnectionManager::ConnectToServer()
 		one_connection->Start();
 
 		/* Sending ACCEPT CONNECTION Packet */
-		swl::Packet AnswerPacket = swl::Packet();
+		network::Packet AnswerPacket = network::Packet();
 		json dataJSON = json::parse(AnswerPacket.CreateMessage()->getData());
 		dataJSON["data"]["body"]["_1"] = "OK";
-		AnswerPacket.FillIn(swl::Packet::Header(swl::Packet::Type::Connection), dataJSON);
+		AnswerPacket.FillIn(network::Packet::Header(network::Packet::Type::Connection), dataJSON);
 		one_connection->Send(AnswerPacket);
 		
 		return true;
@@ -173,7 +173,7 @@ bool ConnectionManager::IsRunning() const
 	return IsWorking;
 }
 
-void ConnectionManager::Send(std::string Packet)
+void ConnectionManager::Send(const std::string &Packet)
 {
 	if (_Type == ConnectionManager::TypeWorking::Client)
 	{
@@ -194,6 +194,31 @@ void ConnectionManager::Send(std::string Packet)
 			for (auto connection: m_connectionsTCP)
 			{
 				connection.second->Send({ Packet.begin(), Packet.end() });
+			}
+		}
+	}
+}
+void ConnectionManager::Send(const network::Packet &Packet)
+{
+	if (_Type == ConnectionManager::TypeWorking::Client)
+	{
+		if (one_connection)
+			one_connection->Send(const_cast<network::Packet &>(Packet));
+	}
+	else
+	{
+		if (_Proto == TypeProtocol::TCP)
+		{
+			for (auto connection: m_connectionsTCP)
+			{
+				connection.second->Send(const_cast<network::Packet &>(Packet));
+			}
+		}
+		else if (_Proto == TypeProtocol::UDP)
+		{
+			for (auto connection: m_connectionsTCP)
+			{
+				connection.second->Send(const_cast<network::Packet &>(Packet));
 			}
 		}
 	}
@@ -435,10 +460,10 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					return;
 				}
 
-				swl::Packet packet = swl::Packet();
+				network::Packet packet = network::Packet();
 				if (_Type == TypeWorking::Server)
 				{
-					connection->GetPacket(packet, swl::Packet::Type::Disconnection);
+					connection->GetPacket(packet, network::Packet::Type::Disconnection);
 					if (packet)
 					{
 						if (_Proto == TypeProtocol::TCP)
@@ -484,9 +509,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 				{
 					if (_Type == TypeWorking::Server)
 					{
-						connection->GetPacket(packet, swl::Packet::Type::MySQL);
-						if (packet && (packet.getData().find("_0") != std::string::npos &&
-							packet.getData().find("_1") != std::string::npos))
+						connection->GetPacket(packet, network::Packet::Type::MySQL);
+						if (packet && (packet.getData().str().find("_0") != std::string::npos &&
+							packet.getData().str().find("_1") != std::string::npos))
 						{
 							json temp = json::parse(packet.getData());
 							if (!temp.empty())
@@ -498,7 +523,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 									{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
 
 								// If Successful Then Send Answer About It
-								swl::Packet Answer = swl::Packet();
+								network::Packet Answer = network::Packet();
 								json pack = json::parse(Answer.CreateAnswer()->getData());
 								if (!Obj.empty())
 								{
@@ -512,7 +537,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								else
 									pack["data"]["body"]["_0"] = "NotFound";
 
-								Answer.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL), pack);
+								Answer.FillIn(network::Packet::Header(network::Packet::Type::MySQL), pack);
 								connection->Send(Answer);
 
 								if (pack["data"]["body"]["_0"] == "NotFound" ||
@@ -602,7 +627,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						}
 					}
 
-					connection->GetPacket(packet, swl::Packet::Type::Connection);
+					connection->GetPacket(packet, network::Packet::Type::Connection);
 					if (packet)
 					{
 						json dataJSON;
@@ -620,9 +645,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						else
 						{
 							/* Sending ACCEPT CONNECTION Packet */
-							swl::Packet AnswerPacket = swl::Packet();
+							network::Packet AnswerPacket = network::Packet();
 							dataJSON["data"]["body"]["_1"] = "OK";
-							AnswerPacket.FillIn(swl::Packet::Header(swl::Packet::Type::Connection), dataJSON);
+							AnswerPacket.FillIn(network::Packet::Header(network::Packet::Type::Connection), dataJSON);
 							connection->Send(AnswerPacket);
 							connection->SetConnected(true);
 						}
@@ -645,7 +670,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								User->TryUpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 									std::to_string(connection->GetMetaDB_User()) + "'" } });
 								connection->get_socketTCP().close();
-								//BUG -- m_connectionsTCP.erase(itConnection);
+								m_connectionsTCP.erase(itConnection);
 							}
 						}
 						else if (_Proto == TypeProtocol::UDP)

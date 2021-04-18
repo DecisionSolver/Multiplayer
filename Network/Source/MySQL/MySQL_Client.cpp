@@ -23,7 +23,6 @@ namespace mysql
 	////////////////////////////////////////////////////////////////////////////////////
 	void Client::Disconnect()														  //
 	{
-		DebugBreak();
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -346,9 +345,9 @@ namespace mysql
 							}
 							if (!_js.empty() && _js.is_object())
 							{
-								for (auto&[key, val] : _js.items())
+								for (auto&[key, val]: _js.items())
 								{
-									for (auto&[_, elm] : val.items())
+									for (auto&[_, elm]: val.items())
 									{
 										js[key].push_back(elm);
 									}

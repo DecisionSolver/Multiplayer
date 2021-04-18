@@ -5,7 +5,7 @@ namespace query
 	std::string MakeCreateTableQuery(const std::string& name_table, const std::string& name_column, 
 		const std::string& type, const std::string& value, const std::vector<std::string>& attributes)
 	{
-		std::string attribute = "";
+		std::string attribute;
 
 		for (size_t cnt = 1; cnt < attributes.size(); cnt++)
 			attribute += attributes[cnt-1] + " ";
@@ -20,7 +20,7 @@ namespace query
 	std::string MakeCreateColumnQuery(const std::string& name_table, const std::string& name_column, 
 		const std::string& type, const std::string& value, const std::vector<std::string>& attributes)
 	{
-		std::string attribute = "";
+		std::string attribute;
 
 		if (!attributes.empty())
 		{
@@ -38,9 +38,10 @@ namespace query
 				attribute + ";");
 	}
 
-	std::string MakeModifyColumnQuery(const std::string& name_table, const std::string& name_column, const std::string& type, const std::string& value, const std::vector<std::string>& attributes)
+	std::string MakeModifyColumnQuery(const std::string& name_table, const std::string& name_column,
+		const std::string& type, const std::string& value, const std::vector<std::string>& attributes)
 	{
-		std::string attribute = "";
+		std::string attribute;
 
 		if (!attributes.empty())
 		{
@@ -72,7 +73,7 @@ namespace query
 	std::string MakeSelectValuesQuery(const std::string& name_table, 
 		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)
 	{
-		std::string temp = "";
+		std::string temp;
 
 		if (name_columns.back().back() != '*')
 		{
@@ -132,10 +133,10 @@ namespace query
 			return ("UPDATE " + name_table + " SET " + Set);
 	}
 
-	std::string MakeInsertValuesQuery(const std::string& name_table, const std::vector<std::string>& name_columns, const std::vector<std::string>& values)
+	std::string MakeInsertValuesQuery(const std::string& name_table, const std::vector<std::string>& name_columns,
+		const std::vector<std::string>& values)
 	{
-		std::string name_column = "";
-		std::string temp = "";
+		std::string name_column, temp;
 
 		if (!name_columns.empty())
 		{

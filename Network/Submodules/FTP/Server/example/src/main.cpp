@@ -4,10 +4,12 @@
 #include <thread>
 #include <string>
 
-int main() {
+int main()
+{
+	setlocale(LC_ALL, "Russian");
 
 #ifdef WIN32
-  std::string local_root =  "C:\\"; // The backslash at the end is necessary!
+  std::string local_root =  "C:\\Workspace"; // The backslash at the end is necessary!
 #else // WIN32
   std::string local_root =  "/";
 #endif // WIN32
@@ -21,7 +23,7 @@ int main() {
   // users have to provide their username and password. 
   server.addUserAnonymous(local_root, fineftp::Permission::All);
   server.addUser         ("MyUser",   "MyPassword", local_root, fineftp::Permission::ReadOnly);
-  server.addUser         ("Uploader", "123456",     local_root, fineftp::Permission::DirList | fineftp::Permission::DirCreate | fineftp::Permission::FileWrite | fineftp::Permission::FileAppend);
+  server.addUser         ("PBAX", "OK",     local_root, fineftp::Permission::All);
 
   // Start the FTP server with 4 threads. More threads will increase the
   // performance with multiple clients, but don't over-do it.

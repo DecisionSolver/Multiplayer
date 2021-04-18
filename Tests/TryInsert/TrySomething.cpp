@@ -15,25 +15,25 @@ using namespace std;
 shared_ptr<mysql::Client> DB = make_shared<mysql::Client>();
 vector<shared_ptr<net::Client>> Users;
 
-#define IP swl::IPEndpoint("127.0.0.1")
+#define IP network::IPEndpoint("127.0.0.1")
 #define PORT 20675
 
 bool UseRepeater = false, UseClear = true;
 void ConnectFunc(string Login, string Pass)
 {
-	Users.push_back(make_shared<net::Client>(swl::IPEndpoint(""), ConnectionManager::TypeProtocol::TCP, 0));
+	Users.push_back(make_shared<net::Client>(network::IPEndpoint(""), ConnectionManager::TypeProtocol::TCP, 0));
 	if (Users.back()->Connect(IP, PORT))
 	{
 		Users.back()->StartSystem();
 
 		// Create MySQL Packet That We're Connection To
-		swl::Packet Answer = swl::Packet();
+		network::Packet Answer = network::Packet();
 		json pack = json::parse(Answer.CreateMySQL()->getData());
 		pack["data"]["body"]["_0"] = Login;
 		pack["data"]["body"]["_1"] = Pass;
-		Answer.FillIn(swl::Packet::Header(swl::Packet::Type::MySQL), pack);
+		Answer.FillIn(network::Packet::Header(network::Packet::Type::MySQL), pack);
 
-		Users.back()->Send(Answer.getData());
+		Users.back()->Send(Answer);
 	}
 	else
 	{
@@ -43,7 +43,7 @@ void ConnectFunc(string Login, string Pass)
 #endif
 	}
 }
-void GetPacketFromThread(swl::Packet packet, swl::Packet::Type NeededPacket)
+void GetPacketFromThread(network::Packet packet, network::Packet::Type NeededPacket)
 {
 	if (packet && packet.getHeader().type == NeededPacket && packet.getHeader().IsAnswer)
 	{
@@ -136,21 +136,21 @@ int main(int argc, char* argv[])
 			while (!Users.empty())
 			{
 				Sleep(1000);
-				swl::Packet packet;
+				network::Packet packet;
 
 				if (Users.size() == 1)
 				{
 					if (!UseRepeater)
 					{
 						if (!Users.front()->GetConnect()) continue;
-						Users.front()->GetConnect()->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
-						GetPacketFromThread(packet, swl::Packet::Type::GetListUsersOnline);
+						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
+						GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 					}
 					while (UseRepeater)
 					{
 						if (!Users.front()->GetConnect()) continue;
-						Users.front()->GetConnect()->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
-						GetPacketFromThread(packet, swl::Packet::Type::GetListUsersOnline);
+						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
+						GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 					}
 				}
 				else if (Users.size() > 1)
@@ -160,8 +160,8 @@ int main(int argc, char* argv[])
 						for (auto CurrentUser: Users)
 						{
 							if (!CurrentUser->GetConnect()) continue;
-							CurrentUser->GetConnect()->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
-							GetPacketFromThread(packet, swl::Packet::Type::GetListUsersOnline);
+							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
+							GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 						}
 					}
 					while (UseRepeater)
@@ -169,8 +169,8 @@ int main(int argc, char* argv[])
 						for (auto CurrentUser: Users)
 						{
 							if (!CurrentUser->GetConnect()) continue;
-							CurrentUser->GetConnect()->GetPacket(packet, swl::Packet::Type::GetListUsersOnline);
-							GetPacketFromThread(packet, swl::Packet::Type::GetListUsersOnline);
+							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
+							GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 						}
 					}
 				}
@@ -209,10 +209,10 @@ int main(int argc, char* argv[])
 
 				std::thread t = std::thread([&]
 				{
-					swl::Packet packet;
+					network::Packet packet;
 					json data = json::parse(packet.CreateMessage()->getData());
 					data["data"]["body"]["_0"] = Text + "\n";
-					packet.FillIn(swl::Packet::Header(swl::Packet::Type::Chat), data);
+					packet.FillIn(network::Packet::Header(network::Packet::Type::Chat), data);
 
 					if (Users.size() == 1)
 					{
@@ -279,16 +279,16 @@ int main(int argc, char* argv[])
 				if (Text == "-1")
 				{
 					auto AllUsersID = DB->TrySelectValues("Local", { "_N" }, { " WHERE _N = 1" });
-					vector<swl::Packet> packet;
+					vector<network::Packet> packet;
 
 					for (auto ID: AllUsersID)
 					{
-						packet.push_back(swl::Packet());
+						packet.push_back(network::Packet());
 						json data = json::parse(packet.back().CreateMessage()->getData());
 						data["data"]["body"]["_0"] = ID.back().get<json::number_integer_t>();
 						data["data"]["body"]["_1"] = 0.016f;
 						data["data"]["body"]["_2"] = "01.08.16.wav";
-						packet.back().FillIn(swl::Packet::Header(swl::Packet::Type::PlaySound), data);
+						packet.back().FillIn(network::Packet::Header(network::Packet::Type::PlaySound), data);
 					}
 					for (auto ThisPacket: packet)
 					{
@@ -298,12 +298,12 @@ int main(int argc, char* argv[])
 				}
 				else
 				{
-					swl::Packet packet;
+					network::Packet packet;
 					json data = json::parse(packet.CreateMessage()->getData());
 					data["data"]["body"]["_0"] = atoi(Text.c_str());
 					data["data"]["body"]["_1"] = 0.016f;
 					data["data"]["body"]["_2"] = "01.08.16.wav";
-					packet.FillIn(swl::Packet::Header(swl::Packet::Type::PlaySound), data);
+					packet.FillIn(network::Packet::Header(network::Packet::Type::PlaySound), data);
 					
 					if (Users.front()->GetConnect())
 						Users.front()->GetConnect()->Send(packet);
@@ -312,10 +312,10 @@ int main(int argc, char* argv[])
 			}
 			case 3:
 			{
-				swl::Packet packet;
+				network::Packet packet;
 				json pack = json::parse(packet.CreateMessage()->getData());
 				pack["data"]["body"].clear();
-				packet.FillIn(swl::Packet::Header(swl::Packet::Type::GetListUsersOnline), pack);
+				packet.FillIn(network::Packet::Header(network::Packet::Type::GetListUsersOnline), pack);
 
 				if (Users.size() == 1)
 				{

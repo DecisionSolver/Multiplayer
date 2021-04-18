@@ -36,7 +36,7 @@ public:
 	void Stop();
 
 	void Send(const std::vector<char> &data);
-	void Send(const swl::Packet &packet);
+	void Send(network::Packet &packet);
 
 	void SetLogged() { isLogged = true; }
 	void SetConnected(bool IsConnected) { Connected = IsConnected; }
@@ -46,7 +46,7 @@ public:
 	bool IsConnected() { return Connected; }
 	bool GetTimer();
 
-	void GetPacket(swl::Packet &packet, swl::Packet::Type _CheckingByType, std::string _CheckingByData = "");
+	void GetPacket(network::Packet &packet, network::Packet::Type _CheckingByType, std::string _CheckingByData = "");
 
 	std::mutex &getMutex_Error() { return m_error; }
 	std::atomic_bool &getIsError() { return IsError; }
@@ -86,7 +86,7 @@ private:
 	int m_activeSendBufferIndex = 0;
 	bool m_sending = false, isLogged = false, Connected = false;
 
-	std::map<swl::Packet::Type, swl::Packet> packet_queue;
+	std::map<network::Packet::Type, network::Packet> packet_queue;
 	std::deque<asio::error_code> error_queue;
 
 	std::vector<char> m_allReadData; // Strictly for test purposes
