@@ -86,7 +86,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\FTP\fineftp-server\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\FTP\fineftp-server\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger;$(SolutionDir)Network\Submodules;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>

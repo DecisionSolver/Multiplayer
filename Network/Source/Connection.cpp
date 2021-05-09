@@ -10,10 +10,20 @@ size_t Connection::m_nextClientId(0);
 std::mutex m_get_packet;
 
 //--------------------------------------------------------------------
-Connection::SharedPtr Connection::Create(ConnectionManager *connectionManager, asio::ip::tcp::socket &socket)
-{
-	return Connection::SharedPtr(new Connection(connectionManager, std::move(socket)));
-}
+#if defined(USE_SSL)
+	Connection::SharedPtr Connection::Create(ConnectionManager *connectionManager,
+		std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket)
+	{
+		return Connection::SharedPtr(new Connection(connectionManager, std::move(socket)));
+	}
+#else
+	Connection::SharedPtr Connection::Create(ConnectionManager *connectionManager,
+		asio::ip::tcp::socket &socket)
+	{
+		return Connection::SharedPtr(new Connection(connectionManager, std::move(socket)));
+	}
+#endif
+
 Connection::SharedPtr Connection::Create(ConnectionManager *connectionManager)
 {
 	return Connection::SharedPtr(new Connection(connectionManager));
@@ -37,30 +47,55 @@ std::ostringstream Connection::ErrorCodeToString(const asio::error_code &errorCo
 }
 
 //--------------------------------------------------------------------
-Connection::Connection(ConnectionManager *connectionManager, asio::ip::tcp::socket socket):
-	m_clientId(m_nextClientId++)
-	, m_owner(connectionManager)
-	, m_socketTCP(std::move(socket))
-	, m_stopped(false)
-	, m_receiveBuffer()
-	, m_sendBuffers()
-	, m_activeSendBufferIndex(0)
-	, m_sending(false)
-	, m_allReadData()
-{
-#if defined(HAS_LOGGER)
-	Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
-#endif
+#if defined(USE_SSL)
+	Connection::Connection(ConnectionManager *connectionManager,
+		std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket):
+		m_clientId(m_nextClientId++)
+		, m_owner(connectionManager)
+		, m_stopped(false)
+		, m_receiveBuffer()
+		, m_sendBuffers()
+		, m_activeSendBufferIndex(0)
+		, m_sending(false)
+		, m_allReadData()
+	{
+	#if defined(HAS_LOGGER)
+		Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
+	#endif
 	
-	Curr = Last = std::chrono::high_resolution_clock::now();
+		m_socketTCP = std::move(socket);
 
-	ftpClient = std::make_shared<FTPClient>();
-}
+		Curr = Last = std::chrono::high_resolution_clock::now();
+		ftpClient = std::make_shared<FTPClient>();
+	}
+#else
+	Connection::Connection(ConnectionManager *connectionManager, asio::ip::tcp::socket socket) :
+		m_clientId(m_nextClientId++)
+		, m_owner(connectionManager)
+		, m_socketTCP(std::move(socket))
+		, m_stopped(false)
+		, m_receiveBuffer()
+		, m_sendBuffers()
+		, m_activeSendBufferIndex(0)
+		, m_sending(false)
+		, m_allReadData()
+	{
+	#if defined(HAS_LOGGER)
+		Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
+	#endif
+
+		Curr = Last = std::chrono::high_resolution_clock::now();
+
+		ftpClient = std::make_shared<FTPClient>();
+	}
+#endif
 
 Connection::Connection(ConnectionManager *connectionManager):
 	m_clientId(m_nextClientId++)
 	, m_owner(connectionManager)
+#if !defined(USE_SSL)
 	, m_socketTCP(connectionManager->GetIOService())
+#endif
 	, m_stopped(false)
 	, m_receiveBuffer()
 	, m_sendBuffers()
@@ -268,7 +303,11 @@ void Connection::DoSend()
 
 		if (self->m_owner && self->m_owner &&
 			self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP)
+#if defined(USE_SSL)
+			asio::async_write(*m_socketTCP.get(), asio::buffer(activeBuffer), WriteFunction);
+#else
 			asio::async_write(m_socketTCP, asio::buffer(activeBuffer), WriteFunction);
+#endif
 		else if (self->m_owner && self->m_owner &&
 			self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
 			m_owner->GetSocketUDP().async_send_to(asio::buffer(activeBuffer), remote_endpoint_, WriteFunction);
@@ -409,7 +448,8 @@ void Connection::DoReceive()
 			}
 			else
 				self->packet_queue.insert(
-					std::pair<network::Packet::Type, network::Packet>((network::Packet::Type)newPacket.getHeader().type, newPacket));
+					std::pair<network::Packet::Type, network::Packet>((network::Packet::Type)newPacket.getHeader().type,
+						newPacket));
 		}
 
 		// Issue the next receive
@@ -418,7 +458,11 @@ void Connection::DoReceive()
 	};
 
 	if (self->m_owner && self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP)
+#if defined(USE_SSL)
+		asio::async_read_until(*m_socketTCP.get(), m_receiveBuffer, "#", ReadFunction);
+#else
 		asio::async_read_until(m_socketTCP, m_receiveBuffer, "#", ReadFunction);
+#endif
 	else if (self->m_owner && self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
 	{
 		asio::streambuf::mutable_buffers_type mutableBuffer =

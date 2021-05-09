@@ -266,21 +266,20 @@ int main(int argc, char* argv[])
 	setlocale(LC_ALL, "Russian");
 	try
 	{
-		
 		std::thread(
 			[&]
 		{
 			asio::io_service io_service;
-			server s(io_service, 9000);
+			server s(io_service, 20675);
 			io_service.run();
-		}).detach();
+		}).join();
 
 		Sleep(1000);
 
 		asio::io_service io_service;
 
 		asio::ip::tcp::resolver resolver(io_service);
-		asio::ip::tcp::resolver::query query("127.0.0.1", "9000");
+		asio::ip::tcp::resolver::query query("127.0.0.1", "20675");
 		asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
 		asio::ssl::context ctx(asio::ssl::context::sslv23);

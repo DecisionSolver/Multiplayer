@@ -82,7 +82,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_SERVER;ASIO_HAS_BOOST_THROW_EXCEPTION;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;ASIO_STANDALONE;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\Network\Include;$(SolutionDir)..\..\Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)..\..\Network\Submodules\LZ4\Include;G:\DecisionSolver\submodules;$(SolutionDir)..\..\Network\Submodules\json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\SelfLogger;$(SolutionDir)Network\Submodules\boost</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\SelfLogger;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>

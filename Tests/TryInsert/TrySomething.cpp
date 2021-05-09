@@ -18,10 +18,14 @@ vector<shared_ptr<net::Client>> Users;
 #define IP network::IPEndpoint("127.0.0.1")
 #define PORT 20675
 
-bool UseRepeater = false, UseClear = true;
+bool UseRepeater = false, UseClear = false;
 void ConnectFunc(string Login, string Pass)
 {
 	Users.push_back(make_shared<net::Client>(network::IPEndpoint(""), ConnectionManager::TypeProtocol::TCP, 0));
+#if defined(USE_SSL)
+	Users.back()->Set_Cert_Chain("keys/rootca.crt");
+	Users.back()->Set_Cert_RSA_Private("keys/user.key");
+#endif
 	if (Users.back()->Connect(IP, PORT))
 	{
 		Users.back()->StartSystem();

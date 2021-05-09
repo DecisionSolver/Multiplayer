@@ -9,6 +9,10 @@
 #include <Packet.hpp>
 #include <FTPClient.h>
 
+#if defined(USE_SSL)
+#include <asio/ssl.hpp>
+#endif
+
 //--------------------------------------------------------------------
 class ConnectionManager;
 
@@ -19,7 +23,13 @@ public:
 	typedef std::shared_ptr<Connection> SharedPtr;
 
 	// Ensure all instances are created as shared_ptr in order to fulfill requirements for shared_from_this
+#if defined(USE_SSL)
+	static Connection::SharedPtr Create(ConnectionManager *connectionManager,
+		std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket);
+#else
 	static Connection::SharedPtr Create(ConnectionManager *connectionManager, asio::ip::tcp::socket &socket);
+#endif
+
 	static Connection::SharedPtr Create(ConnectionManager *connectionManager);
 
 	//
@@ -59,7 +69,11 @@ public:
 	void SetMetaDB_User(int ID) { UserID_MetaDB = ID; }
 	int GetMetaDB_User() { return UserID_MetaDB; }
 
+#if defined(USE_SSL)
+	asio::ssl::stream<asio::ip::tcp::socket> &get_socketTCP() { return *m_socketTCP; }
+#else
 	asio::ip::tcp::socket &get_socketTCP() { return m_socketTCP; }
+#endif
 
 	std::shared_ptr<FTPClient> getFtpClient() { return ftpClient; }
 
@@ -70,8 +84,12 @@ private:
 	size_t m_clientId = 0;
 	ConnectionManager *m_owner = nullptr;
 
+#if defined(USE_SSL)
+	std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> m_socketTCP;
+#else
 	asio::ip::tcp::socket m_socketTCP;
 
+#endif
 	asio::ip::udp::endpoint remote_endpoint_;
 
 	std::atomic<bool> m_stopped;
@@ -91,7 +109,11 @@ private:
 
 	std::vector<char> m_allReadData; // Strictly for test purposes
 
+#if defined(USE_SSL)
+	Connection(ConnectionManager *connectionManager, std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket);
+#else
 	Connection(ConnectionManager *connectionManager, asio::ip::tcp::socket socket);
+#endif
 	Connection(ConnectionManager *connectionManager);
 
 	void DoReceive();

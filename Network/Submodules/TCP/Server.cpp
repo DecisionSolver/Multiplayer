@@ -25,8 +25,10 @@ int main()
 		"192.168.1.4"
 #endif
 	);
-	uint16_t Port = 20675;
+	USHORT Port = 20675;
 	std::shared_ptr<Server> server = std::make_shared<Server>(IP, ConnectionManager::TypeProtocol::TCP, Port);
+
+	server->Set_All_Paths("keys/rootca.crt", "keys/rootca.key", "keys/dh2048.pem");
 
 	server->Start();
 
