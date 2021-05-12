@@ -19,36 +19,10 @@ using namespace boost::filesystem;
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
-#include <cryptlib.h>
-#define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
-#include <md5.h>
-#include <files.h>
-#include <hex.h>
 #include <Shellapi.h>
 #include "ODBC/ODBC.h"
 
 std::shared_ptr<mysql::Client> DB = std::make_shared<mysql::Client>();
-
-path Programm;
-std::string Hash2;
-
-const std::string md5_from_file(const std::string& path)
-{
-	if (Programm.empty() && Hash2.empty()) return "";
-
-	CryptoPP::Weak1::MD5 md;
-	const size_t size = CryptoPP::Weak1::MD5::DIGESTSIZE * 2;
-	CryptoPP::byte buf[size] = { 0 };
-	CryptoPP::FileSource(
-		path.c_str(), true,
-		new CryptoPP::HashFilter(
-			md, new CryptoPP::HexEncoder(new CryptoPP::ArraySink(buf, size))));
-	std::string strHash = std::string(reinterpret_cast<const char*>(buf), size);
-	std::cout << strHash.c_str() << std::endl;
-
-	boost::to_upper(strHash);
-	return strHash;
-}
 
 void addUser(const std::string& username)
 {
@@ -255,22 +229,6 @@ int main()
 	}
 
 	// Prevent the application from exiting immediatelly
-//	std::thread([&]
-//	{
-//		std::basic_stringstream<char, std::char_traits<char>, std::allocator<char>> oss;
-//		while (true)
-//		{
-//#if defined(HAS_LOGGER)
-//			std::cout.rdbuf(oss.rdbuf());
-//			if (!oss.str().empty())
-//			{
-//				Logger_Info_F("FTP Server: %s", oss.str().c_str());
-//				oss.str("");
-//			}
-//#endif
-//		}
-//	}
-//	).detach();
 
 	for (;;)
 	{

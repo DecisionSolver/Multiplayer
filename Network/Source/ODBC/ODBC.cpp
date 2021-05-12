@@ -2,9 +2,18 @@
 #include "ODBC/ODBC.h"
 #include "SQL_Query.hpp"
 #include "boost/algorithm/string/case_conv.hpp"
+#include <odbcinst.h>
 
+#include <atlconv.h>
 namespace odbc
 {
+	void ODBC::CreateDataBase(const std::string &driver, const std::string &path, const std::string &attributes,
+		const std::string &password)
+	{
+		USES_CONVERSION;
+		SQLConfigDataSourceW(NULL, ODBC_ADD_DSN, A2W(driver.c_str()), A2W(("CREATE_DB=" + path + ";" + attributes +
+			(password.empty() ? "" : ";PWD=" + password)).c_str()));
+	}
 	void ODBC::Connect(const std::string& driver, const std::string& path,
 		const std::string& attributes, const std::string& password)
 	{

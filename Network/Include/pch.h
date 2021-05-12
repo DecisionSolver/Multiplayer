@@ -19,6 +19,11 @@
 #include <mutex>
 #include <asio.hpp>
 
+#include <cryptlib.h>
+#include <md5.h>
+#include <files.h>
+#include <hex.h>
+
 using namespace std::chrono_literals;
 using asio::ip::tcp;
 // for convenience
@@ -28,3 +33,6 @@ using json = nlohmann::json;
 #include "logger.h"
 #define HAS_LOGGER 1
 #endif
+
+const std::string md5_from_file(const std::string &path);
+const std::string md5_from_buffer(const std::string &data);

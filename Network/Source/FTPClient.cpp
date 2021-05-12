@@ -61,6 +61,12 @@ FTPClient::FTPClient()
 	curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 
+#if defined(USE_SSL)
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER , 1);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST , 1);
+	curl_easy_setopt(curl, CURLOPT_CAINFO , "./ca.cert");
+#endif
+
 	// Enable Upload
 	curl_easy_setopt(curl, CURLOPT_UPLOAD, 0L);
 

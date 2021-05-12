@@ -494,6 +494,7 @@ void ConnectionManager::DoAccept()
 #if defined(HAS_LOGGER)
 				Logger_Error_F("Unseccessful Handshake! Error Message: %s\nError ID: %i", ec.message().c_str(), ec.value());
 #endif
+				return;
 				//connectionTCP->get_socketTCP().lowest_layer().close();
 			}
 #endif
