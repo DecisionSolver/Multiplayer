@@ -2,22 +2,42 @@
 
 namespace query
 {
-	std::string MakeCreateTableQuery(const std::string& name_table, const std::string& name_column, 
-		const std::string& type, const std::string& value, const std::vector<std::string>& attributes)
+	std::string MakeCreateTableQuery(const std::string& name_table, const std::vector<std::string>& name_column,
+		const std::vector<std::string>& type, const std::vector<std::string>& value, const std::vector<std::vector<std::string>>& attributes)
 	{
-		std::string attribute;
+		std::string columns = "";
 
-		for (size_t cnt = 1; cnt < attributes.size(); cnt++)
-			attribute += attributes[cnt-1] + " ";
-		
-		if (!attributes.empty())
-			attribute += attributes.back();
+		if (name_column.size() != type.size() || name_column.size() != value.size() || name_column.size() != attributes.size())
+		{
+#if defined(HAS_LOGGER)
+			Logger_Error("Not enough columns data to create table (amount mismatch)!\n");
+#endif // HAS_LOGGER
 
-		return ("CREATE TABLE " + name_table + "(" + name_column + " " + type + "(" + value + ")" + 
-			attribute + ") DEFAULT CHARSET utf8;");
+			return "";
+		}
+
+		for (size_t col = 0; col < name_column.size(); col++)
+		{
+			std::string attribute = "";
+
+			for (size_t cnt = 1; cnt < attributes[col].size(); cnt++)
+				attribute += attributes[col][cnt-1] + " ";
+
+			if (!attributes[col].empty())
+				attribute += attributes[col].back();
+
+			if (type[col] == "TEXT" || value[col].empty())
+				columns += "`" + name_column[col] + "` " + type[col] + " " + attribute + ", ";
+			else
+				columns += "`" + name_column[col] + "` " + type[col] + "(" + value[col] + ")" + attribute + ", ";
+		}
+
+		columns.erase(columns.end() - 2, columns.end());
+
+		return ("CREATE TABLE `" + name_table + "`(" + columns + ") DEFAULT CHARSET utf8;");
 	}
 
-	std::string MakeCreateColumnQuery(const std::string& name_table, const std::string& name_column, 
+	std::string MakeCreateColumnQuery(const std::string& name_table, const std::string& name_column,
 		const std::string& type, const std::string& value, const std::vector<std::string>& attributes)
 	{
 		std::string attribute;
@@ -31,10 +51,10 @@ namespace query
 		}
 
 		if (value.empty())
-			return ("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + 
+			return ("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type +
 				attribute + ";");
 		else
-			return ("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" + 
+			return ("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
 				attribute + ";");
 	}
 
@@ -70,7 +90,7 @@ namespace query
 		return ("DROP TABLE " + name_table);
 	}
 
-	std::string MakeSelectValuesQuery(const std::string& name_table, 
+	std::string MakeSelectValuesQuery(const std::string& name_table,
 		const std::vector<std::string>& name_columns, const std::vector<std::string>& condition)
 	{
 		std::string temp;
@@ -104,7 +124,7 @@ namespace query
 		return ("SELECT " + temp + " FROM " + name_table + ";");
 	}
 
-	std::string MakeUpdateValuesQuery(const std::string& name_table, const std::vector<std::string>& name_columns, 
+	std::string MakeUpdateValuesQuery(const std::string& name_table, const std::vector<std::string>& name_columns,
 		const std::vector<std::string>& values, const std::vector<std::string>& condition)
 	{
 		std::string valueCond, value;

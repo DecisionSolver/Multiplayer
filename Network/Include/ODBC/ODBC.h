@@ -30,8 +30,8 @@ namespace odbc
 			const std::vector<std::string>& values);
 		void UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,
 			const std::vector<std::string>& values, const std::vector<std::string>& condition = {});
-		void CreateTable(const std::string& name_table, const std::string& name_column,
-			const std::string& type, const std::string& value, const std::vector<std::string>& attributes);
+		void CreateTable(const std::string& name_table, const std::vector<std::string>& name_column, const std::vector<std::string>& type,
+			const std::vector<std::string>& value, const std::vector<std::vector<std::string>>& attributes);
 		void CreateColumn(const std::string& name_table, const std::string& name_column,
 			const std::string& type, const std::string& value, const std::vector<std::string>& attributes);
 		void ModifyColumn(const std::string& name_table, const std::string& name_column,

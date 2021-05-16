@@ -99,9 +99,11 @@ int main()
 {
 	setlocale(LC_ALL, "Russian");
 
-	odbc::ODBC db; //Some tests
-	db.Connect("Microsoft Access Driver (*.mdb)", "E:\\test.MDB", "READONLY=false", "12345");
-	std::cout << db.SelectValues("table1", { "*" });
+	//odbc::ODBC db; //Some tests
+	//db.Connect("Microsoft Access Driver (*.mdb)", "F:\\Programming\\C++\\Project\\ODBC\\ODBC\\test.MDB", "READONLY=false", "12345");
+	//db.CreateTable("testtable", { "one", "two", "three" }, { "INTEGER", "DATETIME", "VARCHAR" }, { "", "", "25" }, { {}, {}, {} });
+	////std::cout << db.SelectValues("table1", { "*" });
+	//std::cout << db.SelectValues("testtable", { "*" });
 
 	path local_root = _getcwd(nullptr, UINT16_MAX); // The backslash at the end is necessary!
 

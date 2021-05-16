@@ -14,6 +14,7 @@ namespace odbc
 		SQLConfigDataSourceW(NULL, ODBC_ADD_DSN, A2W(driver.c_str()), A2W(("CREATE_DB=" + path + ";" + attributes +
 			(password.empty() ? "" : ";PWD=" + password)).c_str()));
 	}
+
 	void ODBC::Connect(const std::string& driver, const std::string& path,
 		const std::string& attributes, const std::string& password)
 	{
@@ -220,8 +221,8 @@ namespace odbc
 		Query(query::MakeUpdateValuesQuery(name_table, name_columns, values, condition));
 	}
 
-	void ODBC::CreateTable(const std::string& name_table, const std::string& name_column, const std::string& type,
-		const std::string& value, const std::vector<std::string>& attributes)
+	void ODBC::CreateTable(const std::string& name_table, const std::vector<std::string>& name_column, const std::vector<std::string>& type,
+		const std::vector<std::string>& value, const std::vector<std::vector<std::string>>& attributes)
 	{
 		std::string query = query::MakeCreateTableQuery(name_table, name_column, type, value, attributes);
 		boost::to_upper(query);
