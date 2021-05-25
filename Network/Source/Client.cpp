@@ -3,7 +3,7 @@
 
 namespace net
 {
-	bool Client::Connect(const network::IPEndpoint& ip, const uint16_t& port)
+	bool Client::Connect(const network::IPEndpoint& ip, const USHORT& port)
 	{
 		SetIP(ip.toString());
 		SetPort(port);

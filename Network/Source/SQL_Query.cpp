@@ -34,7 +34,7 @@ namespace query
 
 		columns.erase(columns.end() - 2, columns.end());
 
-		return ("CREATE TABLE `" + name_table + "`(" + columns + ") DEFAULT CHARSET utf8;");
+		return ("CREATE TABLE `" + name_table + "`(" + columns + ") DEFAULT CHARSET UTF8;");
 	}
 
 	std::string MakeCreateColumnQuery(const std::string& name_table, const std::string& name_column,

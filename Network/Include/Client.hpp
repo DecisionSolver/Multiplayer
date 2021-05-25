@@ -20,7 +20,7 @@ namespace net
 
 		~Client() {}
 		
-		bool Connect(const network::IPEndpoint& ip, const uint16_t& port);
+		bool Connect(const network::IPEndpoint& ip, const USHORT& port);
 		void Disconnect();
 	};
 }

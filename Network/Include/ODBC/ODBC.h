@@ -14,8 +14,14 @@ namespace odbc
 		SQLHDBC  hDbc  = NULL;
 		SQLHSTMT hStmt = NULL;
 
-		nlohmann::json Query(const std::string& query);
 		bool PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e);
+		typedef struct tagGETINFOALL {
+			TCHAR				szCol[255];			// Column name for display
+			SWORD				fSqlType;						// For GetData call
+			SQLULEN			cbValueMax;						// How much memory to allocate
+			PTR				rgbValue;						// Pointer to memory
+		} GETINFOALL;
+		typedef GETINFOALL * lpGETINFOALL;
 
 	public:
 		ODBC() {}
@@ -39,7 +45,14 @@ namespace odbc
 		void DeleteTable(const std::string& name_table);
 		void DeleteColumn(const std::string& name_table, const std::string& name_column);
 		void DeleteValues(const std::string& name_table, const std::string& condition);
+		
+		// For Other Stuffs
+		nlohmann::json Query(const std::string& query);
+
 		void Exit();
+
+		// Returns false if error was occured or DB (has no one tables) is empty, else true if tables exist
+		std::pair<bool, std::vector<std::string>> GetListTablesDatabase();
 	};
 } // namespace odbc
 
