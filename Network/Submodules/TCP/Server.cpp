@@ -11,7 +11,7 @@
 #include "Client.hpp"
 
 using namespace net;
-using namespace swl;
+using namespace network;
 #include <conio.h>
 
 int main()
@@ -20,13 +20,15 @@ int main()
 
 	IPEndpoint IP = IPEndpoint(
 #if defined(_DEBUG)
-		"192.168.121.1"
+		"127.0.0.1"
 #else
-		"192.168.1.2"
+		"192.168.1.4"
 #endif
 	);
-	uint16_t Port = 20675;
-	std::shared_ptr<Server> server = std::make_shared<Server>(IP, Port);
+	USHORT Port = 20675;
+	std::shared_ptr<Server> server = std::make_shared<Server>(IP, ConnectionManager::TypeProtocol::TCP, Port);
+
+	server->Set_All_Paths("keys/rootca.crt", "keys/rootca.key", "keys/dh2048.pem");
 
 	server->Start();
 

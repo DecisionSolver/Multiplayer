@@ -9,6 +9,10 @@
 #include <Packet.hpp>
 #include <FTPClient.h>
 
+#if defined(USE_SSL)
+#include <asio/ssl.hpp>
+#endif
+
 //--------------------------------------------------------------------
 class ConnectionManager;
 
@@ -19,7 +23,14 @@ public:
 	typedef std::shared_ptr<Connection> SharedPtr;
 
 	// Ensure all instances are created as shared_ptr in order to fulfill requirements for shared_from_this
+#if defined(USE_SSL)
+	static Connection::SharedPtr Create(ConnectionManager *connectionManager,
+		std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket);
+#else
 	static Connection::SharedPtr Create(ConnectionManager *connectionManager, asio::ip::tcp::socket &socket);
+#endif
+
+	static Connection::SharedPtr Create(ConnectionManager *connectionManager);
 
 	//
 	static std::ostringstream ErrorCodeToString(const asio::error_code &errorCode);
@@ -35,7 +46,7 @@ public:
 	void Stop();
 
 	void Send(const std::vector<char> &data);
-	void Send(const swl::Packet &packet);
+	void Send(network::Packet &packet);
 
 	void SetLogged() { isLogged = true; }
 	void SetConnected(bool IsConnected) { Connected = IsConnected; }
@@ -45,7 +56,7 @@ public:
 	bool IsConnected() { return Connected; }
 	bool GetTimer();
 
-	void GetPacket(swl::Packet &packet, swl::Packet::Type _CheckingByType, std::string _CheckingByData = "");
+	void GetPacket(network::Packet &packet, network::Packet::Type _CheckingByType, std::string _CheckingByData = "");
 
 	std::mutex &getMutex_Error() { return m_error; }
 	std::atomic_bool &getIsError() { return IsError; }
@@ -53,22 +64,38 @@ public:
 	std::deque<asio::error_code> &get_error_queue() { return error_queue; }
 
 	std::condition_variable successConn, waiterDisconnection;
-	std::atomic<bool> &get_stopped() { return m_stopped; }
+	std::atomic<bool> &GetStopped() { return m_stopped; }
 
 	void SetMetaDB_User(int ID) { UserID_MetaDB = ID; }
 	int GetMetaDB_User() { return UserID_MetaDB; }
 
-	asio::ip::tcp::socket &get_socket() { return m_socket; }
+#if defined(USE_SSL)
+	asio::ssl::stream<asio::ip::tcp::socket> &get_socketTCP() { return *m_socketTCP; }
+#else
+	asio::ip::tcp::socket &get_socketTCP() { return m_socketTCP; }
+#endif
 
 	std::shared_ptr<FTPClient> getFtpClient() { return ftpClient; }
+
+	void SetEndPoint(asio::ip::udp::endpoint NewEndPoint) { remote_endpoint_ = NewEndPoint; }
+	asio::ip::udp::endpoint remote_endpoint() { return remote_endpoint_; }
 private:
 	static size_t m_nextClientId;
 	size_t m_clientId = 0;
 	ConnectionManager *m_owner = nullptr;
-	asio::ip::tcp::socket m_socket;
+
+#if defined(USE_SSL)
+	std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> m_socketTCP;
+#else
+	asio::ip::tcp::socket m_socketTCP;
+
+#endif
+	asio::ip::udp::endpoint remote_endpoint_;
+
 	std::atomic<bool> m_stopped;
 	asio::streambuf m_receiveBuffer;
-	mutable std::mutex m_get_packet, m_disconnect, m_error;
+
+	mutable std::mutex m_disconnect, m_error;
 
 	std::condition_variable error;
 	std::atomic_bool IsError = false;
@@ -77,19 +104,23 @@ private:
 	int m_activeSendBufferIndex = 0;
 	bool m_sending = false, isLogged = false, Connected = false;
 
-	std::vector<swl::Packet> packet_queue;
+	std::map<network::Packet::Type, network::Packet> packet_queue;
 	std::deque<asio::error_code> error_queue;
 
 	std::vector<char> m_allReadData; // Strictly for test purposes
 
+#if defined(USE_SSL)
+	Connection(ConnectionManager *connectionManager, std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket);
+#else
 	Connection(ConnectionManager *connectionManager, asio::ip::tcp::socket socket);
+#endif
+	Connection(ConnectionManager *connectionManager);
 
 	void DoReceive();
 	void DoSend();
 	std::chrono::time_point<std::chrono::steady_clock> Curr, Last;
 
 	int UserID_MetaDB = 0; // Number Line Of This DB User (Easily Work With User In MySQL)
-	//std::vector<std::string> User_MetaDB;
 
 	std::shared_ptr<FTPClient> ftpClient;
 };

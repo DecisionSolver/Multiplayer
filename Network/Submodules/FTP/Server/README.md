@@ -3,7 +3,7 @@
 
 FineFTP is a minimal FTP server library for Windows and Unix flavors. The project is CMake based and only depends on asio, which is integrated as git submodule. No boost is required.
 
-You can easily embed this library into your own project in order to create an embedded FTP Server. It was developed and tested on Windows 10 (Visual Studio 2015) and Ubuntu 16.04 (gcc 5.4.0).
+You can easily embed this library into your own project in order to create an embedded FTP Server. It was developed and tested on Windows 10 (Visual Studio 2015 / 2019) and Ubuntu 16.04 - 20.10 (gcc 5.4.0 - 10.2.0).
 
 ## Features
 
@@ -36,9 +36,8 @@ int main() {
   // replace "C:\\" with any valid path. FineFTP is designed to be cross-platform.
   ftp_server.addUserAnonymous("C:\\", fineftp::Permission::All);
   
-  // Start the FTP Server. By default, the FTP server will start
-  // single-threaded.
-  ftp_server.start();
+  // Start the FTP Server with a thread-pool size of 4.
+  ftp_server.start(4);
  
   // Prevent the application from exiting immediately
   for (;;) std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -73,3 +72,11 @@ There is an example project provided that will create an FTP Server at `C:\` (Wi
 
 5. Start `example` / `example.exe` and connect with your favorite FTP Client (e.g. FileZilla) on port 2121 *(This port is used so you don't need root privileges to start the FTP server)*
 
+
+## Contribute
+
+Awesome, you want to contribute to FineFTP? Here is how you can do that!
+
+- Leave us a star ⭐️ (That's GitHub money!)
+- Create an issue and write about a feature you would like or a bug you have found (maybe we will find some spare time to implement it 😉)
+- Fork this repository, implement the feature yourself and create a pull request

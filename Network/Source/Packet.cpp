@@ -4,12 +4,12 @@
 #include <iostream>
 #include "LZ4/lz4.h"
 
-namespace swl
+namespace network
 {
 	void Packet::clear()
 	{
-		if (!data.empty())
-			data.clear();
+		data.str(std::string());
+		data.clear();
 		_H.OrigSize = 0;
 		_H.Settings = 0;
 		_H.IsAnswer = false;
@@ -17,11 +17,11 @@ namespace swl
 	}
 	size_t Packet::getSize() const
 	{
-		return data.size();
+		return data.str().size();
 	}
-	std::string Packet::getData() const
+	std::stringstream &Packet::getData()
 	{
-		if (data.empty()) return "";
+		data >> std::noskipws;
 		return data;
 	}
 
@@ -57,7 +57,7 @@ namespace swl
 			? Return["data"]["_o"].get<size_t>()
 			: 0u;
 		_H.type = (Type)Return["header"]["_t"].get<size_t>();
-		data = Return["data"]["body"].dump();
+		data.str(Return["data"]["body"].dump());
 		_H.IsAnswer = Return["header"]["_A"].get<bool>();
 
 		return this;
@@ -93,7 +93,7 @@ namespace swl
 			? Return["data"]["_o"].get<size_t>()
 			: 0u;
 		_H.type = (Type)Return["header"]["_t"].get<size_t>();
-		data = Return["data"]["body"].dump();
+		data.str(Return["data"]["body"].dump());
 
 		return this;
 	}
@@ -129,7 +129,7 @@ namespace swl
 			? Return["data"]["_o"].get<size_t>()
 			: 0u;
 		_H.type = (Type)Return["header"]["_t"].get<size_t>();
-		data = Return["data"]["body"].dump();
+		data.str(Return["data"]["body"].dump());
 
 		return this;
 	}
@@ -164,11 +164,11 @@ namespace swl
 			? Return["data"]["_o"].get<size_t>()
 			: 0u;
 		_H.type = (Type)Return["header"]["_t"].get<size_t>();
-		data = Return.dump();
+		data.str(Return.dump());
 
 		return this;
 	}
-	std::string Packet::onSend()
+	std::stringstream &Packet::onSend()
 	{
 		//if (size >= 1024)
 		//{
@@ -205,16 +205,18 @@ namespace swl
 		//}
 		return getData();
 	}
-	Packet *Packet::onReceive(const char *_data)
+	Packet *Packet::onReceive(std::stringstream &Data)
 	{
 		try
 		{
-			std::string NewData = _data;
-			if (NewData.empty() || NewData.find("header") == std::string::npos ||
-				NewData.rfind('#') == std::string::npos) return this;
+			Data.setf(std::ios::skipws);
+			Data.seekg(0, Data.end);
 
-			NewData.pop_back(); // Remove '#' From Back!
-			json js = json::parse(NewData);
+			if (Data.tellg() == 0u || (Data.str().find("header") == std::string::npos)) return this;
+			Data.str(Data.str().erase(Data.str().find("#"), (size_t)Data.tellg()));
+			
+			Data.seekg(0, Data.beg);
+			json js = json::parse(Data);
 
 			if (js.empty()) return this;
 
@@ -234,27 +236,46 @@ namespace swl
 			if (_H.Settings & Header::TypeSettings::Compressed)
 			{
 				size_t Size = js["data"]["body"].dump().size();
-				const char *Data = js["data"]["body"].dump().c_str();
+				const char *_Data = js["data"]["body"].dump().c_str();
 
 				char* outData = new char[_H.OrigSize * 2];
-				uint32_t outSize = LZ4_decompress_safe(Data, outData, /*_H.OrigSize*/Size, _H.OrigSize * 2);
+				uint32_t outSize = LZ4_decompress_safe(_Data, outData, /*_H.OrigSize*/Size, _H.OrigSize * 2);
 				outData[outSize] = '\0';
 
 				js["data"]["body"] = outData;
 			}
 
-			data = js["data"]["body"].dump();
+			data.str(js["data"]["body"].dump());
 		}
 		catch (const json::parse_error &err)
 		{
-			std::cout << err.what() << std::endl;
+#if defined(HAS_LOGGER)
+			Logger_Critical_F("json::parse_error Failed: %s\n", err.what());
+#endif
 		}
 
 		return this;
 	}
 
-	void Packet::FillIn(json NewData)
+	void Packet::FillIn(const json &Data)
 	{
+		std::stringstream NewData;
+		NewData << Data;
+
+		FillIn(NewData);
+	}
+	void Packet::FillIn(const Header &NewHeader, const json &Data)
+	{
+		std::stringstream NewData;
+		NewData << Data;
+
+		FillIn(NewHeader, NewData);
+	}
+	void Packet::FillIn(std::stringstream &Data)
+	{
+		json NewData;
+		Data >> NewData;
+		
 		if (NewData.empty())
 			return;
 
@@ -262,10 +283,14 @@ namespace swl
 		NewData["data"]["_o"] = _H.OrigSize;
 		NewData["header"]["_t"] = _H.type;
 
-		data = NewData.dump() + '#';
+		data >> std::noskipws;
+		data.str(NewData.dump() + '#');
 	}
-	void Packet::FillIn(Header NewHeader, json NewData)
+	void Packet::FillIn(Header NewHeader, std::stringstream &Data)
 	{
+		json NewData;
+		Data >> NewData;
+
 		if (NewData.empty())
 			return;
 		_H.type = NewHeader.type;
@@ -279,6 +304,13 @@ namespace swl
 		NewData["header"]["_t"] = _H.type;
 		NewData["header"]["_A"] = _H.IsAnswer;
 
-		data = NewData.dump() + '#';
+		OutputDebugStringA((NewData.dump() + '#' + '\n').c_str());
+
+		data >> std::noskipws;
+		data.str(NewData.dump() + '#');
+	}
+	Packet::operator bool()
+	{
+		return !data.str().empty();
 	}
 }

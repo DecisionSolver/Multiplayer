@@ -48,12 +48,6 @@
     <ClCompile Include="..\..\Source\MySQL\MySQL_Client.cpp">
       <Filter>Исходные файлы\MySQL</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\MySQL\MySQL_Database.cpp">
-      <Filter>Исходные файлы\MySQL</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\MySQL\MySQL_Impl.cpp">
-      <Filter>Исходные файлы\MySQL</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Server\fineftp-server\include\fineftp\permissions.h">
@@ -84,9 +78,6 @@
       <Filter>Файлы заголовков\MySQL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Include\MySQL\MySQL_Config.h">
-      <Filter>Файлы заголовков\MySQL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Include\MySQL\MySQL_Database.h">
       <Filter>Файлы заголовков\MySQL</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,8 +1,0 @@
-﻿  Building Custom Rule G:/Multiplayer/Network/Submodules/FTP/Server/fineftp-server/CMakeLists.txt
-  filesystem.cpp
-  ftp_session.cpp
-  server.cpp
-  server_impl.cpp
-  user_database.cpp
-  Создание кода...
-  server.vcxproj -> G:\Multiplayer\Network\Submodules\FTP\Server\Build\fineftp-server\Debug\fineftp-server.lib

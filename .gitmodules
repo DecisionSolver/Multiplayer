@@ -1,3 +1,9 @@
 [submodule "Network/Submodules/json"]
 	path = Network/Submodules/json
 	url = https://github.com/nlohmann/json
+[submodule "SelfLogger"]
+	path = SelfLogger
+	url = https://github.com/DecisionSolver/SelfLogger
+[submodule "Network/Submodules/SelfLogger"]
+	path = Network/Submodules/SelfLogger
+	url = https://github.com/DecisionSolver/SelfLogger

@@ -33,7 +33,7 @@ namespace fineftp
 
   FtpSession::~FtpSession()
   {
-#ifdef DEBUG
+#ifndef NDEBUG
     std::cout << "Ftp Session shutting down" << std::endl;
 #endif // !NDEBUG
     completion_handler_();
@@ -73,7 +73,7 @@ namespace fineftp
 
   void FtpSession::startSendingMessages()
   {
-#ifdef DEBUG
+#ifndef NDEBUG
     std::cout << "FTP >> " << command_output_queue_.front() << std::endl;
 #endif
 
@@ -110,7 +110,7 @@ namespace fineftp
                             {
                               std::cerr << "read_until error: " << ec.message() << std::endl;
                             }
-#ifdef DEBUG
+#ifndef NDEBUG
                             else
                             {
                               std::cout << "Control connection closed by client." << std::endl;
@@ -124,7 +124,7 @@ namespace fineftp
                           stream.read(&packet_string[0], length - 2);
 
                           stream.ignore(2); // Remove the "\r\n"
-#ifdef DEBUG
+#ifndef NDEBUG
                           std::cout << "FTP << " << packet_string << std::endl;
 #endif
 
@@ -140,7 +140,7 @@ namespace fineftp
     size_t space_index = command.find_first_of(' ');
 
     ftp_command = command.substr(0, space_index);
-    std::transform(ftp_command.begin(), ftp_command.end(), ftp_command.begin(), [](unsigned char c) { return std::toupper(c); });
+    std::transform(ftp_command.begin(), ftp_command.end(), ftp_command.begin(), [](char c) { return static_cast<char>(std::toupper(static_cast<unsigned char>(c))); });
 
     if (space_index != std::string::npos)
     {
@@ -289,13 +289,13 @@ namespace fineftp
     Filesystem::FileStatus file_status(local_path);
 
     if (!file_status.isOk())
-      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed to change directory: The given resource does not exist or permission denied.");
+      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed ot change directory: The given resource does not exist or permission denied.");
 
     if (file_status.type() != Filesystem::FileType::Dir)
-      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed to change directory: The given resource is not a directory.");
+      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed ot change directory: The given resource is not a directory.");
 
     if (!file_status.canOpenDir())
-      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed to change directory: Permission denied.");
+      return FtpMessage(FtpReplyCode::ACTION_NOT_TAKEN, "Failed ot change directory: Permission denied.");
 
     ftp_working_directory_ = absolute_new_working_dir;
     return FtpMessage(FtpReplyCode::FILE_ACTION_COMPLETED, "Working directory changed to " + ftp_working_directory_);
@@ -358,13 +358,8 @@ namespace fineftp
         std::cerr << "Error closing data acceptor: " << ec.message() << std::endl;
       }
     }
-	asio::ip::tcp::endpoint endpoint(asio::ip::address_v4::from_string(
-#if defined(_DEBUG)
-		"192.168.121.1"
-#else
-		"192.168.1.2"
-#endif
-	), 0);
+
+    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), 0);
 
     {
       asio::error_code ec;
@@ -831,23 +826,14 @@ namespace fineftp
 
   FtpMessage FtpSession::handleFtpCommandSYST(const std::string& /*param*/)
   {
-#if defined _WIN32 || defined _WIN64
-    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "WIN32");
-#elif defined __ANDROID__
-    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "LINUX");
-#elif defined __linux__
-    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "LINUX");
-#elif defined __APPLE__ && __MACH__
-    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "MACOS");
-#elif defined __FreeBSD__
-    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "FREEBSD");
-#elif defined __NetBSD__
-    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "NETBSD");
-#elif defined __OpenBSD__
-    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "OPENBSD");
-#else
-    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "UNKNOWN");
-#endif
+    // Always returning "UNIX" when being asked for the operating system.
+    // Some clients (Mozilla Firefox for example) may disconnect, when we
+    // return an unknown operating system here. As depending on the Server's
+    // operating system is a horrible feature anyways, we simply fake it.
+    //
+    // Unix should be the best compatible value here, as we emulate Unix-like
+    // outputs for other commands (-> LIST) on all operating systems.
+    return FtpMessage(FtpReplyCode::NAME_SYSTEM_TYPE, "UNIX");
   }
 
   FtpMessage FtpSession::handleFtpCommandSTAT(const std::string& /*param*/)
@@ -1080,7 +1066,7 @@ namespace fineftp
                           {
                             me->writeDataToFile(buffer, file);
                           }
-                          me->endDataReceiving();
+                          me->endDataReceiving(file);
                           return;
                         }
                         else if (length > 0)
@@ -1100,10 +1086,12 @@ namespace fineftp
                         });
   }
 
-  void FtpSession::endDataReceiving()
+  void FtpSession::endDataReceiving(std::shared_ptr<IoFile> file)
   {
-    file_rw_strand_.post([me = shared_from_this()]
+    file_rw_strand_.post([me = shared_from_this(), file]
                         {
+                          file->file_stream_.flush();
+                          file->file_stream_.close();
                           me->sendFtpMessage(FtpReplyCode::CLOSING_DATA_CONNECTION, "Done");
                         });
   }
