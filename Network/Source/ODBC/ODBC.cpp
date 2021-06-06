@@ -49,7 +49,6 @@ namespace odbc
 
 		if (e == SQL_INVALID_HANDLE)
 		{
-
 #if defined(HAS_LOGGER)
 			Logger_Critical("Invalid handle!\n");
 #endif 
@@ -78,15 +77,20 @@ namespace odbc
 
 	nlohmann::json ODBC::Query(const std::string& query)
 	{
-		RETCODE RetCode = SQLExecDirectA(hStmt, (SQLCHAR*)(query.c_str()), SQL_NTS);
+		RETCODE rc = SQLExecDirectA(hStmt, (SQLCHAR*)(query.c_str()), SQL_NTS);
 		json res = {};
+		SQLLEN nOldArraySize = 0, nOldRowsetSize = 0;
+		rc = SQLGetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, &nOldArraySize, sizeof(nOldArraySize), NULL);
+		rc = SQLGetStmtAttr(hStmt, SQL_ROWSET_SIZE, &nOldRowsetSize, sizeof(nOldArraySize), NULL);
+		rc = SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)1, 0);
+		rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)1, 0);
 
-		switch (RetCode)
+		switch (rc)
 		{
 
 		case SQL_SUCCESS_WITH_INFO:
 		{
-			PrintError(hStmt, SQL_HANDLE_STMT, RetCode);
+			PrintError(hStmt, SQL_HANDLE_STMT, rc);
 			// fall through
 		}
 
@@ -94,114 +98,190 @@ namespace odbc
 		{
 			SQLSMALLINT sNumResults = 0;
 			PrintError(hStmt, SQL_HANDLE_STMT, SQLNumResultCols(hStmt, &sNumResults));
+			std::vector<lpGETINFOALL> lpgi;
+			std::vector<std::string> columnNames = {};
 
-			if (sNumResults > 0)
+			rc = SQLNumResultCols(hStmt, &sNumResults);
+			if ((rc) != SQL_SUCCESS && (rc) != SQL_SUCCESS_WITH_INFO)
+				break;
+
+			for (SQLSMALLINT i = 0; i < sNumResults; i++)
 			{
-				char buf[8192], type[100];
-				std::vector<std::pair<std::string, std::string>> columnNames = {};
+				auto dwReqdMem = sizeof(GETINFOALL) * (DWORD)sNumResults;	// Explicit promotion required
+				lpGETINFOALL newObj = (lpGETINFOALL)calloc(sNumResults, dwReqdMem);
 
-				for (SQLSMALLINT i = 1; i <= sNumResults; i++)
+				rc = SQLDescribeCol(hStmt,
+					(UWORD)(i + 1),
+					(LPTSTR)newObj->szCol,
+					0, NULL,
+					&newObj->fSqlType,
+					&newObj->cbValueMax,
+					NULL, NULL);
+
+				if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO)
+					break;
+
+				UINT cbChar = sizeof(TCHAR);
+				switch (newObj->fSqlType)
 				{
-					PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i, SQL_COLUMN_NAME, buf,
-						sizeof(buf), nullptr, nullptr));
-					PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i, SQL_COLUMN_TYPE_NAME, type,
-						sizeof(type), nullptr, nullptr));
-					columnNames.push_back({ buf, type });
-				}
-				while (SQLFetch(hStmt) == SQL_SUCCESS)
+				case SQL_BINARY:
+				case SQL_VARBINARY:
+				case SQL_LONGVARBINARY:
+					// Binary types must allow for twice as much room for the char display
+					if (newObj->cbValueMax == 0)
+						//Handle MAX 
+						newObj->cbValueMax = 8000;
+					else {
+						newObj->cbValueMax *= (2 * cbChar) + cbChar;
+						newObj->fSqlType = SQL_BINARY;
+					}
+					break;
+				case SQL_CHAR:
+				case SQL_VARCHAR:
+				case SQL_LONGVARCHAR:
+				case SQL_WCHAR:
+				case SQL_WVARCHAR:
+				case SQL_WLONGVARCHAR:
 				{
-					for (SQLSMALLINT i = 1; i <= sNumResults; i++)
+					newObj->fSqlType = SQL_CHAR;
+					// Worst case, each Unicode char maps to a double-byte char
+					// Prevent overflow if value is half a gig or larger
+					if (newObj->cbValueMax < 0x7fffffff)
 					{
-						SQLINTEGER indicator = 0;
+						newObj->cbValueMax *= 2;
+						newObj->cbValueMax += cbChar;
+					}
+					else
+						newObj->cbValueMax = 0xffffffff;
+				}
+				break;
+				default:
+					// For other types, use a default buffer size
+					newObj->cbValueMax = 100;
 
-						if (SQLGetData(hStmt, i, SQL_C_CHAR, buf, sizeof(buf), &indicator) == SQL_SUCCESS)
+				} //switch(fSqlType)
+
+				newObj->cbValueMax = (newObj->cbValueMax < (UWORD)(-1) ? newObj->cbValueMax : (UWORD)(-1));
+				newObj->rgbValue = (PTR)alloca(newObj->cbValueMax);
+								
+				char buf[8192];
+				PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i + 1, SQL_COLUMN_NAME, buf,
+					sizeof(buf), nullptr, nullptr));
+				columnNames.push_back(buf);
+
+				lpgi.push_back(newObj);
+			}
+
+			while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING)
+			{
+			}
+
+			rc = SQL_SUCCESS;
+
+			while ((rc) == SQL_SUCCESS || (rc) == SQL_SUCCESS_WITH_INFO)
+			{
+				for (size_t i = 0; i < lpgi.size(); i++)
+				{
+					SQLLEN cbValue;
+					PrintError(hStmt,
+						SQL_HANDLE_STMT, rc = SQLGetData(hStmt,
+						(UWORD)(i + 1),
+							SQL_C_CHAR,
+							lpgi.at(i)->rgbValue,
+							lpgi.at(i)->cbValueMax,
+							&cbValue));
+					while (rc == SQL_STILL_EXECUTING)
+					{
+					}
+
+					if (((rc) == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA_FOUND) &&
+						lpgi.at(i)->rgbValue != nullptr)
+					{
+						LPSTR buf = (LPSTR)lpgi.at(i)->rgbValue;
+
+						if (cbValue == SQL_NULL_DATA)
 						{
-							if (indicator == SQL_NULL_DATA)
-							{
-								res[columnNames[i - 1].first].push_back(json()); // Was "NULL"
-								continue;
-							}
-							if (columnNames[i - 1].second == "BIT" ||
-								columnNames[i - 1].second == "INTEGER" ||
-								columnNames[i - 1].second == "NUMERIC" ||
-								columnNames[i - 1].second == "TINYINT" ||
-								columnNames[i - 1].second == "SMALLINT" ||
-								columnNames[i - 1].second == "BIGINT")
-								res[columnNames[i - 1].first].push_back(atoi(buf));
-							else if (columnNames[i - 1].second == "REAL" ||
-								columnNames[i - 1].second == "DECIMAL" ||
-								columnNames[i - 1].second == "DOUBLE")
-								res[columnNames[i - 1].first].push_back(atof(buf));
-							else if (columnNames[i - 1].second == "CHAR" ||
-								columnNames[i - 1].second == "VARCHAR" ||
-								columnNames[i - 1].second == "LONGVARCHAR" ||
-								columnNames[i - 1].second == "BINARY" ||
-								columnNames[i - 1].second == "VARBINARY" ||
-								columnNames[i - 1].second == "LONGVARBINARY"||
-								columnNames[i - 1].second == "LONGCHAR")
-							{
-								std::string str = buf;
+							res[columnNames[i]].push_back(json()); // Was "NULL"
+							continue;
+						}
 
-								// To Avoid If It Is Not String At All (Like Number) Because JSON Parse "STRING"
-								// From Only Numbers Like NUMBER type!
-								if (!str.empty() && (str.front() != '"' && str.back() != '"'))
+						switch (lpgi.at(i)->fSqlType)
+						{
+						case SQL_BIT:
+						case SQL_INTEGER:
+						case SQL_NUMERIC:
+						case SQL_TINYINT:
+						case SQL_SMALLINT:
+						case SQL_BIGINT:
+							res[columnNames[i]].push_back(atoi(buf));
+							break;
+						case SQL_REAL:
+						case SQL_DECIMAL:
+						case SQL_DOUBLE:
+							res[columnNames[i]].push_back(atof(buf));
+							break;
+
+						case SQL_CHAR:
+						case SQL_VARCHAR:
+						case SQL_LONGVARCHAR:
+						case SQL_WCHAR:
+						case SQL_WVARCHAR:
+						case SQL_WLONGVARCHAR:
+						{
+							std::string str = buf;
+							json _js;
+							if (!str.empty())
+							{
+								try
 								{
-									str.insert(str.begin(), '"');
-									str.insert(str.end(), '"');
+									_js = json::parse(str);
 								}
-
-								json _js;
-								if (!str.empty())
+								catch (json::exception)
 								{
-									try
+									_js = str;
+								}
+								if (!_js.empty() && _js.is_object())
+								{
+									for (auto&[key, val]: _js.items())
 									{
-										_js = json::parse(str);
-									}
-									catch (json::exception)
-									{
-										_js = str;
-									}
-									if (!_js.empty() && _js.is_object())
-									{
-										for (auto&[key, val]: _js.items())
+										for (auto&[_, elm]: val.items())
 										{
-											for (auto&[_, elm]: val.items())
-											{
-												res[key].push_back(elm);
-											}
+											res[key].push_back(elm);
 										}
-										break;
-									}
-									else if (_js.is_array())
-									{
-										res[columnNames[i - 1].first].push_back(json({ _js })[0]);
-										break;
 									}
 								}
-								res[columnNames[i - 1].first].push_back(str.empty() ? "" : _js);
-								break;
+								else if (_js.is_array())
+									res[columnNames[i]].push_back(json({ _js })[0]);
 							}
+							res[columnNames[i]].push_back(str.empty() ? "" : _js);
+						}
 						}
 					}
 				}
-			}
 
+				if ((rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) && rc != SQL_NO_DATA_FOUND)
+					break;
+				while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING) {}
+			}
 			break;
 		}
-
 		case SQL_ERROR:
 		{
-			PrintError(hStmt, SQL_HANDLE_STMT, RetCode);
+			PrintError(hStmt, SQL_HANDLE_STMT, rc);
 			break;
 		}
 
 		default:
 #if defined(HAS_LOGGER)
-			Logger_Critical_F("Unexpected return code %hd!\n", RetCode);
+			Logger_Critical_F("Unexpected return code %hd!\n", rc);
 #endif
 		}
 
 		PrintError(hStmt, SQL_HANDLE_STMT, SQLFreeStmt(hStmt, SQL_CLOSE));
+
+		//Reset rowset sizes
+		rc = SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)nOldArraySize, sizeof(nOldArraySize));
+		rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)nOldRowsetSize, sizeof(nOldArraySize));
 
 		return res;
 	}

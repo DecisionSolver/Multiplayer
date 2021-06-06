@@ -18,16 +18,19 @@ const std::string md5_from_file(const std::string &path)
 const std::string md5_from_buffer(const std::string &data)
 {
 	using namespace CryptoPP;
-	HexEncoder encoder(new FileSink(std::cout));
-	std::string digest;
+	byte digest[Weak::MD5::DIGESTSIZE];
+
 	Weak::MD5 hash;
+	hash.CalculateDigest(digest, (const byte*)data.c_str(), data.length());
 
-	hash.Update((const byte*)&data[0], data.size());
-	digest.resize(hash.DigestSize());
-	hash.Final((byte*)&digest[0]);
+	HexEncoder encoder;
+	std::string output;
 
-	StringSource(digest, true, new Redirector(encoder));
+	encoder.Attach(new StringSink(output));
+	encoder.Put(digest, sizeof(digest));
+	encoder.MessageEnd();
 
-	std::transform(digest.begin(), digest.end(), digest.begin(), ::toupper);
-	return digest;
+	std::transform(output.begin(), output.end(), output.begin(), ::toupper);
+	
+	return output;
 }
