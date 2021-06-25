@@ -43,7 +43,7 @@ public:
 
 	// We have to defer the start until we are fully constructed because we share_from_this()
 	void Start();
-	void Stop();
+	void Stop(bool NeedLock = true);
 
 	void Send(const std::vector<char> &data);
 	void Send(network::Packet &packet);
@@ -79,6 +79,8 @@ public:
 
 	void SetEndPoint(asio::ip::udp::endpoint NewEndPoint) { remote_endpoint_ = NewEndPoint; }
 	asio::ip::udp::endpoint remote_endpoint() { return remote_endpoint_; }
+
+	const std::atomic<size_t> &GetCurrentPing() { return ping; }
 private:
 	static size_t m_nextClientId;
 	size_t m_clientId = 0;
@@ -123,4 +125,13 @@ private:
 	int UserID_MetaDB = 0; // Number Line Of This DB User (Easily Work With User In MySQL)
 
 	std::shared_ptr<FTPClient> ftpClient;
+
+	std::atomic<size_t> ping = 0u;
+
+	// Ping
+	typedef std::chrono::high_resolution_clock Time;
+	typedef std::chrono::milliseconds ms;
+	typedef std::chrono::duration<float> fsec;
+	std::chrono::time_point<std::chrono::steady_clock> start, _end;
+	//
 };

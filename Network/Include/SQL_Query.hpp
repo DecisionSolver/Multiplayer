@@ -1,6 +1,4 @@
 #include "pch.h"
-#include <vector>
-#include <string>
 
 namespace query
 {

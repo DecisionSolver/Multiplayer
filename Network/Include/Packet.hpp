@@ -5,8 +5,6 @@
 using json = nlohmann::json;
 namespace network
 {
-	class TCPSocket;
-	class UDPSocket;
 	class Packet: public std::enable_shared_from_this<Packet>
 	{
 	public:
@@ -56,7 +54,9 @@ namespace network
 			//		},
 			//		...
 			// }
-			Get_MetaData_Project
+			Get_MetaData_Project,
+
+			Ping // Echo Packet
 		};
 
 		struct Header
@@ -78,24 +78,23 @@ namespace network
 		Packet() {}
 		Packet(const Packet& from)
 		{
-			data << from.data.rdbuf();
+			data = from.data;
 			_H = from._H;
 		}
 		virtual ~Packet() {}
 
 		void clear();
 		size_t getSize() const;
-		std::stringstream &getData();
+		json getData();
 
 		// Filling data
-		void FillIn(std::stringstream &Data);
 		void FillIn(Header NewHeader, std::stringstream &Data);
 		void FillIn(const json &Data);
 		void FillIn(const Header &NewHeader, const json &Data);
 
 		Packet *operator =(Packet &pack)
 		{
-			data << pack.data.rdbuf();
+			data = pack.data;
 			_H = pack._H;
 			return this;
 		}
@@ -103,20 +102,13 @@ namespace network
 		operator bool();
 		Header getHeader() const { return _H; }
 
-		Packet *CreateAnswer();
-		Packet *CreateMessage();
-		Packet *CreateMySQL();
-		Packet *CreateDisconnect();
+		Packet *CreatePacket(const Packet::Type &Type, const bool &isAnswer = true,
+			const nlohmann::json &Data = {});
 		
 		Packet *onReceive(std::stringstream &Data);
-	protected:
-		friend TCPSocket;
-		friend UDPSocket;
-		std::stringstream &onSend();
 	private:
 		Header _H;
-		std::stringstream data;
-
-		json Message, MySQL_Request, Answer_Request;
+		json data = {};
+		json onSend();
 	};
 }
