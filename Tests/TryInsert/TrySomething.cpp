@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
 		{
 		case 0:
 		{
-			auto AllUsers = DB->TrySelectValues("Local", { "*" }, { " WHERE _2 = 0" });
+			auto AllUsers = DB->SelectValues("Local", { "*" }, { " WHERE _2 = 0" });
 			for (size_t i = 0; i < AllUsers["_N"].size(); i++)
 			{
 				ConnectFunc(AllUsers.at(i).get<json::string_t>(), AllUsers["_1"].at(i).get<json::string_t>());
@@ -367,7 +367,7 @@ int main(int argc, char* argv[])
 
 				if (Text == "-1")
 				{
-					auto AllUsersID = DB->TrySelectValues("Local", { "_N" }, { " WHERE _N = 1" });
+					auto AllUsersID = DB->SelectValues("Local", { "_N" }, { " WHERE _N = 1" });
 					vector<network::Packet> packet;
 
 					for (auto ID: AllUsersID)

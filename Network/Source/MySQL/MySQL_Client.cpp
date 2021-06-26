@@ -233,7 +233,7 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	nlohmann::json Client::TrySelectValues(const std::string &name_table,									//
+	nlohmann::json Client::SelectValues(const std::string &name_table,									//
 		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)			//
 	{
 		if (!connection)
@@ -390,7 +390,7 @@ namespace mysql
 
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::TryUpdateValues(const std::string &name_table, const std::vector<std::string> &name_columns, //
+	void Client::UpdateValues(const std::string &name_table, const std::vector<std::string> &name_columns, //
 		const std::vector<std::string> &values, const std::vector<std::string> &condition)					  //
 	{
 		if (!connection)
@@ -404,7 +404,7 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::TryInsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,	//
+	void Client::InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,	//
 		const std::vector<std::string> &values)																	//
 	{
 		if (!connection)

@@ -22,89 +22,216 @@ using namespace boost::filesystem;
 #include <Shellapi.h>
 #include "ODBC/ODBC.h"
 
-std::shared_ptr<mysql::Client> DB = std::make_shared<mysql::Client>();
+typedef std::pair<std::string, short> FileRights;
 
-void addUser(const std::string& username)
+std::shared_ptr<mysql::Client> mysqlDB = std::make_shared<mysql::Client>();
+std::shared_ptr<odbc::ODBC> odbcDB = std::make_shared<odbc::ODBC>();
+
+namespace mysql
 {
-	DB->CreateColumn("user_wright", username, "TEXT", "", {});
-	DB->TryInsertValues("user_wright", { "Authorname" }, { username });
-}
-
-void addAccess(const std::string& filename, const std::string& authorname, const std::string& username)
-{
-	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
-
-	if (!AuthorList["f"].is_array() || AuthorList["f"].empty())
-		AuthorList.clear();
-
-	if (AuthorList["f"].dump().find(filename) == std::string::npos)
+	void addUser(const std::string& username, const std::vector<FileRights>& FilesRights, const int projectRights)
 	{
-		AuthorList["f"].push_back(filename);
-		DB->TryUpdateValues("user_wright", { username }, { AuthorList.dump() }, { "Authorname = '" + authorname + "'" });
-	}
-}
-
-void removeAccess(const std::string &filename, const std::string& authorname, const std::string& username)
-{
-	auto AuthorList = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
-
-	for(auto it = AuthorList["f"].begin(); it < AuthorList["f"].end(); it++)
-		if (it.value() == filename)
+		if (!mysqlDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='" + username + "'" }).empty())
 		{
-			AuthorList["f"].erase(it - AuthorList["f"].begin());
-			break;
+			Logger_Warn("User already exists.\n");
+			return;
 		}
-		
 
-	if(!AuthorList["f"].empty())
-		DB->TryUpdateValues("user_wright", { username }, { AuthorList.dump() }, { "Authorname = '" + authorname + "'" });
-	else
-		DB->TryUpdateValues("user_wright", { username }, { "" }, { "Authorname = '" + authorname + "'" });
+		json allFilesRights = {};
+		for (auto file : FilesRights)
+			allFilesRights[file.first] = file.second;
+
+		if (allFilesRights.find(".AllProjectFiles") == allFilesRights.end())
+			allFilesRights[".AllProjectFiles"] = 3;
+
+		mysqlDB->InsertValues("user_wright", { "Username", "FilesRights", "ProjectRights" }, { username, allFilesRights.dump(), std::to_string(projectRights) });
+	}
+
+	void updateFilesRights(const std::string& username, const std::vector<FileRights>& updatedFilesRights)
+	{
+		auto FilesRightsList = mysqlDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='" + username + "'" });
+
+		if (FilesRightsList.is_null()) //unknown user
+		{
+			Logger_Warn("Unknown user\n");
+			return;
+		}
+
+		for (auto file : updatedFilesRights)
+		{
+			if (file.second == 0 && file.first != ".AllProjectFiles")
+				FilesRightsList.erase(file.first);
+			else
+				FilesRightsList[file.first] = file.second;
+		}
+
+		mysqlDB->UpdateValues("user_wright", { "FilesRights" }, { FilesRightsList.dump() }, { "`Username`='" + username + "'" });
+	}
+
+	void updateProjectRights(const std::string& username, const int updatedProjectRights)
+	{
+		auto ProjectRights = mysqlDB->SelectValues("user_wright", { "ProjectRights" }, { "`Username`='" + username + "'" });
+
+		if (ProjectRights.is_null()) //unknown user
+		{
+			Logger_Warn("Unknown user\n");
+			return;
+		}
+
+		mysqlDB->UpdateValues("user_wright", { "ProjectRights" }, { std::to_string(updatedProjectRights) }, { "`Username`='" + username + "'" });
+	}
+
+	//There are 3 actions for files:
+	// 1 - read
+	// 2 - write
+	// 3 - read | write
+	bool hasUserAccessToFile(const std::string& username, const std::string& filename, const short action)
+	{
+		auto FilesRightsList = mysqlDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='" + username + "'" });
+
+		if (FilesRightsList.is_null()) //unknown user
+			FilesRightsList = mysqlDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='.AnonimousUser'" });
+
+		if ((FilesRightsList[".AllProjectFiles"] & action) == 0 && (FilesRightsList[filename].is_null() ? 0 : (FilesRightsList[filename] & action) == 0))
+		{
+			return true;
+			path authorpath = _getcwd(nullptr, UINT16_MAX);
+			authorpath += "\\" + filename;
+			ifstream targetfile{ authorpath };
+			if (targetfile.is_open())
+				return true; // file in folder + has access
+			else
+				return false; //no file in folder (WTF?)
+		}
+		else
+			return false; // no access
+	}
+
+	//There are 1 action for project:
+	// 1 - can make commits
+	bool hasUserAccessToProject(const std::string& username, const int action)
+	{
+		auto ProjectRights = mysqlDB->SelectValues("user_wright", { "ProjectRights" }, { "`Username`='" + username + "'" });
+
+		if (ProjectRights.is_null()) //unknown user
+			ProjectRights = mysqlDB->SelectValues("user_wright", { "ProjectRights" }, { "`Username`='.AnonimousUser'" });
+
+		if ((ProjectRights["_0"] & action) != 0)
+			return true;
+		else
+			return false;
+	}
 }
 
-bool hasUserAccess(const std::string& filename, const std::string& authorname, const std::string& username)
+namespace odbc
 {
-	if (username == authorname)
+	void addUser(const std::string& username, const std::vector<FileRights>& FilesRights, const int projectRights)
 	{
-		path authorpath = _getcwd(nullptr, UINT16_MAX);
-		authorpath += "\\" + authorname + "\\" + filename;
-		ifstream targetfile{ authorpath };
-		if (targetfile.is_open())
-			return true; // file is in author folder + has access
-		else
-			return false; //no file in author folder
+		if (!odbcDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='" + username + "'" })["FilesRights"][0].is_null())
+		{
+			Logger_Warn("User already exists.\n");
+			return;
+		}
+
+		json allFilesRights = {};
+		for (auto file : FilesRights)
+			allFilesRights[file.first] = file.second;
+
+		if (allFilesRights.find(".AllProjectFiles") == allFilesRights.end())
+			allFilesRights[".AllProjectFiles"] = 3;
+
+		odbcDB->InsertValues("user_wright", { "Username", "FilesRights", "ProjectRights" }, { username, allFilesRights.dump(), std::to_string(projectRights) });
 	}
 
-	auto UserAccess = DB->TrySelectValues("user_wright", { username }, { "Authorname = '" + authorname + "'" });
-
-	if (UserAccess["f"].empty())
-		return false; //no author
-
-	if (UserAccess["f"].dump().find(filename) != std::string::npos)
+	void updateFilesRights(const std::string& username, const std::vector<FileRights>& updatedFilesRights)
 	{
-		path authorpath = _getcwd(nullptr, UINT16_MAX);
-		authorpath += "\\" + authorname + "\\" + filename;
-		ifstream targetfile{ authorpath };
-		if (targetfile.is_open())
-			return true; // file is in author folder + has access
-		else
-			return false; //no file in author folder
+		auto FilesRightsList = odbcDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='" + username + "'" })["FilesRights"][0];
+
+		if (FilesRightsList.is_null()) //unknown user
+		{
+			Logger_Warn("Unknown user\n");
+			return;
+		}
+
+		for (auto file : updatedFilesRights)
+		{
+			if (file.second == 0 && file.first != ".AllProjectFiles")
+				FilesRightsList.erase(file.first);
+			else
+				FilesRightsList[file.first] = file.second;
+		}
+
+		odbcDB->UpdateValues("user_wright", { "FilesRights" }, { FilesRightsList.dump() }, { "`Username`='" + username + "'" });
 	}
-	else
-		return false; // no access
+
+	void updateProjectRights(const std::string& username, const int updatedProjectRights)
+	{
+		auto ProjectRights = odbcDB->SelectValues("user_wright", { "ProjectRights" }, { "`Username`='" + username + "'" })["ProjectRights"][0];
+
+		if (ProjectRights.is_null()) //unknown user
+		{
+			Logger_Warn("Unknown user\n");
+			return;
+		}
+
+		odbcDB->UpdateValues("user_wright", { "ProjectRights" }, { std::to_string(updatedProjectRights) }, { "`Username`='" + username + "'" });
+	}
+
+	//There are 3 actions for files:
+	// 1 - read
+	// 2 - write
+	// 3 - read | write
+	bool hasUserAccessToFile(const std::string& username, const std::string& filename, const short action)
+	{
+		auto FilesRightsList = odbcDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='" + username + "'" })["FilesRights"][0];
+
+		if (FilesRightsList.is_null()) //unknown user
+			FilesRightsList = odbcDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='.AnonimousUser'" })["FilesRights"][0];
+
+		if ((FilesRightsList[".AllProjectFiles"] & action) == 0 && (FilesRightsList[filename].is_null() ? 0 : (FilesRightsList[filename] & action) == 0))
+		{
+			return true;
+			path authorpath = _getcwd(nullptr, UINT16_MAX);
+			authorpath += "\\" + filename;
+			ifstream targetfile{ authorpath };
+			if (targetfile.is_open())
+				return true; // file in folder + has access
+			else
+				return false; //no file in folder (WTF?)
+		}
+		else
+			return false; // no access
+	}
+
+	//There are 1 action for project:
+	// 1 - can make commits
+	bool hasUserAccessToProject(const std::string& username, const int action)
+	{
+		auto ProjectRights = odbcDB->SelectValues("user_wright", { "ProjectRights" }, { "`Username`='" + username + "'" })["ProjectRights"][0];
+
+		if (ProjectRights.is_null()) //unknown user
+			ProjectRights = odbcDB->SelectValues("user_wright", { "ProjectRights" }, { "`Username`='.AnonimousUser'" })["ProjectRights"][0];
+
+		if ((ProjectRights["_0"] & action) != 0)
+			return true;
+		else
+			return false;
+	}
 }
-
 
 int main()
 {
 	setlocale(LC_ALL, "Russian");
 
-	//odbc::ODBC db; //Some tests
-	//db.Connect("Microsoft Access Driver (*.mdb)", "G:/DecisionSolver/Engine/Workspace/resource/all projects.mdb", "READONLY=false", "");
-	//db.CreateTable("testtable", { "one", "two", "three" }, { "INTEGER", "DATETIME", "VARCHAR" }, { "", "", "25" }, { {}, {}, {} });
-	////std::cout << db.SelectValues("table1", { "*" });
-	//std::cout << db.SelectValues("testtable", { "*" });
-
+	/*odbcDB->Connect("Microsoft Access Driver (*.mdb)", "F:\\Programming\\C++\\Project\\ODBC\\ODBC\\test.MDB", "READONLY=false", "12345");
+	odbc::addUser("user4", {}, 0);
+	odbc::addUser("user6", {}, 0);
+	odbc::updateFilesRights("user6", { {"doc.doc", 3} });
+	std::cerr << odbc::hasUserAccessToFile("user6", "doc.doc", 1);
+	odbc::updateFilesRights("user3", { {"text.text", 1}, {"mp4.mp4", 2} });
+	std::cerr << odbc::hasUserAccessToFile("user3", "text.text", 1) << odbc::hasUserAccessToFile("user3", "mp4.mp4", 1);
+	odbc::updateFilesRights("user3", { {"mp4.mp4", 0} });
+	std::cout << odbc::hasUserAccessToProject("user1", 1);*/
 	//db.SplitDB("New", "G:/DecisionSolver/Engine/Workspace/resource/New.mdb");
 
 	path local_root = _getcwd(nullptr, UINT16_MAX); // The backslash at the end is necessary!
@@ -131,7 +258,7 @@ int main()
 		new FileLoggerTarget(local_root.string() + "logs/FTP-server-crit.log", LogLevel::LOG_LEVEL_CRITICAL));
 #endif
 
-	if (DB->Connect("test", "vextern123",
+	if (mysqlDB->Connect("test", "vextern123",
 #if defined(_DEBUG)
 		"188.210.240.246"
 #else
@@ -140,7 +267,7 @@ int main()
 		, "gb_z_rod2_rf") == mysql::Client::Done)
 	{
 #if defined(_DEBUG) && defined(HAS_LOGGER)
-		const char *_IP =
+		const char* _IP =
 #if defined(_DEBUG)
 			"188.210.240.246"
 #else
@@ -157,7 +284,7 @@ int main()
 	else
 	{
 #if defined(_DEBUG) && defined(HAS_LOGGER)
-		const char *_IP =
+		const char* _IP =
 #if defined(_DEBUG)
 			"188.210.240.246"
 #else
@@ -172,13 +299,14 @@ int main()
 		return -1;
 	}
 
-	/*addAccess("doc.doc", "user2", "user1");
-	std::cerr << hasUserAccess("doc.doc", "user2", "user1");
-	addAccess("text.text", "user1", "user3");
-	std::cerr << hasUserAccess("text.text", "user1", "user3");
-	addAccess("text.text", "user3", "user1");
-	std::cerr << hasUserAccess("text.text", "user3", "user1");
-	removeAccess({ "text1.text" }, "user1", "user2");*/
+	/*mysql::addUser("user1", {}, 0);
+	mysql::addUser("user3", {}, 0);
+	mysql::updateFilesRights("user1", { {"doc.doc", 0} });
+	std::cerr << mysql::hasUserAccessToFile("user1", "doc.doc", 1);
+	mysql::updateFilesRights("user3", { {"text.text", 1}, {"mp4.mp4", 2} });
+	std::cerr << mysql::hasUserAccessToFile("user3", "text.text", 1) << mysql::hasUserAccessToFile("user3", "mp4.mp4", 1);
+	mysql::updateFilesRights("user3", { {"mp4.mp4", 0} });
+	std::cout << mysql::hasUserAccessToProject("user1", 1);*/
 
 #if defined(HAS_LOGGER)
 	Logger_Info_F("Current Used Path Is: %s", local_root.string().c_str());
@@ -186,7 +314,7 @@ int main()
 
 	// Create an FTP Server on port 2121. We use 2121 instead of the default port
 	// 21, as your application would need root privileges to open port 21.
-	const char *_IP =
+	const char* _IP =
 #if defined(_DEBUG)
 		"127.0.0.1"
 #else
@@ -199,7 +327,7 @@ int main()
 	// can log in with username "anonyous" or "ftp" and any password. The normal
 	// users have to provide their username and password. 
 
-	auto AllUsers = DB->TrySelectValues("Local", { "*" });
+	auto AllUsers = mysqlDB->SelectValues("Local", { "*" });
 
 	local_root += "Users/";
 

@@ -51,10 +51,10 @@ namespace query
 		}
 
 		if (value.empty())
-			return ("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type +
+			return ("ALTER TABLE `" + name_table + "`\nADD `" + name_column + "` " + type +
 				attribute + ";");
 		else
-			return ("ALTER TABLE " + name_table + "\nADD " + name_column + " " + type + "(" + value + ")" +
+			return ("ALTER TABLE `" + name_table + "`\nADD `" + name_column + "` " + type + "(" + value + ")" +
 				attribute + ";");
 	}
 
@@ -71,23 +71,23 @@ namespace query
 			attribute += attributes.back();
 		}
 
-		return ("ALTER TABLE " + name_table + "\nMODIFY COLUMN " + name_column + " " + type + "(" + value + ")" +
+		return ("ALTER TABLE `" + name_table + "`\nMODIFY COLUMN `" + name_column + "` " + type + "(" + value + ")" +
 			attribute + ";");
 	}
 
 	std::string MakeDeleteValuesQuery(const std::string& name_table, const std::string& condition)
 	{
-		return ("DELETE FROM " + name_table + "\nWHERE " + condition + ";");
+		return ("DELETE FROM `" + name_table + "`\nWHERE " + condition + ";");
 	}
 
 	std::string MakeDeleteColumnQuery(const std::string& name_table, const std::string& name_column)
 	{
-		return ("ALTER TABLE " + name_table + "\nDROP COLUMN " + name_column);
+		return ("ALTER TABLE `" + name_table + "`\nDROP COLUMN `" + name_column + "`");
 	}
 
 	std::string MakeDeleteTableQuery(const std::string& name_table)
 	{
-		return ("DROP TABLE " + name_table);
+		return ("DROP TABLE `" + name_table + "`");
 	}
 
 	std::string MakeSelectValuesQuery(const std::string& name_table,
@@ -98,7 +98,7 @@ namespace query
 		if (name_columns.back().back() != '*')
 		{
 			for (const auto& piece : name_columns)
-				temp += piece + ",";
+				temp += "`" + piece + "`,";
 
 			temp.pop_back();
 		}
@@ -118,18 +118,28 @@ namespace query
 			if (NewCond.back() == ';')
 				NewCond.pop_back();
 
-			return ("SELECT " + temp + " FROM " + name_table + " WHERE " + NewCond + ";"); //fix for multiple conditions
+			return ("SELECT " + temp + " FROM `" + name_table + "` WHERE " + NewCond + ";"); //fix for multiple conditions
 		}
 
-		return ("SELECT " + temp + " FROM " + name_table + ";");
+		return ("SELECT " + temp + " FROM `" + name_table + "`;");
 	}
 
 	std::string MakeUpdateValuesQuery(const std::string& name_table, const std::vector<std::string>& name_columns,
 		const std::vector<std::string>& values, const std::vector<std::string>& condition)
 	{
+
+		if (name_columns.size() != values.size())
+		{
+#if defined(HAS_LOGGER)
+			Logger_Error("Not enough columns data to create table (amount mismatch)!\n");
+#endif // HAS_LOGGER
+
+			return "";
+		}
+
 		std::string valueCond, value;
 		for (size_t cnt = 0; cnt < name_columns.size(); cnt++)
-			value += name_columns.at(cnt) + "='" + values.at(cnt) + "',";
+			value += "`" + name_columns.at(cnt) + "`='" + values.at(cnt) + "',";
 		std::string Set = value;
 		Set.pop_back(); // Removed ','
 
@@ -147,23 +157,33 @@ namespace query
 			if (NewCond.back() == ';')
 				NewCond.pop_back();
 
-			return ("UPDATE " + name_table + " SET " + Set + " WHERE " + NewCond + ";"); //fix for multiple conditions
+			return ("UPDATE `" + name_table + "` SET " + Set + " WHERE " + NewCond + ";"); //fix for multiple conditions
 		}
 		else
-			return ("UPDATE " + name_table + " SET " + Set);
+			return ("UPDATE `" + name_table + "` SET " + Set);
 	}
 
 	std::string MakeInsertValuesQuery(const std::string& name_table, const std::vector<std::string>& name_columns,
 		const std::vector<std::string>& values)
 	{
+
+		if (name_columns.size() != values.size())
+		{
+#if defined(HAS_LOGGER)
+			Logger_Error("Not enough columns data to create table (amount mismatch)!\n");
+#endif // HAS_LOGGER
+
+			return "";
+		}
+
 		std::string name_column, temp;
 
 		if (!name_columns.empty())
 		{
 			for (size_t cnt = 0; cnt < name_columns.size() - 1; cnt++)
-				name_column += name_columns[cnt] + ", ";
+				name_column += "`" + name_columns[cnt] + "`, ";
 
-			name_column += name_columns.back();
+			name_column += "`" + name_columns.back() + "`";
 		}
 
 		if (!values.empty())
@@ -176,10 +196,10 @@ namespace query
 			temp.pop_back(); // Remove ','
 			temp.push_back(')');
 
-			return ("INSERT INTO " + name_table + "(\"" + name_column + "\")" + "VALUES" + temp);
+			return ("INSERT INTO `" + name_table + "`(" + name_column + ")" + "VALUES" + temp);
 		}
 		else
-			return ("INSERT INTO " + name_table + "() VALUES()");
+			return ("INSERT INTO `" + name_table + "`() VALUES()");
 	}
 
 } //namespace query

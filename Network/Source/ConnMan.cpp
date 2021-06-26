@@ -565,7 +565,7 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, std
 		});
 		if (itConnection != m_connectionsTCP.end())
 		{
-			User->TryUpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
+			User->UpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 				std::to_string(connection->GetMetaDB_User()) + "'" } });
 
 #if defined(USE_SSL)
@@ -655,7 +655,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								std::string Login = temp["_0"].get<std::string>(),
 									Pass = temp["_1"].get<std::string>();
 
-								auto Obj = User->TrySelectValues("Local", { "*" },
+								auto Obj = User->SelectValues("Local", { "*" },
 									{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
 
 								// If Successful Then Send Answer About It
@@ -685,7 +685,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								if (pack["data"]["body"]["_0"] == "OK")
 								{
 									connection->SetLogged();
-									User->TryUpdateValues("Local", { "_2" }, { { "1" } }, { {
+									User->UpdateValues("Local", { "_2" }, { { "1" } }, { {
 										" WHERE _N = '" +
 										std::to_string(connection->GetMetaDB_User()) + "'" } });
 
@@ -779,7 +779,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					{
 						Curr = std::chrono::high_resolution_clock::now();
 						// Get All Users Who Is Online Now Or Not
-						auto IsOnline = User->TrySelectValues("Local", { "_2, _N" });
+						auto IsOnline = User->SelectValues("Local", { "_2, _N" });
 
 						network::Packet disconnect = network::Packet();
 						disconnect.CreatePacket(network::Packet::Type::Disconnection, false)->getData();
@@ -921,7 +921,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 									if (connection->second->getIsError() &&
 										!connection->second->get_error_queue().empty())
 									{
-										User->TryUpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
+										User->UpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 										std::to_string(connection->second->GetMetaDB_User()) + "'" } });
 										connection->second->get_error_queue().pop_front();
 									}
@@ -960,7 +960,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 									if (connection->second->getIsError() &&
 										!connection->second->get_error_queue().empty())
 									{
-										User->TryUpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
+										User->UpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 										std::to_string(connection->second->GetMetaDB_User()) + "'" } });
 										connection->second->get_error_queue().pop_front();
 									}

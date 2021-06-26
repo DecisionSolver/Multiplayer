@@ -46,7 +46,7 @@ namespace net
 		if (packet)
 		{
 			json Arr;
-			auto Obj = User->TrySelectValues("Local", { "*" }, { " WHERE _2 = 1" });
+			auto Obj = User->SelectValues("Local", { "*" }, { " WHERE _2 = 1" });
 			for (size_t i = 0; i < Obj["_N"].size(); i++)
 			{
 				Arr["_1"].push_back(Obj["_N"].at(i).back().get<json::number_integer_t>());
@@ -302,7 +302,7 @@ namespace net
 		{
 			WaitForMySQL.notify_all();
 			// Set All Users To Offline
-			User->TryUpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _2 = '1'" } });
+			User->UpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _2 = '1'" } });
 		}
 		else
 		{

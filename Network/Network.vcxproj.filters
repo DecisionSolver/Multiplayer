@@ -66,11 +66,11 @@
     <ClCompile Include="Submodules\SelfLogger\logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\SQL_Query.cpp">
-      <Filter>Include Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ODBC\ODBC.cpp">
       <Filter>Source Files\ODBC</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SQL_Query.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -119,11 +119,11 @@
     <ClInclude Include="Submodules\SelfLogger\logger.h">
       <Filter>Include Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\SQL_Query.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="Include\ODBC\ODBC.h">
       <Filter>Include Files\ODBC</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SQL_Query.hpp">
+      <Filter>Include Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

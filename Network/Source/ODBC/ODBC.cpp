@@ -340,6 +340,9 @@ namespace odbc
 	{
 		std::string ret_query = query::MakeCreateTableQuery(name_table, name_column, type, value, attributes);
 
+		if (ret_query.empty())
+			return;
+
 		ret_query.erase(ret_query.find("DEFAULT CHARSET UTF8"), 20);
 
 		Query(ret_query);
@@ -355,6 +358,9 @@ namespace odbc
 		const std::string& value, const std::vector<std::string>& attributes)
 	{
 		std::string ret_query = query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes);
+
+		if (ret_query.empty())
+			return;
 
 		size_t pos = ret_query.find("MODIFY");
 		ret_query.erase(pos, 6);
