@@ -292,16 +292,13 @@ namespace net
 		{
 			Server::OnPacketHandler(connection);
 		});
-//		if (User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
-//#if defined(_DEBUG)
-//			"188.210.240.246"
-//#else
-//			"188.210.240.246"
-//#endif
-//			, "gb_z_rod2_rf") == mysql::Client::Done)
-		if (User->Connect("gb_1231", "J4hKTTK-LHwU",
-			"mysql92.1gb.ru"
-			, "gb_1231") == mysql::Client::Done)
+		if (User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+#if defined(_DEBUG)
+			"188.210.240.246"
+#else
+			"188.210.240.246"
+#endif
+			, "gb_z_rod2_rf") == mysql::Client::Done)
 		{
 			WaitForMySQL.notify_all();
 			// Set All Users To Offline

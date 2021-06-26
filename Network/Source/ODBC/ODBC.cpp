@@ -75,7 +75,7 @@ namespace odbc
 		return false;
 	}
 
-	nlohmann::json ODBC::Query(const std::string& query)
+	nlohmann::json ODBC::Query(const std::string& query, bool Need_SQL_TYPE)
 	{
 		RETCODE rc = SQLExecDirectA(hStmt, (SQLCHAR*)(query.c_str()), SQL_NTS);
 		json res = {};
@@ -173,9 +173,12 @@ namespace odbc
 
 				lpgi.push_back(newObj);
 			}
-			for (size_t i = 0; i < columnNames.size(); i++)
+			if (Need_SQL_TYPE)
 			{
-				res[columnNames[i].first].push_back({ {"sql_type", columnNames[i].second} });
+				for (size_t i = 0; i < columnNames.size(); i++)
+				{
+					res[columnNames[i].first].push_back({ {"sql_type", columnNames[i].second} });
+				}
 			}
 
 			while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING)
@@ -186,7 +189,8 @@ namespace odbc
 
 			while ((rc) == SQL_SUCCESS || (rc) == SQL_SUCCESS_WITH_INFO)
 			{
-				for (size_t i = 0; i < lpgi.size(); i++)
+				size_t cnt = lpgi.size();
+				for (size_t i = 0; i < cnt; i++)
 				{
 					SQLLEN cbValue;
 					PrintError(hStmt,
@@ -238,6 +242,31 @@ namespace odbc
 						case SQL_WLONGVARCHAR:
 						{
 							std::string str = buf;
+
+							std::string::size_type size;
+							try
+							{
+								// It Needs Only For Indicate If It's Number Or Not!
+								std::stoi(str, &size);
+
+								// If In This String Has Something Else With Numbers (Can consider it not number, it's string!)
+								if (size != str.length())
+									size = std::string::npos;
+							}
+							// No numbers in that string
+							catch (const std::exception&)
+							{
+								size = std::string::npos;
+							}
+
+							// To Avoid If It Is Not String At All (Like Number) Because JSON Parse "STRING"
+							// From Only Numbers Like NUMBER type!
+							if (size != std::string::npos)
+							{
+								str.erase(str.begin());
+								str.erase(str.end());
+							}
+
 							json _js;
 							if (!str.empty())
 							{
@@ -249,20 +278,7 @@ namespace odbc
 								{
 									_js = str;
 								}
-								if (!_js.empty() && _js.is_object())
-								{
-									for (auto&[key, val]: _js.items())
-									{
-										for (auto&[_, elm]: val.items())
-										{
-											res[key].push_back(elm);
-										}
-									}
-								}
-								else if (_js.is_array())
-									res[columnNames[i].first].push_back(json({ _js })[0]);
 							}
-
 							res[columnNames[i].first].push_back(str.empty() ? "" : _js);
 						}
 						}
@@ -301,9 +317,9 @@ namespace odbc
 	}
 
 	nlohmann::json ODBC::SelectValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-		const std::vector<std::string>& condition)
+		const std::vector<std::string>& condition, bool Need_SQL_TYPE)
 	{
-		return Query(query::MakeSelectValuesQuery(name_table, name_columns, condition));
+		return Query(query::MakeSelectValuesQuery(name_table, name_columns, condition), Need_SQL_TYPE);
 	}
 
 	void ODBC::InsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
@@ -565,7 +581,7 @@ namespace odbc
 		SecondFile->Connect(c_str, NameNewFile, "", "");
 
 		// Then Get * From NameTable And Add It To New DB
-		auto CurrDB = SelectValues(NameTable, { "*" });
+		auto CurrDB = SelectValues(NameTable, { "*" }, {}, true);
 
 		std::vector<std::string> NameColumns, TypeColumns, EmptyValue;
 		std::vector<std::vector<std::string>> EmptyAttributes;
