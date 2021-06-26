@@ -134,7 +134,7 @@ void Connection::Start()
 }
 
 //--------------------------------------------------------------------
-void Connection::Stop()
+void Connection::Stop(bool NeedLock)
 {
 #if defined(HAS_LOGGER)
 	Logger_Info_F("Client(%zd) Stops.\n", m_clientId);
@@ -147,8 +147,7 @@ void Connection::Stop()
 		Connected)
 	{
 		network::Packet disconnect = network::Packet();
-		disconnect.FillIn(network::Packet::Header(network::Packet::Type::Disconnection),
-			disconnect.CreateDisconnect()->getData());
+		disconnect.CreatePacket(network::Packet::Type::Disconnection, false)->getData();
 		Send(disconnect);
 	}
 	SetConnected(false);
@@ -156,7 +155,8 @@ void Connection::Stop()
 
 	successConn.notify_all();
 
-	waiterDisconnection.wait(lock);
+	if (NeedLock)
+		waiterDisconnection.wait(lock);
 }
 
 //--------------------------------------------------------------------
@@ -172,7 +172,7 @@ void Connection::Send(const std::vector<char> &data)
 
 void Connection::Send(network::Packet &packet)
 {
-	auto Data = packet.getData().str();
+	auto Data = packet.getData().dump();
 
 	std::vector<char> &inactiveBuffer = m_sendBuffers[m_activeSendBufferIndex ^ 1];
 	inactiveBuffer.insert(inactiveBuffer.end(), Data.begin(), Data.end());
@@ -198,37 +198,45 @@ bool Connection::GetTimer()
 	return false;
 }
 
+extern std::atomic_bool NoMessageLeft;
+extern std::condition_variable cvBlocking;
+extern std::mutex muxBlocking;
 void Connection::GetPacket(network::Packet &packet, network::Packet::Type _CheckingByType, std::string _CheckingByData)
 {
+	std::scoped_lock get_packet(m_get_packet);
 	if (!packet_queue.empty())
 	{
-		std::lock_guard<std::mutex> get_packet(m_get_packet);
-		if (!packet_queue.empty())
+		NoMessageLeft = false;
+		auto It = packet_queue.find(_CheckingByType);
+		if (!_CheckingByData.empty())
 		{
-			auto It = packet_queue.find(_CheckingByType);
-			if (!_CheckingByData.empty())
+			for (auto &_It: packet_queue)
 			{
-				for (auto &_It: packet_queue)
+				if (_It.second && _It.second.getData().dump().find(_CheckingByData) != std::string::npos)
 				{
-					if (_It.second && _It.second.getData().str().find(_CheckingByData) != std::string::npos)
-					{
-						packet = It->second;
-						packet_queue.erase(_It.first);
-						return;
-					}
+					packet = It->second;
+					packet_queue.erase(_It.first);
+					return;
 				}
 			}
-			if (It != packet_queue.end())
-			{
-				packet = It->second;
-				packet_queue.erase(It);
-			}
 		}
+		if (It != packet_queue.end())
+		{
+			packet = It->second;
+			packet_queue.erase(It);
+		}
+	}
+	else
+	{
+		NoMessageLeft = true;
+		std::unique_lock<std::mutex> ul(muxBlocking);
+		cvBlocking.notify_one();
 	}
 }
 
 //--------------------------------------------------------------------
 extern std::mutex m_connectionsMutex;
+
 void Connection::DoSend()
 {
 	// Check if there is an async send in progress
@@ -250,8 +258,10 @@ void Connection::DoSend()
 				std::scoped_lock<std::mutex> lock(m_connectionsMutex);
 
 #if defined(HAS_LOGGER)
-				Logger_Error_F("An error occured while attemping to send data to client id %zd. %s\n",
-					self->m_clientId, ErrorCodeToString(errorCode).str().c_str());
+				Logger_Error_F("An error occured while attemping to send data to %s. Error Code: %s\n",
+					(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
+						std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
+					ErrorCodeToString(errorCode).str().c_str());
 #endif
 
 				self->getIsError() = true;
@@ -287,14 +297,17 @@ void Connection::DoSend()
 				self->m_sendBuffers[1].push_back('\0');
 
 #if defined(HAS_LOGGER)
-			Logger_Info_F("Sending data to client %zd: %s\n",
-				self->m_clientId, self->m_sendBuffers[0].size() > 0 ?
+			Logger_Info_F("Sending data to %s: %s\n",
+				(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
+					std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
+				self->m_sendBuffers[0].size() > 0 ?
 				self->m_sendBuffers[0].data() :
 				self->m_sendBuffers[1].data());
 #endif
 
 			self->m_sendBuffers[self->m_activeSendBufferIndex].clear();
 
+			self->start = Time::now();
 			// Check if there is more to send that has been queued up on the inactive buffer,
 			// while we were sending what was on the active buffer
 			if (!self->m_sendBuffers[self->m_activeSendBufferIndex ^ 1].empty())
@@ -352,8 +365,10 @@ void Connection::DoReceive()
 			else
 			{
 #if defined(HAS_LOGGER)
-				Logger_Error_F("An error occured while attemping to receive data from client id %zd. Error Code: %s\n",
-					self->m_clientId, ErrorCodeToString(errorCode).str().c_str());
+				Logger_Error_F("An error occured while attemping to receive data from %s. Error Code: %s\n",
+					(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
+					std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
+					ErrorCodeToString(errorCode).str().c_str());
 #endif
 
 				self->getIsError() = true;
@@ -386,17 +401,33 @@ void Connection::DoReceive()
 		// Grab the read data
 		std::stringstream data;
 		std::istream istream(&self->m_receiveBuffer);
-		//if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP)
 		data << istream.rdbuf();
 
 #if defined(HAS_LOGGER)
-		Logger_Info_F("Received data from client %zd: %s\n", self->m_clientId, data.str().c_str());
+		Logger_Info_F("Received data from %s: %s\n",
+			(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ? 
+				std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
+			data.str().c_str());
+
+		self->_end = Time::now();
+		fsec fs = self->_end - self->start;
+		ms d = std::chrono::duration_cast<ms>(fs);
+
+		self->ping = (size_t)d.count();
+		Logger_Debug_F("It Spent %s Time\n", (std::to_string(d.count()) + " ms").c_str());
 #endif
 
+		size_t size = 0u;
+		data.setf(std::ios::skipws);
+		data.seekg(0, data.end);
+		size = (size_t)data.tellg();
+		data.seekg(0, data.beg);
+
 		network::Packet newPacket = network::Packet();
-		if (newPacket.onReceive(data))
+		if ((size != 0u || (data.str().find("header") != std::string::npos)) &&
+			newPacket.onReceive(data))
 		{
-			std::lock_guard<std::mutex> get_packet(m_get_packet);
+			std::scoped_lock get_packet(m_get_packet);
 			std::map<asio::ip::udp::endpoint, Connection::SharedPtr>::iterator itConnectionUDP;
 			if (self->m_owner &&
 				(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ||
@@ -415,8 +446,6 @@ void Connection::DoReceive()
 				}
 				if (newPacket.getHeader().type == network::Packet::Type::Connection || network::Packet::Type::MySQL)
 				{
-					if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
-						std::scoped_lock<std::mutex> lock(m_connectionsMutex);
 					if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP &&
 						self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server &&
 						newPacket.getHeader().type == network::Packet::Type::Connection &&
@@ -450,6 +479,10 @@ void Connection::DoReceive()
 				self->packet_queue.insert(
 					std::pair<network::Packet::Type, network::Packet>((network::Packet::Type)newPacket.getHeader().type,
 						newPacket));
+
+			NoMessageLeft = false;
+			std::unique_lock<std::mutex> ul(muxBlocking);
+			cvBlocking.notify_one();
 		}
 
 		// Issue the next receive
@@ -459,9 +492,9 @@ void Connection::DoReceive()
 
 	if (self->m_owner && self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP)
 #if defined(USE_SSL)
-		asio::async_read_until(*m_socketTCP.get(), m_receiveBuffer, "#", ReadFunction);
+		asio::async_read_until(*m_socketTCP.get(), m_receiveBuffer, "\0", ReadFunction);
 #else
-		asio::async_read_until(m_socketTCP, m_receiveBuffer, "#", ReadFunction);
+		asio::async_read_until(m_socketTCP, m_receiveBuffer, "\0", ReadFunction);
 #endif
 	else if (self->m_owner && self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
 	{

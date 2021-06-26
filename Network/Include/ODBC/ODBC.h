@@ -53,6 +53,9 @@ namespace odbc
 
 		// Returns false if error was occured or DB (has no one tables) is empty, else true if tables exist
 		std::pair<bool, std::vector<std::string>> GetListTablesDatabase();
+
+		// Splits Table Into One DB File
+		void SplitDB(const std::string &NameTable, const std::string &NameNewFile);
 	};
 } // namespace odbc
 

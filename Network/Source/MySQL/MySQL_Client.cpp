@@ -8,10 +8,6 @@
 									 //
 ///////////////////////////////////////
 
-#if defined (_DEBUG)
-ToDo("Add Method For Change CharSet (UTF)")
-#endif
-
 sql::ConnectOptionsMap mysql::Client::connection_properties;
 
 namespace mysql
@@ -59,7 +55,7 @@ namespace mysql
 		catch (sql::SQLException &e)
 		{
 #if defined(HAS_LOGGER)
-			Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
 #endif
 			return Client::Status::Error;
 		}
@@ -102,7 +98,7 @@ namespace mysql
 				return Query(query);
 			}
 #if defined(HAS_LOGGER)
-			Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
 #endif
 		}
 
@@ -146,7 +142,7 @@ namespace mysql
 				Exec(query);
 			}
 #if defined(HAS_LOGGER)
-			Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
 #endif
 		}
 	}
@@ -293,7 +289,8 @@ namespace mysql
 			{
 				// In This Column (Horizontal, Left-Right Direction)
 				auto MetaData = ResultExec->getMetaData();
-				for (size_t i = 1; i <= MetaData->getColumnCount(); i++)
+				auto cnt = MetaData->getColumnCount();
+				for (size_t i = 1; i <= cnt; i++)
 				{
 					int colType = MetaData->getColumnType(i);
 					std::string ColumnName, /*"_" + std::to_string(ID),*/ ColumnID = MetaData->getColumnLabel(i);
@@ -308,12 +305,18 @@ namespace mysql
 					case sql::DataType::TINYINT:
 					case sql::DataType::SMALLINT:
 					case sql::DataType::BIGINT:
-						js[ColumnName].push_back(ResultExec->getInt64(ColumnID));
+						if (cnt == 1)
+							js = json::object({ {ColumnName, ResultExec->getInt64(ColumnID)} });
+						else
+							js[ColumnName].push_back(ResultExec->getInt64(ColumnID));
 						break;
 					case sql::DataType::REAL:
 					case sql::DataType::DECIMAL:
 					case sql::DataType::DOUBLE:
-						js[ColumnName].push_back(ResultExec->getDouble(ColumnID));
+						if (cnt == 1)
+							js = json::object({ {ColumnName, ResultExec->getDouble(ColumnID)} });
+						else
+							js[ColumnName].push_back(ResultExec->getDouble(ColumnID));
 						break;
 					case sql::DataType::CHAR:
 					case sql::DataType::VARCHAR:
@@ -324,12 +327,28 @@ namespace mysql
 					{
 						std::string str = ResultExec->getString(ColumnID).c_str();
 
+						std::string::size_type size;
+						try
+						{
+							// It Needs Only For Indicate If It's Number Or Not!
+							std::stoi(str, &size);
+
+							// If In This String Has Something Else With Numbers (Can consider it not number, it's string!)
+							if (size != str.length())
+								size = std::string::npos;
+						}
+						// No numbers in that string
+						catch (const std::exception&)
+						{
+							size = std::string::npos;
+						}
+
 						// To Avoid If It Is Not String At All (Like Number) Because JSON Parse "STRING"
 						// From Only Numbers Like NUMBER type!
-						if (!str.empty() && (str.front() != '"' && str.back() != '"'))
+						if (size != std::string::npos)
 						{
-							str.insert(str.begin(), '"');
-							str.insert(str.end(), '"');
+							str.erase(str.begin());
+							str.erase(str.end());
 						}
 
 						json _js;
@@ -343,24 +362,12 @@ namespace mysql
 							{
 								_js = str;
 							}
-							if (!_js.empty() && _js.is_object())
-							{
-								for (auto&[key, val]: _js.items())
-								{
-									for (auto&[_, elm]: val.items())
-									{
-										js[key].push_back(elm);
-									}
-								}
-								break;
-							}
-							else if (_js.is_array())
-							{
-								js[ColumnName].push_back(json({ _js })[0]);
-								break;
-							}
 						}
-						js[ColumnName].push_back(str.empty() ? "" : _js);
+
+						if (cnt == 1)
+							js = _js;
+						else
+							js[ColumnName].push_back(str.empty() ? "" : _js);
 						break;
 					}
 					}

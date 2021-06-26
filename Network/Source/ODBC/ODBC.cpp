@@ -11,8 +11,8 @@ namespace odbc
 		const std::string &password)
 	{
 		USES_CONVERSION;
-		if (!SQLConfigDataSourceW(nullptr, ODBC_ADD_DSN, A2W(driver.c_str()),
-			A2W(("CREATE_DB=\"" + path + "\";" + attributes + (password.empty() ? "" : ";PWD=" + password)).c_str())))
+		if ((SQLConfigDataSourceW(nullptr, ODBC_ADD_DSN, A2W(driver.c_str()),
+			A2W(("CREATE_DB=\"" + path + "\";" + attributes + (password.empty() ? "" : ";PWD=" + password)).c_str()))) != 1)
 			Logger_Error_F("Something is wrong with create a database file, error code: %i", GetLastError());
 	}
 
@@ -80,14 +80,9 @@ namespace odbc
 		RETCODE rc = SQLExecDirectA(hStmt, (SQLCHAR*)(query.c_str()), SQL_NTS);
 		json res = {};
 		SQLLEN nOldArraySize = 0, nOldRowsetSize = 0;
-		rc = SQLGetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, &nOldArraySize, sizeof(nOldArraySize), NULL);
-		rc = SQLGetStmtAttr(hStmt, SQL_ROWSET_SIZE, &nOldRowsetSize, sizeof(nOldArraySize), NULL);
-		rc = SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)1, 0);
-		rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)1, 0);
 
 		switch (rc)
 		{
-
 		case SQL_SUCCESS_WITH_INFO:
 		{
 			PrintError(hStmt, SQL_HANDLE_STMT, rc);
@@ -96,10 +91,15 @@ namespace odbc
 
 		case SQL_SUCCESS:
 		{
+			rc = SQLGetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, &nOldArraySize, sizeof(nOldArraySize), NULL);
+			rc = SQLGetStmtAttr(hStmt, SQL_ROWSET_SIZE, &nOldRowsetSize, sizeof(nOldArraySize), NULL);
+			rc = SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)1, 0);
+			rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)1, 0);
+
 			SQLSMALLINT sNumResults = 0;
 			PrintError(hStmt, SQL_HANDLE_STMT, SQLNumResultCols(hStmt, &sNumResults));
 			std::vector<lpGETINFOALL> lpgi;
-			std::vector<std::string> columnNames = {};
+			std::vector<std::pair<std::string, std::string>> columnNames = {};
 
 			rc = SQLNumResultCols(hStmt, &sNumResults);
 			if ((rc) != SQL_SUCCESS && (rc) != SQL_SUCCESS_WITH_INFO)
@@ -164,12 +164,18 @@ namespace odbc
 				newObj->cbValueMax = (newObj->cbValueMax < (UWORD)(-1) ? newObj->cbValueMax : (UWORD)(-1));
 				newObj->rgbValue = (PTR)alloca(newObj->cbValueMax);
 								
-				char buf[8192];
+				char buf[8192], type[255];
 				PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i + 1, SQL_COLUMN_NAME, buf,
 					sizeof(buf), nullptr, nullptr));
-				columnNames.push_back(buf);
+				PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i + 1, SQL_COLUMN_TYPE_NAME,
+					type, sizeof(type), NULL, NULL));
+				columnNames.push_back({ buf, type });
 
 				lpgi.push_back(newObj);
+			}
+			for (size_t i = 0; i < columnNames.size(); i++)
+			{
+				res[columnNames[i].first].push_back({ {"sql_type", columnNames[i].second} });
 			}
 
 			while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING)
@@ -201,7 +207,7 @@ namespace odbc
 
 						if (cbValue == SQL_NULL_DATA)
 						{
-							res[columnNames[i]].push_back(json()); // Was "NULL"
+							res[columnNames[i].first].push_back(json()); // Was "NULL"
 							continue;
 						}
 
@@ -213,14 +219,17 @@ namespace odbc
 						case SQL_TINYINT:
 						case SQL_SMALLINT:
 						case SQL_BIGINT:
-							res[columnNames[i]].push_back(atoi(buf));
+						{
+							res[columnNames[i].first].push_back(atoi(buf));
 							break;
+						}
 						case SQL_REAL:
 						case SQL_DECIMAL:
 						case SQL_DOUBLE:
-							res[columnNames[i]].push_back(atof(buf));
+						{
+							res[columnNames[i].first].push_back(atof(buf));
 							break;
-
+						}
 						case SQL_CHAR:
 						case SQL_VARCHAR:
 						case SQL_LONGVARCHAR:
@@ -251,9 +260,10 @@ namespace odbc
 									}
 								}
 								else if (_js.is_array())
-									res[columnNames[i]].push_back(json({ _js })[0]);
+									res[columnNames[i].first].push_back(json({ _js })[0]);
 							}
-							res[columnNames[i]].push_back(str.empty() ? "" : _js);
+
+							res[columnNames[i].first].push_back(str.empty() ? "" : _js);
 						}
 						}
 					}
@@ -271,9 +281,13 @@ namespace odbc
 			break;
 		}
 
+		// In Somecase it may consider like success!
+		case SQL_NO_DATA_FOUND:
+			break;
+
 		default:
 #if defined(HAS_LOGGER)
-			Logger_Critical_F("Unexpected return code %hd!\n", rc);
+			Logger_Error_F("Unexpected return code %hd!\n", rc);
 #endif
 		}
 
@@ -304,14 +318,15 @@ namespace odbc
 		Query(query::MakeUpdateValuesQuery(name_table, name_columns, values, condition));
 	}
 
-	void ODBC::CreateTable(const std::string& name_table, const std::vector<std::string>& name_column, const std::vector<std::string>& type,
-		const std::vector<std::string>& value, const std::vector<std::vector<std::string>>& attributes)
+	void ODBC::CreateTable(const std::string& name_table, const std::vector<std::string>& name_column,
+		const std::vector<std::string>& type, const std::vector<std::string>& value,
+		const std::vector<std::vector<std::string>>& attributes)
 	{
-		std::string query = query::MakeCreateTableQuery(name_table, name_column, type, value, attributes);
+		std::string ret_query = query::MakeCreateTableQuery(name_table, name_column, type, value, attributes);
 
-		query.erase(query.find("DEFAULT CHARSET UTF8"), 20);
+		ret_query.erase(ret_query.find("DEFAULT CHARSET UTF8"), 20);
 
-		Query(query);
+		Query(ret_query);
 	}
 
 	void ODBC::CreateColumn(const std::string& name_table, const std::string& name_column, const std::string& type,
@@ -323,13 +338,13 @@ namespace odbc
 	void ODBC::ModifyColumn(const std::string& name_table, const std::string& name_column, const std::string& type,
 		const std::string& value, const std::vector<std::string>& attributes)
 	{
-		std::string query = query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes);
+		std::string ret_query = query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes);
 
-		size_t pos = query.find("MODIFY");
-		query.erase(pos, 6);
-		query.insert(pos, "ALTER");
+		size_t pos = ret_query.find("MODIFY");
+		ret_query.erase(pos, 6);
+		ret_query.insert(pos, "ALTER");
 
-		Query(query);
+		Query(ret_query);
 	}
 
 	void ODBC::DeleteTable(const std::string& name_table)
@@ -526,5 +541,71 @@ namespace odbc
 		rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)nOldRowsetSize, sizeof(nOldArraySize));
 
 		return ret;
+	}
+
+	void ODBC::SplitDB(const std::string &NameTable, const std::string &NameNewFile)
+	{
+		if (!hEnv || !hDbc || !hStmt)
+		{
+			Logger_Error("This Function Requires To Be Connected To Needed DB To Continue! Aborting!");
+			return;
+		}
+
+		if (NameTable.empty() || NameNewFile.empty())
+		{
+			Logger_Error("This Function Requires To Have Not Empty Params To Work! Aborting!");
+			return;
+		}
+
+		std::string c_str = "Microsoft Access Driver (*.mdb)";
+
+		auto SecondFile = std::make_shared<ODBC>();
+		// Create A New DB
+		SecondFile->CreateDataBase(c_str, NameNewFile);
+		SecondFile->Connect(c_str, NameNewFile, "", "");
+
+		// Then Get * From NameTable And Add It To New DB
+		auto CurrDB = SelectValues(NameTable, { "*" });
+
+		std::vector<std::string> NameColumns, TypeColumns, EmptyValue;
+		std::vector<std::vector<std::string>> EmptyAttributes;
+		for (auto it = CurrDB.begin(); it != CurrDB.end(); ++it)
+		{
+			NameColumns.push_back(it.key());
+
+			if (!it.value().front()["sql_type"].is_null() || !it.value().front()["sql_type"].empty())
+				TypeColumns.push_back(it.value().front()["sql_type"]);
+
+			EmptyValue.push_back("");
+			EmptyAttributes.push_back({});
+		}
+		SecondFile->CreateTable(NameTable, NameColumns, TypeColumns, EmptyValue, EmptyAttributes);
+
+		size_t size_y = 
+			(size_t)Query("SELECT COUNT(*) FROM `" + NameTable + "`").front().back().get<json::number_integer_t>(),
+			cur = 1u;
+		
+		while (true)
+		{
+			std::vector<std::string> columns, value;
+			for (size_t i = 0; i < NameColumns.size(); i++)
+			{
+				columns.push_back(NameColumns.at(i));
+
+				auto It = CurrDB[NameColumns.at(i)];
+				if (It.is_string())
+					value.push_back(It);
+				else if (It.is_array())
+					value.push_back(It.at(cur));
+				else if (It.is_object())
+					value.push_back(It);
+			}
+			SecondFile->InsertValues(NameTable, columns, value);
+			if (cur >= size_y)
+				break;
+			else
+				cur++;
+		}
+		SecondFile->Exit();
 	}
 } // namespace odbc

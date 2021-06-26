@@ -21,6 +21,8 @@ vector<shared_ptr<net::Client>> Users;
 bool UseRepeater = false, UseClear = false;
 void ConnectFunc(string Login, string Pass)
 {
+	if (Login.empty() || Pass.empty()) return;
+
 	Users.push_back(make_shared<net::Client>(network::IPEndpoint(""), ConnectionManager::TypeProtocol::TCP, 0));
 #if defined(USE_SSL)
 	Users.back()->Set_Cert_Chain("keys/rootca.crt");
@@ -32,10 +34,10 @@ void ConnectFunc(string Login, string Pass)
 
 		// Create MySQL Packet That We're Connection To
 		network::Packet Answer = network::Packet();
-		json pack = json::parse(Answer.CreateMySQL()->getData());
+		json pack = Answer.CreatePacket(network::Packet::Type::MySQL)->getData();
 		pack["data"]["body"]["_0"] = Login;
-		pack["data"]["body"]["_1"] = Pass;
-		Answer.FillIn(network::Packet::Header(network::Packet::Type::MySQL), pack);
+		pack["data"]["body"]["_1"] = md5_from_buffer(Pass);
+		Answer.FillIn(pack);
 
 		Users.back()->Send(Answer);
 	}
@@ -43,20 +45,20 @@ void ConnectFunc(string Login, string Pass)
 	{
 		system("cls");
 #if defined(HAS_LOGGER)
-		Logger_Error_F("User: %s, didn't connect to the %s", Login.c_str(), IP.toString().c_str());
+		Logger_Error_F("User: %s, didn't connect to %s", Login.c_str(), IP.toString().c_str());
 #endif
 	}
 }
 void GetPacketFromThread(network::Packet packet, network::Packet::Type NeededPacket)
 {
-	if (packet && packet.getHeader().type == NeededPacket && packet.getHeader().IsAnswer)
+	if (packet && (packet.getHeader().type == NeededPacket) && packet.getHeader().IsAnswer)
 	{
-		json unparsed = json::parse(packet.getData());
+		json unparsed = packet.getData();
 		size_t i = 0;
 		for (size_t i = 0; i < unparsed["_0"].size(); i++)
 		{
 #if defined(HAS_LOGGER)
-			Logger_Info_F("\tID: %i\nName: %s\n", ((int)unparsed["_1"].at(i).front().get<json::number_integer_t>()),
+			Logger_Info_F("\tID: %i - Name: %s\n", ((int)unparsed["_1"].at(i).front().get<json::number_integer_t>()),
 				unparsed["_0"].at(i).front().get<json::string_t>().c_str());
 #endif
 			i++;
@@ -68,13 +70,13 @@ int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "Russian");
 
-	DB->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+	DB->Connect("gb_1231", "J4hKTTK-LHwU",
 #if defined(_DEBUG)
-		"188.210.240.246"
+		"mysql92.1gb.ru"
 #else
 		"192.168.1.2"
 #endif
-		, "gb_z_rod2_rf");
+		, "gb_1231");
 
 	int Choice = 0;
 	while (true)
@@ -110,8 +112,8 @@ int main(int argc, char* argv[])
 #endif
 #if defined(HAS_LOGGER)
 			Logger_Info("Enter Password Here: ");
-#endif
 			cin >> Pass;
+#endif
 
 			ConnectFunc(Login, Pass);
 
@@ -149,12 +151,26 @@ int main(int argc, char* argv[])
 						if (!Users.front()->GetConnect()) continue;
 						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 						GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
+						packet.clear();
+
+						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::Ping);
+						GetPacketFromThread(packet, network::Packet::Type::Ping);
+						packet.clear();
+					
+						OutputDebugStringA((std::to_string(Users.front()->GetConnect()->GetCurrentPing()) + " ms").c_str());
 					}
 					while (UseRepeater)
 					{
 						if (!Users.front()->GetConnect()) continue;
 						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 						GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
+						packet.clear();
+
+						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::Ping);
+						GetPacketFromThread(packet, network::Packet::Type::Ping);
+						packet.clear();
+
+						OutputDebugStringA((std::to_string(Users.front()->GetConnect()->GetCurrentPing()) + " ms").c_str());
 					}
 				}
 				else if (Users.size() > 1)
@@ -166,6 +182,13 @@ int main(int argc, char* argv[])
 							if (!CurrentUser->GetConnect()) continue;
 							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 							GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
+							packet.clear();
+
+							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::Ping);
+							GetPacketFromThread(packet, network::Packet::Type::Ping);
+							packet.clear();
+						
+							OutputDebugStringA((std::to_string(CurrentUser->GetConnect()->GetCurrentPing()) + " ms").c_str());
 						}
 					}
 					while (UseRepeater)
@@ -175,9 +198,17 @@ int main(int argc, char* argv[])
 							if (!CurrentUser->GetConnect()) continue;
 							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 							GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
+							packet.clear();
+
+							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::Ping);
+							GetPacketFromThread(packet, network::Packet::Type::Ping);
+							packet.clear();
+							
+							OutputDebugStringA((std::to_string(CurrentUser->GetConnect()->GetCurrentPing()) + " ms").c_str());
 						}
 					}
 				}
+
 			}
 		}).detach();
 		while (true)
@@ -185,17 +216,18 @@ int main(int argc, char* argv[])
 			Sleep(1000);
 #if defined(HAS_LOGGER)
 			Logger_Info("Choice The One:\n");
-			Logger_Info("\t[0] - Send Chat Message Packet\n");
-			Logger_Info("\t[1] - Send Random Coordinates Level Object\n");
-			Logger_Info("\t[2] - Send \"Sound Play\" Packet (By Default It's \"01.08.16.wav\")\n");
+			Logger_Info("\t[0] - Get Ping (ECHO)\n");
+			Logger_Info("\t[1] - Send Chat Message Packet\n");
+			Logger_Info("\t[2] - Send Random Coordinates Level Object\n");
+			Logger_Info("\t[3] - Send \"Sound Play\" Packet (By Default It's \"01.08.16.wav\")\n");
 
-			Logger_Info("\t[3] - Get List Online Users\n");
+			Logger_Info("\t[4] - Get List Online Users\n");
 
-			Logger_Info("\t[4] - Back To Previous Menu\n");
+			Logger_Info("\t[5] - Back To Previous Menu\n");
 
-			Logger_Info_F("\t[5] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
+			Logger_Info_F("\t[6] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
 			
-			Logger_Info_F("\t[6] - Use Clear Screen After Command (%s - is now)\n", UseClear ? "ON" : "OFF");
+			Logger_Info_F("\t[7] - Use Clear Screen After Command (%s - is now)\n", UseClear ? "ON" : "OFF");
 
 			Logger_Info(": ");
 #endif
@@ -204,19 +236,10 @@ int main(int argc, char* argv[])
 			{
 			case 0:
 			{
-				Text.clear();
-				system("cls");
-#if defined(HAS_LOGGER)
-				Logger_Info("Enter Message Here: ");
-#endif
-				cin >> Text;
-
 				std::thread t = std::thread([&]
 				{
 					network::Packet packet;
-					json data = json::parse(packet.CreateMessage()->getData());
-					data["data"]["body"]["_0"] = Text + "\n";
-					packet.FillIn(network::Packet::Header(network::Packet::Type::Chat), data);
+					json data = packet.CreatePacket(network::Packet::Type::Ping, false)->getData();
 
 					if (Users.size() == 1)
 					{
@@ -266,17 +289,79 @@ int main(int argc, char* argv[])
 			}
 			case 1:
 			{
-				// Get List Of Current Game Objects Project
+				Text.clear();
+				system("cls");
+#if defined(HAS_LOGGER)
+				Logger_Info("Enter Message Here: ");
+#endif
+				cin >> Text;
 
+				std::thread t = std::thread([&]
+				{
+					network::Packet packet;
+					json data = packet.CreatePacket(network::Packet::Type::Chat, false)->getData();
+					data["data"]["body"]["_0"] = Text + "\n";
+					packet.FillIn(data);
+
+					if (Users.size() == 1)
+					{
+						if (UseRepeater)
+						{
+							while (UseRepeater)
+							{
+								if (Users.front()->GetConnect())
+									Users.front()->GetConnect()->Send(packet);
+							}
+						}
+						else
+						{
+							if (Users.front()->GetConnect())
+								Users.front()->GetConnect()->Send(packet);
+						}
+					}
+					else if (Users.size() > 1)
+					{
+						if (UseRepeater)
+						{
+							while (UseRepeater)
+							{
+								for (auto CurrentUser: Users)
+								{
+									if (!CurrentUser->GetConnect()) continue;
+									CurrentUser->GetConnect()->Send(packet);
+								}
+							}
+						}
+						else
+						{
+							for (auto CurrentUser: Users)
+							{
+								if (!CurrentUser->GetConnect()) continue;
+								CurrentUser->GetConnect()->Send(packet);
+							}
+						}
+					}
+				});
+				if (UseRepeater)
+					t.detach();
+				else
+					t.join();
 
 				break;
 			}
 			case 2:
 			{
+				// Get List Of Current Game Objects Project
+
+
+				break;
+			}
+			case 3:
+			{
 				Text.clear();
 				system("cls");
 #if defined(HAS_LOGGER)
-				Logger_Info("Enter ID User Here (-1 Means That 'To All Users That Are Online'): ");
+				Logger_Info("Enter ID User Here (or '-1' To All Users That Are Online): ");
 #endif
 				cin >> Text;
 
@@ -288,11 +373,11 @@ int main(int argc, char* argv[])
 					for (auto ID: AllUsersID)
 					{
 						packet.push_back(network::Packet());
-						json data = json::parse(packet.back().CreateMessage()->getData());
+						json data = packet.back().CreatePacket(network::Packet::Type::PlaySound, false)->getData();
 						data["data"]["body"]["_0"] = ID.back().get<json::number_integer_t>();
 						data["data"]["body"]["_1"] = 0.016f;
 						data["data"]["body"]["_2"] = "01.08.16.wav";
-						packet.back().FillIn(network::Packet::Header(network::Packet::Type::PlaySound), data);
+						packet.back().FillIn(data);
 					}
 					for (auto ThisPacket: packet)
 					{
@@ -303,23 +388,21 @@ int main(int argc, char* argv[])
 				else
 				{
 					network::Packet packet;
-					json data = json::parse(packet.CreateMessage()->getData());
+					json data = packet.CreatePacket(network::Packet::Type::PlaySound, false)->getData();
 					data["data"]["body"]["_0"] = atoi(Text.c_str());
 					data["data"]["body"]["_1"] = 0.016f;
 					data["data"]["body"]["_2"] = "01.08.16.wav";
-					packet.FillIn(network::Packet::Header(network::Packet::Type::PlaySound), data);
-					
+					packet.FillIn(data);
+
 					if (Users.front()->GetConnect())
 						Users.front()->GetConnect()->Send(packet);
 				}
 				break;
 			}
-			case 3:
+			case 4:
 			{
 				network::Packet packet;
-				json pack = json::parse(packet.CreateMessage()->getData());
-				pack["data"]["body"].clear();
-				packet.FillIn(network::Packet::Header(network::Packet::Type::GetListUsersOnline), pack);
+				json pack = packet.CreatePacket(network::Packet::Type::GetListUsersOnline, false)->getData();
 
 				if (Users.size() == 1)
 				{
@@ -338,22 +421,22 @@ int main(int argc, char* argv[])
 				Sleep(1000);
 				break;
 			}
-			case 4:
+			case 5:
 			{
 				break;
 			}
-			case 5:
+			case 6:
 			{
 				UseRepeater = !UseRepeater;
 				break;
 			}
-			case 6:
+			case 7:
 			{
 				UseClear = !UseClear;
 				break;
 			}
 			}
-			if (Choice == 4)
+			if (Choice == 5)
 				break;
 
 			if (UseClear)

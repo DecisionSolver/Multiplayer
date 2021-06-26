@@ -8,7 +8,6 @@ namespace network
 {
 	void Packet::clear()
 	{
-		data.str(std::string());
 		data.clear();
 		_H.OrigSize = 0;
 		_H.Settings = 0;
@@ -17,59 +16,22 @@ namespace network
 	}
 	size_t Packet::getSize() const
 	{
-		return data.str().size();
+		return data.size();
 	}
-	std::stringstream &Packet::getData()
+	json Packet::getData()
 	{
-		data >> std::noskipws;
 		return data;
 	}
 
-	Packet *Packet::CreateAnswer()
+	Packet *Packet::CreatePacket(const Packet::Type &Type, const bool &isAnswer, const nlohmann::json &Data)
 	{
 		json Return =
 		{
 			{"header",
 				{
 					{"_s",0}, // Settings
-					{"_t",0}, // Was 2 // Type Of Packet
-					{"_A",true}, // If Is It Answer?
-					{"_R",0} // ID Recipient
-				}
-			},
-			{"data",
-				{
-					// The Property Of Following Data
-					{"_i",""}, // Id Of Packet
-					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
-
-					{"body", // All Data Is Here
-						{
-							{"_0",""},
-						}
-					}
-				}
-			}
-		};
-
-		_H.Settings = Return["header"]["_s"].get<uint8_t>();
-		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
-			? Return["data"]["_o"].get<size_t>()
-			: 0u;
-		_H.type = (Type)Return["header"]["_t"].get<size_t>();
-		data.str(Return["data"]["body"].dump());
-		_H.IsAnswer = Return["header"]["_A"].get<bool>();
-
-		return this;
-	}
-	Packet *Packet::CreateMessage()
-	{
-		json Return =
-		{
-			{"header",
-				{
-					{"_s",0}, // Settings
-					{"_t",Chat}, // Was 2 // Type Of Packet
+					{"_t",(size_t)Type}, // Was 2 // Type Of Packet
+					{"_A",isAnswer}, // If Is It Answer?
 					{"_R",0} // ID Recipient
 				}
 			},
@@ -81,94 +43,29 @@ namespace network
 
 					{"body", // All Data Is Here
 						{
-							{"_0",""},
+							Data,
 						}
 					}
 				}
 			}
 		};
-		
-		_H.Settings = Return["header"]["_s"].get<uint8_t>();
-		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
-			? Return["data"]["_o"].get<size_t>()
-			: 0u;
-		_H.type = (Type)Return["header"]["_t"].get<size_t>();
-		data.str(Return["data"]["body"].dump());
 
-		return this;
-	}
-	Packet *Packet::CreateMySQL()
-	{
-		json Return =
+		if (Data.is_null() && Data.empty())
 		{
-			{"header",
-				{
-					{"_s",0}, // Settings
-					{"_t",MySQL}, // Was 2 // Type Of Packet
-					{"_R",0} // ID Recipient
-				}
-			},
-			{"data",
-				{
-					// The Property Of Following Data
-					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
-					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
-
-					{"body", // All Data Is Here
-						{
-							{"_0",""},
-							{"_1",""}, // Needs To Be In MD5 (If It's A Password!)
-						}
-					}
-				}
-			}
-		};
-		
-		_H.Settings = Return["header"]["_s"].get<uint8_t>();
-		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
-			? Return["data"]["_o"].get<size_t>()
-			: 0u;
-		_H.type = (Type)Return["header"]["_t"].get<size_t>();
-		data.str(Return["data"]["body"].dump());
-
-		return this;
-	}
-	Packet *Packet::CreateDisconnect()
-	{
-		json Return =
-		{
-			{"header",
-				{
-					{"_s",0}, // Settings
-					{"_t",Disconnection}, // Was 2 // Type Of Packet
-					{"_R",0} // ID Recipient
-				}
-			},
-			{"data",
-				{
-					// The Property Of Following Data
-					{"_i",""}, // Id Of Packet (Needs To Be In MD5)
-					{"_o",0}, // Orig Size To Decompress (If Was Decompressed)
-
-					{"body", // All Data Is Here
-						{
-							{"_0",""},
-						}
-					}
-				}
-			}
-		};
+			Return["data"]["body"].clear();
+			Return["data"]["body"] = json::object({ { "_0", "" }, { "_1", "" } });
+		}
 
 		_H.Settings = Return["header"]["_s"].get<uint8_t>();
 		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
 			? Return["data"]["_o"].get<size_t>()
 			: 0u;
-		_H.type = (Type)Return["header"]["_t"].get<size_t>();
-		data.str(Return.dump());
+		_H.type = Return["header"]["_t"].get<size_t>();
+		data = Return;
 
 		return this;
 	}
-	std::stringstream &Packet::onSend()
+	json Packet::onSend()
 	{
 		//if (size >= 1024)
 		//{
@@ -209,13 +106,6 @@ namespace network
 	{
 		try
 		{
-			Data.setf(std::ios::skipws);
-			Data.seekg(0, Data.end);
-
-			if (Data.tellg() == 0u || (Data.str().find("header") == std::string::npos)) return this;
-			Data.str(Data.str().erase(Data.str().find("#"), (size_t)Data.tellg()));
-			
-			Data.seekg(0, Data.beg);
 			json js = json::parse(Data);
 
 			if (js.empty()) return this;
@@ -245,25 +135,19 @@ namespace network
 				js["data"]["body"] = outData;
 			}
 
-			data.str(js["data"]["body"].dump());
+			data = js["data"]["body"];
 		}
 		catch (const json::parse_error &err)
 		{
 #if defined(HAS_LOGGER)
-			Logger_Critical_F("json::parse_error Failed: %s\n", err.what());
+			Logger_Error_F("json::parse_error Failed: %s\n", err.what());
 #endif
+			return new Packet();
 		}
 
 		return this;
 	}
 
-	void Packet::FillIn(const json &Data)
-	{
-		std::stringstream NewData;
-		NewData << Data;
-
-		FillIn(NewData);
-	}
 	void Packet::FillIn(const Header &NewHeader, const json &Data)
 	{
 		std::stringstream NewData;
@@ -271,11 +155,9 @@ namespace network
 
 		FillIn(NewHeader, NewData);
 	}
-	void Packet::FillIn(std::stringstream &Data)
+	void Packet::FillIn(const json &Data)
 	{
-		json NewData;
-		Data >> NewData;
-		
+		json NewData = Data;		
 		if (NewData.empty())
 			return;
 
@@ -283,8 +165,7 @@ namespace network
 		NewData["data"]["_o"] = _H.OrigSize;
 		NewData["header"]["_t"] = _H.type;
 
-		data >> std::noskipws;
-		data.str(NewData.dump() + '#');
+		data = NewData;
 	}
 	void Packet::FillIn(Header NewHeader, std::stringstream &Data)
 	{
@@ -295,22 +176,29 @@ namespace network
 			return;
 		_H.type = NewHeader.type;
 
-		// Translate String To Array JSON
-		if (NewData.is_string() && !NewData.get<json::string_t>().empty())
-			NewData = json::parse(NewData.get<json::string_t>());
+		try
+		{
+			// Translate String To Array JSON
+			if (NewData.is_string() && !NewData.empty())
+				NewData = json::parse(NewData.get<json::string_t>());
+		}
+		catch (const json::parse_error &err)
+		{
+#if defined(HAS_LOGGER)
+			Logger_Error_F("json::parse_error Failed: %s\n", err.what());
+#endif
+			return;
+		}
 
 		NewData["header"]["_s"] = _H.Settings;
 		NewData["data"]["_o"] = _H.OrigSize;
 		NewData["header"]["_t"] = _H.type;
 		NewData["header"]["_A"] = _H.IsAnswer;
 
-		OutputDebugStringA((NewData.dump() + '#' + '\n').c_str());
-
-		data >> std::noskipws;
-		data.str(NewData.dump() + '#');
+		data = NewData;
 	}
 	Packet::operator bool()
 	{
-		return !data.str().empty();
+		return !data.empty() && data.dump() != "null";
 	}
 }

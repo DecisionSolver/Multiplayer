@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Server.hpp"
 
+extern std::mutex m_connectionsMutex;
+
 namespace net
 {
 	void Server::OnPacketHandler(Connection::SharedPtr connection
@@ -12,17 +14,17 @@ namespace net
 		connection->GetPacket(packet, network::Packet::Type::Chat);
 		if (packet)
 		{
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::Chat, true, packet.getData())->getData();
+			Answer.FillIn(pack);
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateMessage()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Chat), pack);
+					pack["data"]["body"] = packet.getData();
 					Next.second->Send(Answer);
 				}
 			}
@@ -32,11 +34,8 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateMessage()->getData());
 					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Chat), pack);
+					pack["data"]["body"] = packet.getData();
 					Next.second->Send(Answer);
 				}
 			}
@@ -54,10 +53,10 @@ namespace net
 				Arr["_0"].push_back(Obj["_0"].at(i).back().get<json::string_t>());
 			}
 			network::Packet Answer = network::Packet();
-			json pack = json::parse(Answer.CreateAnswer()->getData());
+			json pack = Answer.CreatePacket(network::Packet::Type::GetListUsersOnline)->getData();
 			pack["data"]["body"]["_0"] = Arr["_0"]; // ID MySQL
 			pack["data"]["body"]["_1"] = Arr["_1"]; // Login
-			Answer.FillIn(network::Packet::Header(network::Packet::Type::GetListUsersOnline), pack);
+			Answer.FillIn(pack);
 			connection->Send(Answer);
 			packet.clear();
 		}
@@ -65,16 +64,14 @@ namespace net
 		connection->GetPacket(packet, network::Packet::Type::PlaySound);
 		if (packet)
 		{
-			json unparse = json::parse(packet.getData());
+			json unparse = packet.getData();
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::PlaySound, true, packet.getData())->getData();
+			Answer.FillIn(pack);
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::PlaySound), pack);
 					Next.second->Send(Answer);
 					if (unparse["_0"].get<int>() != -1)
 						break;
@@ -86,11 +83,6 @@ namespace net
 			{
 				for (auto &Next: m_connectionsUDP)
 				{
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::PlaySound), pack);
 					Next.second->Send(Answer);
 					if (unparse["_0"].get<int>() != -1)
 						break;
@@ -100,19 +92,18 @@ namespace net
 			}
 			packet.clear();
 		}
+
 		connection->GetPacket(packet, network::Packet::Type::PlayVoice);
 		if (packet)
 		{
-			json unparse = json::parse(packet.getData());
+			json unparse = packet.getData();
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::PlayVoice, true, packet.getData())->getData();
+			Answer.FillIn(pack);
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::PlayVoice), pack);
 					Next.second->Send(Answer);
 					if (unparse["_0"].get<int>() != -1)
 						break;
@@ -124,11 +115,6 @@ namespace net
 			{
 				for (auto &Next: m_connectionsUDP)
 				{
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::PlayVoice), pack);
 					Next.second->Send(Answer);
 					if (unparse["_0"].get<int>() != -1)
 						break;
@@ -138,21 +124,19 @@ namespace net
 			}
 			packet.clear();
 		}
+
 		connection->GetPacket(packet, network::Packet::Type::Sync_PosChanges);
 		if (packet)
 		{
-			json unparse = json::parse(packet.getData());
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::Sync_PosChanges, true, packet.getData())->getData();
+			Answer.FillIn(pack);
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_PosChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -162,31 +146,24 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_PosChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
 			packet.clear();
 		}
+
 		connection->GetPacket(packet, network::Packet::Type::Sync_RotChanges);
 		if (packet)
 		{
-			json unparse = json::parse(packet.getData());
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::Sync_RotChanges, true, packet.getData())->getData();
+			Answer.FillIn(pack);
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_RotChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -196,32 +173,25 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_RotChanges), pack);
 					Next.second->Send(Answer);
 				}
 
 			}
 			packet.clear();
 		}
+
 		connection->GetPacket(packet, network::Packet::Type::Sync_SclChanges);
 		if (packet)
 		{
-			json unparse = json::parse(packet.getData());
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::Sync_SclChanges, true, packet.getData())->getData();
+			Answer.FillIn(pack);
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_SclChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -231,31 +201,24 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_SclChanges), pack);
 					Next.second->Send(Answer);
 				}
 			}
 			packet.clear();
 		}
+
 		connection->GetPacket(packet, network::Packet::Type::Sync_NewNodeName);
 		if (packet)
 		{
-			json unparse = json::parse(packet.getData());
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::Sync_NewNodeName, true, packet.getData())->getData();
+			Answer.FillIn(pack);
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_NewNodeName), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -265,31 +228,24 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_NewNodeName), pack);
 					Next.second->Send(Answer);
 				}
 			}
 			packet.clear();
 		}
+
 		connection->GetPacket(packet, network::Packet::Type::Sync_NewNode);
 		if (packet)
 		{
-			json unparse = json::parse(packet.getData());
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::Sync_NewNode, true, packet.getData())->getData();
+			Answer.FillIn(pack);
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_NewNode), pack);
 					Next.second->Send(Answer);
 				}
 			}
@@ -299,25 +255,34 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					network::Packet Answer = network::Packet();
-					json pack = json::parse(Answer.CreateAnswer()->getData());
-					pack["data"]["body"].clear();
-					pack["data"]["body"] << packet.getData();
-					Answer.FillIn(network::Packet::Header(network::Packet::Type::Sync_NewNode), pack);
 					Next.second->Send(Answer);
 				}
 			}
 			packet.clear();
 		}
+
 		connection->GetPacket(packet, network::Packet::Type::Get_MetaData_Project);
 		if (packet)
 		{
 
 		}
+
 		connection->GetPacket(packet, network::Packet::Type::Get_MetaData_Project_Ex);
 		if (packet)
 		{
 
+		}
+		
+		connection->GetPacket(packet, network::Packet::Type::Ping);
+		if (packet)
+		{
+			network::Packet Answer = network::Packet();
+			json pack = Answer.CreatePacket(network::Packet::Type::Ping)->getData();
+			if (_Proto == TypeProtocol::TCP)
+				connection->Send(Answer);
+			else if (_Proto == TypeProtocol::UDP)
+				connection->Send(Answer);
+			packet.clear();
 		}
 	}
 
@@ -327,14 +292,21 @@ namespace net
 		{
 			Server::OnPacketHandler(connection);
 		});
-		if (User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
-#if defined(_DEBUG)
-			"188.210.240.246"
-#else
-			"188.210.240.246"
-#endif
-			, "gb_z_rod2_rf") == mysql::Client::Done)
+//		if (User->Connect("7f5acfc6", "c21d854c6d3b7a9b0d4c3bf52f0b9af6caffa8fd",
+//#if defined(_DEBUG)
+//			"188.210.240.246"
+//#else
+//			"188.210.240.246"
+//#endif
+//			, "gb_z_rod2_rf") == mysql::Client::Done)
+		if (User->Connect("gb_1231", "J4hKTTK-LHwU",
+			"mysql92.1gb.ru"
+			, "gb_1231") == mysql::Client::Done)
+		{
 			WaitForMySQL.notify_all();
+			// Set All Users To Offline
+			User->TryUpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _2 = '1'" } });
+		}
 		else
 		{
 #if defined(HAS_LOGGER)
@@ -342,8 +314,6 @@ namespace net
 #endif
 			WaitForMySQL.notify_all();
 		}
-		// Set All Users To Offline
-		User->TryUpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _2 = '1'" } });
 	}
 
 	void Server::Send(std::string Packet)
