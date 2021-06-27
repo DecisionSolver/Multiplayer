@@ -24,7 +24,7 @@ namespace network
 	}
 
 	Packet *Packet::CreatePacket(const Packet::Type &Type, const bool &isAnswer, const nlohmann::json &Data)
-	{
+	{		
 		json Return =
 		{
 			{"header",
@@ -43,7 +43,6 @@ namespace network
 
 					{"body", // All Data Is Here
 						{
-							Data,
 						}
 					}
 				}
@@ -51,11 +50,22 @@ namespace network
 		};
 
 		if (Data.is_null() && Data.empty())
-		{
-			Return["data"]["body"].clear();
 			Return["data"]["body"] = json::object({ { "_0", "" }, { "_1", "" } });
+		else
+		{
+			nlohmann::json::const_iterator data_beg, data_end;
+			if (Data.find("data") != Data.end() && Data.find("body") != Data.end())
+			{
+				data_beg = Data["data"]["body"].begin();
+				data_end = Data["data"]["body"].end();
+			}
+			else
+			{
+				data_beg = Data.begin();
+				data_end = Data.end();
+			}
+			Return["data"]["body"] = { data_beg, data_end };
 		}
-
 		_H.Settings = Return["header"]["_s"].get<uint8_t>();
 		_H.OrigSize = _H.Settings & Header::TypeSettings::Compressed
 			? Return["data"]["_o"].get<size_t>()

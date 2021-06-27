@@ -15,16 +15,13 @@ namespace net
 		if (packet)
 		{
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::Chat, true, packet.getData())->getData();
-			Answer.FillIn(pack);
+			Answer.CreatePacket(network::Packet::Type::Chat, true, packet.getData());
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					pack["data"]["body"].clear();
-					pack["data"]["body"] = packet.getData();
 					Next.second->Send(Answer);
 				}
 			}
@@ -34,8 +31,6 @@ namespace net
 				{
 					// Not To ME!!!
 					if (connection == Next.second) continue;
-					pack["data"]["body"].clear();
-					pack["data"]["body"] = packet.getData();
 					Next.second->Send(Answer);
 				}
 			}
@@ -53,10 +48,8 @@ namespace net
 				Arr["_0"].push_back(Obj["_0"].at(i).back().get<json::string_t>());
 			}
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::GetListUsersOnline)->getData();
-			pack["data"]["body"]["_0"] = Arr["_0"]; // ID MySQL
-			pack["data"]["body"]["_1"] = Arr["_1"]; // Login
-			Answer.FillIn(pack);
+			Answer.CreatePacket(network::Packet::Type::GetListUsersOnline, true,
+				{ {"_0", Arr["_0"]}, {"_1", Arr["_1"]} });
 			connection->Send(Answer);
 			packet.clear();
 		}
@@ -66,8 +59,7 @@ namespace net
 		{
 			json unparse = packet.getData();
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::PlaySound, true, packet.getData())->getData();
-			Answer.FillIn(pack);
+			Answer.CreatePacket(network::Packet::Type::PlaySound, true, packet.getData());
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
@@ -98,8 +90,7 @@ namespace net
 		{
 			json unparse = packet.getData();
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::PlayVoice, true, packet.getData())->getData();
-			Answer.FillIn(pack);
+			Answer.CreatePacket(network::Packet::Type::PlayVoice, true, packet.getData());
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
@@ -129,8 +120,7 @@ namespace net
 		if (packet)
 		{
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::Sync_PosChanges, true, packet.getData())->getData();
-			Answer.FillIn(pack);
+			 Answer.CreatePacket(network::Packet::Type::Sync_PosChanges, true, packet.getData());
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
@@ -156,8 +146,7 @@ namespace net
 		if (packet)
 		{
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::Sync_RotChanges, true, packet.getData())->getData();
-			Answer.FillIn(pack);
+			Answer.CreatePacket(network::Packet::Type::Sync_RotChanges, true, packet.getData());
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
@@ -184,8 +173,7 @@ namespace net
 		if (packet)
 		{
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::Sync_SclChanges, true, packet.getData())->getData();
-			Answer.FillIn(pack);
+			Answer.CreatePacket(network::Packet::Type::Sync_SclChanges, true, packet.getData());
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
@@ -211,8 +199,7 @@ namespace net
 		if (packet)
 		{
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::Sync_NewNodeName, true, packet.getData())->getData();
-			Answer.FillIn(pack);
+			Answer.CreatePacket(network::Packet::Type::Sync_NewNodeName, true, packet.getData());
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
@@ -238,8 +225,7 @@ namespace net
 		if (packet)
 		{
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::Sync_NewNode, true, packet.getData())->getData();
-			Answer.FillIn(pack);
+			Answer.CreatePacket(network::Packet::Type::Sync_NewNode, true, packet.getData());
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (auto &Next: m_connectionsTCP)
@@ -277,7 +263,7 @@ namespace net
 		if (packet)
 		{
 			network::Packet Answer = network::Packet();
-			json pack = Answer.CreatePacket(network::Packet::Type::Ping)->getData();
+			Answer.CreatePacket(network::Packet::Type::Ping);
 			if (_Proto == TypeProtocol::TCP)
 				connection->Send(Answer);
 			else if (_Proto == TypeProtocol::UDP)

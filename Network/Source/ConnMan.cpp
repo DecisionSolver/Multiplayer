@@ -262,10 +262,8 @@ bool ConnectionManager::ConnectToServer()
 
 		/* Sending ACCEPT CONNECTION Packet */
 		network::Packet AnswerPacket = network::Packet();
-		json dataJSON = AnswerPacket.CreatePacket(network::Packet::Type::Connection)->getData();
-		dataJSON["data"]["body"]["_1"] = "OK";
-		
-		AnswerPacket.FillIn(dataJSON);
+		AnswerPacket.CreatePacket(network::Packet::Type::Connection, true, { {"_1", "OK"} });
+
 		one_connection->Send(AnswerPacket);
 		
 		return true;
@@ -545,9 +543,15 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, std
 		Logger_Info("Disconnected Current Client!");
 #endif
 		connection->successConn.notify_all();
+
+		if (connection->getIsError() &&
+			!connection->get_error_queue().empty())
+			connection->get_error_queue().pop_front();
+
+		connection->waiterDisconnection.notify_all();
+
 		if (connection)
 			connection.reset();
-
 		return;
 	}
 
@@ -719,9 +723,8 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						{
 							/* Sending ACCEPT CONNECTION Packet */
 							network::Packet AnswerPacket = network::Packet();
-							dataJSON["data"]["body"]["_1"] = "OK";
-							AnswerPacket.FillIn(network::Packet::Header(network::Packet::Type::Connection),
-								dataJSON);
+							AnswerPacket.CreatePacket(network::Packet::Type::Connection, true,
+								{ {"_1", "OK"} });
 							connection->Send(AnswerPacket);
 							connection->SetConnected(true);
 						}
@@ -782,7 +785,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						auto IsOnline = User->SelectValues("Local", { "_2, _N" });
 
 						network::Packet disconnect = network::Packet();
-						disconnect.CreatePacket(network::Packet::Type::Disconnection, false)->getData();
+						disconnect.CreatePacket(network::Packet::Type::Disconnection, false);
 						if (_Proto == TypeProtocol::TCP)
 						{
 							std::map<asio::ip::tcp::endpoint,
@@ -916,20 +919,6 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 									}
 								}
 
-								if (connection->second)
-								{
-									if (connection->second->getIsError() &&
-										!connection->second->get_error_queue().empty())
-									{
-										User->UpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
-										std::to_string(connection->second->GetMetaDB_User()) + "'" } });
-										connection->second->get_error_queue().pop_front();
-									}
-									connection->second->waiterDisconnection.notify_all();
-									if (m_connectionsTCP.empty())
-										break;
-								}
-
 								connection++;
 							}
 						}
@@ -953,18 +942,6 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 											connection = m_connectionsUDP.begin();
 										continue;
 									}
-								}
-
-								if (connection->second)
-								{
-									if (connection->second->getIsError() &&
-										!connection->second->get_error_queue().empty())
-									{
-										User->UpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
-										std::to_string(connection->second->GetMetaDB_User()) + "'" } });
-										connection->second->get_error_queue().pop_front();
-									}
-									connection->second->waiterDisconnection.notify_all();
 								}
 
 								connection++;

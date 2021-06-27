@@ -34,10 +34,8 @@ void ConnectFunc(string Login, string Pass)
 
 		// Create MySQL Packet That We're Connection To
 		network::Packet Answer = network::Packet();
-		json pack = Answer.CreatePacket(network::Packet::Type::MySQL)->getData();
-		pack["data"]["body"]["_0"] = Login;
-		pack["data"]["body"]["_1"] = md5_from_buffer(Pass);
-		Answer.FillIn(pack);
+		Answer.CreatePacket(network::Packet::Type::MySQL, true, { { "_0", Login },
+			{ "_1", md5_from_buffer(Pass) } });
 
 		Users.back()->Send(Answer);
 	}
@@ -153,11 +151,7 @@ int main(int argc, char* argv[])
 						GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 						packet.clear();
 
-						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::Ping);
-						GetPacketFromThread(packet, network::Packet::Type::Ping);
-						packet.clear();
-					
-						OutputDebugStringA((std::to_string(Users.front()->GetConnect()->GetCurrentPing()) + " ms").c_str());
+						OutputDebugStringA(("\n" + std::to_string(Users.front()->GetConnect()->GetCurrentPing()) + " ms\n").c_str());
 					}
 					while (UseRepeater)
 					{
@@ -166,11 +160,7 @@ int main(int argc, char* argv[])
 						GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 						packet.clear();
 
-						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::Ping);
-						GetPacketFromThread(packet, network::Packet::Type::Ping);
-						packet.clear();
-
-						OutputDebugStringA((std::to_string(Users.front()->GetConnect()->GetCurrentPing()) + " ms").c_str());
+						OutputDebugStringA(("\n" + std::to_string(Users.front()->GetConnect()->GetCurrentPing()) + " ms\n").c_str());
 					}
 				}
 				else if (Users.size() > 1)
@@ -183,12 +173,8 @@ int main(int argc, char* argv[])
 							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 							GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 							packet.clear();
-
-							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::Ping);
-							GetPacketFromThread(packet, network::Packet::Type::Ping);
-							packet.clear();
 						
-							OutputDebugStringA((std::to_string(CurrentUser->GetConnect()->GetCurrentPing()) + " ms").c_str());
+							OutputDebugStringA(("\n" + std::to_string(CurrentUser->GetConnect()->GetCurrentPing()) + " ms\n").c_str());
 						}
 					}
 					while (UseRepeater)
@@ -199,12 +185,8 @@ int main(int argc, char* argv[])
 							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 							GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 							packet.clear();
-
-							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::Ping);
-							GetPacketFromThread(packet, network::Packet::Type::Ping);
-							packet.clear();
 							
-							OutputDebugStringA((std::to_string(CurrentUser->GetConnect()->GetCurrentPing()) + " ms").c_str());
+							OutputDebugStringA(("\n" + std::to_string(CurrentUser->GetConnect()->GetCurrentPing()) + " ms\n").c_str());
 						}
 					}
 				}
@@ -239,7 +221,7 @@ int main(int argc, char* argv[])
 				std::thread t = std::thread([&]
 				{
 					network::Packet packet;
-					json data = packet.CreatePacket(network::Packet::Type::Ping, false)->getData();
+					packet.CreatePacket(network::Packet::Type::Ping, false);
 
 					if (Users.size() == 1)
 					{
@@ -299,9 +281,7 @@ int main(int argc, char* argv[])
 				std::thread t = std::thread([&]
 				{
 					network::Packet packet;
-					json data = packet.CreatePacket(network::Packet::Type::Chat, false)->getData();
-					data["data"]["body"]["_0"] = Text + "\n";
-					packet.FillIn(data);
+					packet.CreatePacket(network::Packet::Type::Chat, false, { { "_0", Text + "\n" } });
 
 					if (Users.size() == 1)
 					{
@@ -373,11 +353,12 @@ int main(int argc, char* argv[])
 					for (auto ID: AllUsersID)
 					{
 						packet.push_back(network::Packet());
-						json data = packet.back().CreatePacket(network::Packet::Type::PlaySound, false)->getData();
-						data["data"]["body"]["_0"] = ID.back().get<json::number_integer_t>();
-						data["data"]["body"]["_1"] = 0.016f;
-						data["data"]["body"]["_2"] = "01.08.16.wav";
-						packet.back().FillIn(data);
+						packet.back().CreatePacket(network::Packet::Type::PlaySound, false,
+							{
+								{ "_0", ID.back().get<json::number_integer_t>() },
+								{ "_1", 0.016f },
+								{ "_2", "01.08.16.wav" }
+							});
 					}
 					for (auto ThisPacket: packet)
 					{
@@ -388,11 +369,12 @@ int main(int argc, char* argv[])
 				else
 				{
 					network::Packet packet;
-					json data = packet.CreatePacket(network::Packet::Type::PlaySound, false)->getData();
-					data["data"]["body"]["_0"] = atoi(Text.c_str());
-					data["data"]["body"]["_1"] = 0.016f;
-					data["data"]["body"]["_2"] = "01.08.16.wav";
-					packet.FillIn(data);
+					packet.CreatePacket(network::Packet::Type::PlaySound, false,
+						{
+							{ "_0", atoi(Text.c_str()) },
+							{ "_1", 0.016f },
+							{ "_2", "01.08.16.wav" }
+						});
 
 					if (Users.front()->GetConnect())
 						Users.front()->GetConnect()->Send(packet);
@@ -402,7 +384,7 @@ int main(int argc, char* argv[])
 			case 4:
 			{
 				network::Packet packet;
-				json pack = packet.CreatePacket(network::Packet::Type::GetListUsersOnline, false)->getData();
+				packet.CreatePacket(network::Packet::Type::GetListUsersOnline, false);
 
 				if (Users.size() == 1)
 				{

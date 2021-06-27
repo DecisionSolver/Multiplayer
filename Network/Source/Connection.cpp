@@ -147,7 +147,7 @@ void Connection::Stop(bool NeedLock)
 		Connected)
 	{
 		network::Packet disconnect = network::Packet();
-		disconnect.CreatePacket(network::Packet::Type::Disconnection, false)->getData();
+		disconnect.CreatePacket(network::Packet::Type::Disconnection, false);
 		Send(disconnect);
 	}
 	SetConnected(false);
@@ -339,22 +339,6 @@ void Connection::DoReceive()
 		if (errorCode)
 		{
 			std::scoped_lock<std::mutex> lock(m_connectionsMutex);
-
-			if (self->m_owner && (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP &&
-				self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server))
-			{
-				auto itConnectionUDP = std::find_if(ConnectionManager::m_connectionsUDP.begin(),
-					ConnectionManager::m_connectionsUDP.end(),
-					[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
-				{
-					if (ThisConn.second == self)
-						return true;
-					return false;
-				});
-
-				if (itConnectionUDP != ConnectionManager::m_connectionsUDP.end())
-					ConnectionManager::m_connectionsUDP.erase(itConnectionUDP);
-			}
 			// Check if the other side hung up
 			if (errorCode == asio::error::make_error_code(asio::error::eof))
 			{	// This is not really an error. The client is free to hang up whenever they like
@@ -376,23 +360,7 @@ void Connection::DoReceive()
 				self->get_cv_error().notify_one();
 			}
 
-			self->SetConnected(false);
-
-			if (self->m_owner && (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP &&
-				self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server))
-			{
-				auto itConnectionTCP = std::find_if(ConnectionManager::m_connectionsTCP.begin(),
-					ConnectionManager::m_connectionsTCP.end(),
-					[&](const std::pair<asio::ip::tcp::endpoint, Connection::SharedPtr> &ThisConn)
-				{
-					if (ThisConn.second == self)
-						return true;
-					return false;
-				});
-
-				if (itConnectionTCP != ConnectionManager::m_connectionsTCP.end())
-					ConnectionManager::m_connectionsTCP.erase(itConnectionTCP);
-			}
+			self->m_owner->OnConnectionClosed(self);
 
 			// An error occured
 			return;
