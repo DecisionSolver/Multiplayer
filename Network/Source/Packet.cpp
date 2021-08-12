@@ -18,7 +18,7 @@ namespace network
 	{
 		return data.size();
 	}
-	json Packet::getData()
+	json &Packet::getData()
 	{
 		return data;
 	}
@@ -30,9 +30,9 @@ namespace network
 			{"header",
 				{
 					{"_s",0}, // Settings
-					{"_t",(size_t)Type}, // Was 2 // Type Of Packet
+					{"_t",(size_t)Type}, // Type Of Packet
 					{"_A",isAnswer}, // If Is It Answer?
-					{"_R",0} // ID Recipient
+					{"_R",-1} // ID Recipient
 				}
 			},
 			{"data",
@@ -71,6 +71,11 @@ namespace network
 			? Return["data"]["_o"].get<size_t>()
 			: 0u;
 		_H.type = Return["header"]["_t"].get<size_t>();
+		
+		// Only Server Sets It!
+		if (Data.find("header") != Data.end() && (Data.find("_R") != Data.end()))
+			_H.ID_Receiver = Data["header"]["_R"].get<json::boolean_t>();
+
 		data = Return;
 
 		return this;
@@ -132,7 +137,10 @@ namespace network
 				_H.type = (Type)js["header"]["_t"].get<int>();
 			if (js["header"].find("_A") != End)
 				_H.IsAnswer = js["header"]["_A"].get<json::boolean_t>();
-
+			
+			if (js["header"].find("_R") != End)
+				_H.ID_Receiver = (int)js["header"]["_R"].get<json::number_integer_t>();
+			
 			if (_H.Settings & Header::TypeSettings::Compressed)
 			{
 				size_t Size = js["data"]["body"].dump().size();
@@ -149,7 +157,7 @@ namespace network
 		}
 		catch (const json::parse_error &err)
 		{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Error_F("json::parse_error Failed: %s\n", err.what());
 #endif
 			return new Packet();
@@ -194,7 +202,7 @@ namespace network
 		}
 		catch (const json::parse_error &err)
 		{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Error_F("json::parse_error Failed: %s\n", err.what());
 #endif
 			return;

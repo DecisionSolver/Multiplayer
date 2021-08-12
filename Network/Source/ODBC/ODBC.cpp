@@ -1,6 +1,8 @@
 #include <pch.h>
+#include <Windows.h>
+
 #include "ODBC/ODBC.h"
-#include "SQL_Query.hpp"
+#include "DB_Query.hpp"
 #include "boost/algorithm/string/case_conv.hpp"
 #include <odbcinst.h>
 
@@ -15,7 +17,6 @@ namespace odbc
 			A2W(("CREATE_DB=\"" + path + "\";" + attributes + (password.empty() ? "" : ";PWD=" + password)).c_str()))) != 1)
 			Logger_Error_F("Something is wrong with create a database file, error code: %i", GetLastError());
 	}
-
 	void ODBC::Connect(const std::string& driver, const std::string& path,
 		const std::string& attributes, const std::string& password)
 	{
@@ -40,7 +41,6 @@ namespace odbc
 		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt)))
 			return;
 	}
-
 	bool ODBC::PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e)
 	{
 		SQLSMALLINT iRec = 0;
@@ -49,7 +49,7 @@ namespace odbc
 
 		if (e == SQL_INVALID_HANDLE)
 		{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Critical("Invalid handle!\n");
 #endif 
 			return true;
@@ -61,20 +61,39 @@ namespace odbc
 			// Hide data truncated..
 			if (!strcmp((const char*)wszState, "01000"))
 			{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Warn_F("[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
 #endif
 				return false;
 			}
 
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Error_F("[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
 #endif
 		}
 
 		return false;
 	}
+	int ODBC::GetCntData(const std::string & query)
+	{
+		SQLHSTMT Local = nullptr;
+		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &Local)))
+			return 0;
+		RETCODE rc = SQLExecDirectA(Local, (SQLCHAR*)(query.c_str()), SQL_NTS);
 
+
+		SQLLEN cnt = 0;
+		while ((rc = SQLFetch(Local)) != SQL_NO_DATA)
+		{
+			cnt++;
+		}
+		
+		PrintError(Local, SQL_HANDLE_STMT, SQLFreeStmt(Local, SQL_CLOSE));
+		
+		SQLFreeHandle(SQL_HANDLE_STMT, Local);
+
+		return cnt;
+	}
 	nlohmann::json ODBC::Query(const std::string& query, bool Need_SQL_TYPE)
 	{
 		RETCODE rc = SQLExecDirectA(hStmt, (SQLCHAR*)(query.c_str()), SQL_NTS);
@@ -185,12 +204,15 @@ namespace odbc
 			{
 			}
 
+			// Do A New SQLExecuteDirect To Get How Much Count Of Data Will Be
+			SQLLEN cnt = 1;
+			if (query.find("SELECT") != std::string::npos)
+				cnt = GetCntData(query);
 			rc = SQL_SUCCESS;
 
 			while ((rc) == SQL_SUCCESS || (rc) == SQL_SUCCESS_WITH_INFO)
 			{
-				size_t cnt = lpgi.size();
-				for (size_t i = 0; i < cnt; i++)
+				for (size_t i = 0; i < lpgi.size(); i++)
 				{
 					SQLLEN cbValue;
 					PrintError(hStmt,
@@ -211,7 +233,10 @@ namespace odbc
 
 						if (cbValue == SQL_NULL_DATA)
 						{
-							res[columnNames[i].first].push_back(json()); // Was "NULL"
+							if (cnt == 1 && sNumResults == 1)
+								res = json();
+							else
+								res[columnNames[i].first].push_back(json()); // Was "NULL"
 							continue;
 						}
 
@@ -224,14 +249,20 @@ namespace odbc
 						case SQL_SMALLINT:
 						case SQL_BIGINT:
 						{
-							res[columnNames[i].first].push_back(atoi(buf));
+							if (cnt == 1 && sNumResults == 1)
+								res = json::object({ { columnNames[i].first, atoi(buf) } });
+							else
+								res[columnNames[i].first].push_back(atoi(buf));
 							break;
 						}
 						case SQL_REAL:
 						case SQL_DECIMAL:
 						case SQL_DOUBLE:
 						{
-							res[columnNames[i].first].push_back(atof(buf));
+							if (cnt == 1 && sNumResults == 1)
+								res = json::object({ { columnNames[i].first, atof(buf) } });
+							else
+								res[columnNames[i].first].push_back(atof(buf));
 							break;
 						}
 						case SQL_CHAR:
@@ -279,7 +310,10 @@ namespace odbc
 									_js = str;
 								}
 							}
-							res[columnNames[i].first].push_back(str.empty() ? "" : _js);
+							if (cnt == 1 && sNumResults == 1)
+								res = _js;
+							else
+								res[columnNames[i].first].push_back(str.empty() ? "" : _js);
 						}
 						}
 					}
@@ -302,7 +336,7 @@ namespace odbc
 			break;
 
 		default:
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Error_F("Unexpected return code %hd!\n", rc);
 #endif
 		}

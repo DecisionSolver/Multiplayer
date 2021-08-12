@@ -1,10 +1,7 @@
 #pragma once
 #include "pch.h"
 
-#include <atomic>
-#include <condition_variable>
-#include <memory>
-#include <mutex>
+#include <asio.hpp>
 
 #include <Packet.hpp>
 #include <FTPClient.h>
@@ -46,7 +43,7 @@ public:
 	void Stop(bool NeedLock = true);
 
 	void Send(const std::vector<char> &data);
-	void Send(network::Packet &packet);
+	void Send(std::shared_ptr<network::Packet> packet);
 
 	void SetLogged() { isLogged = true; }
 	void SetConnected(bool IsConnected) { Connected = IsConnected; }
@@ -63,7 +60,7 @@ public:
 	std::condition_variable &get_cv_error() { return error; }
 	std::deque<asio::error_code> &get_error_queue() { return error_queue; }
 
-	std::condition_variable successConn, waiterDisconnection;
+	std::condition_variable successConn/*, waiterDisconnection*/;
 	std::atomic<bool> &GetStopped() { return m_stopped; }
 
 	void SetMetaDB_User(int ID) { UserID_MetaDB = ID; }
@@ -81,10 +78,11 @@ public:
 	asio::ip::udp::endpoint remote_endpoint() { return remote_endpoint_; }
 
 	const std::atomic<size_t> &GetCurrentPing() { return ping; }
+
+	ConnectionManager *m_owner = nullptr;
 private:
 	static size_t m_nextClientId;
 	size_t m_clientId = 0;
-	ConnectionManager *m_owner = nullptr;
 
 #if defined(USE_SSL)
 	std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> m_socketTCP;
@@ -106,7 +104,7 @@ private:
 	int m_activeSendBufferIndex = 0;
 	bool m_sending = false, isLogged = false, Connected = false;
 
-	std::map<network::Packet::Type, network::Packet> packet_queue;
+	std::map<network::Packet::Type, std::shared_ptr<network::Packet>> packet_queue;
 	std::deque<asio::error_code> error_queue;
 
 	std::vector<char> m_allReadData; // Strictly for test purposes

@@ -2,9 +2,6 @@
 #include "pch.h"
 #include "Connection.h"
 
-// Boost Includes
-#include "asio.hpp"
-
 // Standard Includes
 #include <thread>
 #include <vector>
@@ -55,7 +52,7 @@ public:
 	bool ConnectToServer();
 	bool IsRunning() const;
 	
-	void Send(const network::Packet &Packet);
+	void Send(const std::shared_ptr<network::Packet> &Packet);
 	void Send(const std::string &Packet);
 
 	void SetCB_Accept(std::function<void(Connection::SharedPtr)> Func);
@@ -81,6 +78,8 @@ public:
 	asio::ip::udp::socket &GetSocketUDP() { return *m_SocketUDP; }
 	static std::map<asio::ip::udp::endpoint, Connection::SharedPtr> m_connectionsUDP;
 	static std::map<asio::ip::tcp::endpoint, Connection::SharedPtr> m_connectionsTCP;
+	
+	std::shared_ptr<mysql::MYSQLCLIENT> MySQL_DB = std::make_shared<mysql::MYSQLCLIENT>();
 
 	// Key
 	void Set_Cert_RSA_Private(const std::string &Path)
@@ -171,8 +170,6 @@ protected:
 
 	std::function<void(Connection::SharedPtr)> Callback_OnClientHandler, Callback_Accept, Callback_OnLoggin;
 	std::function<void(asio::error_code)> Callback_OnError;
-
-	std::shared_ptr<mysql::MYSQLCLIENT> User = std::make_shared<mysql::MYSQLCLIENT>();
 
 #if defined(USE_SSL)
 	std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> newConnTCP_SSL;

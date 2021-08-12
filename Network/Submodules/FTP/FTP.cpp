@@ -31,6 +31,7 @@ namespace mysql
 {
 	void addUser(const std::string& username, const std::vector<FileRights>& FilesRights, const int projectRights)
 	{
+		mysqlDB->SelectValues("user_wright", { "FilesRights", "Username" }, { "`ProjectRights`='1'" });
 		if (!mysqlDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='" + username + "'" }).empty())
 		{
 			Logger_Warn("User already exists.\n");
@@ -127,6 +128,7 @@ namespace odbc
 {
 	void addUser(const std::string& username, const std::vector<FileRights>& FilesRights, const int projectRights)
 	{
+		odbcDB->SelectValues("user_wright", { "FilesRights", "Username" }, { "WHERE `ProjectRights`=1" });
 		if (!odbcDB->SelectValues("user_wright", { "FilesRights" }, { "`Username`='" + username + "'" })["FilesRights"][0].is_null())
 		{
 			Logger_Warn("User already exists.\n");
@@ -212,7 +214,7 @@ namespace odbc
 		if (ProjectRights.is_null()) //unknown user
 			ProjectRights = odbcDB->SelectValues("user_wright", { "ProjectRights" }, { "`Username`='.AnonimousUser'" })["ProjectRights"][0];
 
-		if ((ProjectRights["_0"] & action) != 0)
+		if ((ProjectRights & action) != 0)
 			return true;
 		else
 			return false;
@@ -223,15 +225,17 @@ int main()
 {
 	setlocale(LC_ALL, "Russian");
 
-	/*odbcDB->Connect("Microsoft Access Driver (*.mdb)", "F:\\Programming\\C++\\Project\\ODBC\\ODBC\\test.MDB", "READONLY=false", "12345");
-	odbc::addUser("user4", {}, 0);
-	odbc::addUser("user6", {}, 0);
-	odbc::updateFilesRights("user6", { {"doc.doc", 3} });
-	std::cerr << odbc::hasUserAccessToFile("user6", "doc.doc", 1);
-	odbc::updateFilesRights("user3", { {"text.text", 1}, {"mp4.mp4", 2} });
-	std::cerr << odbc::hasUserAccessToFile("user3", "text.text", 1) << odbc::hasUserAccessToFile("user3", "mp4.mp4", 1);
-	odbc::updateFilesRights("user3", { {"mp4.mp4", 0} });
-	std::cout << odbc::hasUserAccessToProject("user1", 1);*/
+	//odbcDB->Connect("Microsoft Access Driver (*.mdb)", "C:/Users/PBAX/Downloads/test.mdb", "READONLY=false", "12345");
+
+	//odbcDB->Query("SELECT `FilesRights`, `Username` FROM `user_wright` WHERE `ProjectRights` = 1");
+	//odbc::addUser("user4", {}, 0);
+	//odbc::addUser("user6", {}, 0);
+	//odbc::updateFilesRights("user6", { {"doc.doc", 3} });
+	//std::cerr << odbc::hasUserAccessToFile("user6", "doc.doc", 1);
+	//odbc::updateFilesRights("user3", { {"text.text", 1}, {"mp4.mp4", 2} });
+	//std::cerr << odbc::hasUserAccessToFile("user3", "text.text", 1) << odbc::hasUserAccessToFile("user3", "mp4.mp4", 1);
+	//odbc::updateFilesRights("user3", { {"mp4.mp4", 0} });
+	//std::cout << odbc::hasUserAccessToProject("user1", 1);
 	//db.SplitDB("New", "G:/DecisionSolver/Engine/Workspace/resource/New.mdb");
 
 	path local_root = _getcwd(nullptr, UINT16_MAX); // The backslash at the end is necessary!
@@ -299,14 +303,14 @@ int main()
 		return -1;
 	}
 
-	/*mysql::addUser("user1", {}, 0);
-	mysql::addUser("user3", {}, 0);
-	mysql::updateFilesRights("user1", { {"doc.doc", 0} });
-	std::cerr << mysql::hasUserAccessToFile("user1", "doc.doc", 1);
-	mysql::updateFilesRights("user3", { {"text.text", 1}, {"mp4.mp4", 2} });
-	std::cerr << mysql::hasUserAccessToFile("user3", "text.text", 1) << mysql::hasUserAccessToFile("user3", "mp4.mp4", 1);
-	mysql::updateFilesRights("user3", { {"mp4.mp4", 0} });
-	std::cout << mysql::hasUserAccessToProject("user1", 1);*/
+	//mysql::addUser("user1", {}, 0);
+	//mysql::addUser("user3", {}, 0);
+	//mysql::updateFilesRights("user1", { {"doc.doc", 0} });
+	//std::cerr << mysql::hasUserAccessToFile("user1", "doc.doc", 1);
+	//mysql::updateFilesRights("user3", { {"text.text", 1}, {"mp4.mp4", 2} });
+	//std::cerr << mysql::hasUserAccessToFile("user3", "text.text", 1) << mysql::hasUserAccessToFile("user3", "mp4.mp4", 1);
+	//mysql::updateFilesRights("user3", { {"mp4.mp4", 0} });
+	//std::cout << mysql::hasUserAccessToProject("user1", 1);
 
 #if defined(HAS_LOGGER)
 	Logger_Info_F("Current Used Path Is: %s", local_root.string().c_str());
@@ -333,7 +337,7 @@ int main()
 
 	for (size_t i = 0; i < AllUsers["_N"].size(); i++)
 	{
-		auto ThisPath = local_root.string() + AllUsers["_0"].at(i).get<std::string>();
+		auto ThisPath = local_root.string() + std::to_string(AllUsers["_N"].at(i).get<json::number_integer_t>());
 		if (!exists(ThisPath))
 			create_directories(ThisPath);
 		if (AllUsers["_3"].at(i).get<json::number_integer_t>() == 1)
@@ -364,7 +368,19 @@ int main()
 
 	for (;;)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		std::string Cmd;
+		std::cin >> Cmd;
+		if (Cmd == "disable")
+		{
+			CppLogger::DisablePrintAll();
+			Logger_Error("Now It Doesn't Work");
+		}
+		if (Cmd == "enable")
+		{
+			CppLogger::EnablePrintAll();
+			Logger_Error("Now It Works");
+		}
+		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 
 	return 0;

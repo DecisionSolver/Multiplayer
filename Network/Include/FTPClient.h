@@ -18,7 +18,7 @@ public:
 	void Disconnect();
 
 	bool SendFile(const boost::filesystem::path &FilePath);
-	bool ReceiveFile(const boost::filesystem::path &FileName, const boost::filesystem::path &Where);
+	bool ReceiveFile(const boost::filesystem::path &Path, const boost::filesystem::path &Where);
 
 	const uint16_t &getPort();
 	const std::string &getIP();

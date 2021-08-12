@@ -50,7 +50,7 @@ FTPClient::FTPClient()
 	/* Check for errors */
 	if (res != CURLE_OK)
 	{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Error_F("curl_global_init() failed: %s\n", curl_easy_strerror(res));
 #endif
 	}
@@ -132,7 +132,7 @@ bool FTPClient::SendFile(const boost::filesystem::path &FilePath)
 	
 	if (res != CURLE_OK && res != CURLE_PARTIAL_FILE)
 	{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Error_F("SendFile() failed: %s\n", curl_easy_strerror(res));
 #endif
 		return false;
@@ -141,7 +141,7 @@ bool FTPClient::SendFile(const boost::filesystem::path &FilePath)
 	return true;
 }
 
-bool FTPClient::ReceiveFile(const boost::filesystem::path &FileName, const boost::filesystem::path &Where)
+bool FTPClient::ReceiveFile(const boost::filesystem::path &Path, const boost::filesystem::path &Where)
 {
 	if (!Connected)
 	{
@@ -155,14 +155,14 @@ bool FTPClient::ReceiveFile(const boost::filesystem::path &FileName, const boost
 	};
 	ftpfile.filename = Where.string();
 
-	curl_easy_setopt(curl, CURLOPT_URL, ("ftp://" + IP + "/Users/" + UserName + "/" + FileName.filename().string()).c_str());
+	curl_easy_setopt(curl, CURLOPT_URL, ("ftp://" + IP + "/Users/" + Path.string()).c_str());
 	//curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)fsize);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ftpfile);
 
 	CURLcode res = curl_easy_perform(curl);
 	if (CURLE_OK != res)
 	{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Error_F("ReceiveFile() failed: %s\n", curl_easy_strerror(res));
 #endif
 		return false;
@@ -189,7 +189,7 @@ bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
 		CURLcode res = curl_easy_perform(curl);
 		if (CURLE_OK != res)
 		{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Error_F("Connect() failed: %s\n", curl_easy_strerror(res));
 #endif
 			const_cast<bool &>(Connected) = false;

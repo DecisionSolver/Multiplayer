@@ -1,10 +1,3 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <memory>
-#include "LZ4/lz4.h"
-#include "nlohmann/json.hpp"
-
 #include <conio.h>
 
 using namespace std;
@@ -18,10 +11,23 @@ vector<shared_ptr<net::Client>> Users;
 #define IP network::IPEndpoint("127.0.0.1")
 #define PORT 20675
 
+// New
+#include "File System/Level/Levels.h"
+#include "File System/File_system.h"
+
+shared_ptr<File_system> FS;
+#include "../File System/Project System/Project.h"
+
+extern std::unique_ptr<ProjectFile> Project;
+
+std::string Login, Pass;
+
 bool UseRepeater = false, UseClear = false;
-void ConnectFunc(string Login, string Pass)
+void ConnectFunc(string _Login, string _Pass)
 {
-	if (Login.empty() || Pass.empty()) return;
+	if (_Login.empty() || _Pass.empty()) return;
+
+	Login = _Login;
 
 	Users.push_back(make_shared<net::Client>(network::IPEndpoint(""), ConnectionManager::TypeProtocol::TCP, 0));
 #if defined(USE_SSL)
@@ -33,29 +39,77 @@ void ConnectFunc(string Login, string Pass)
 		Users.back()->StartSystem();
 
 		// Create MySQL Packet That We're Connection To
-		network::Packet Answer = network::Packet();
-		Answer.CreatePacket(network::Packet::Type::MySQL, true, { { "_0", Login },
-			{ "_1", md5_from_buffer(Pass) } });
+		std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
+		Answer->CreatePacket(network::Packet::Type::MySQL, true, { { "_0", _Login },
+			{ "_1", Pass = md5_from_buffer(_Pass) } });
 
 		Users.back()->Send(Answer);
 	}
 	else
 	{
 		system("cls");
-#if defined(HAS_LOGGER)
-		Logger_Error_F("User: %s, didn't connect to %s", Login.c_str(), IP.toString().c_str());
+#if __has_include("logger.h")
+		Logger_Error_F("User: %s, didn't connect to %s", _Login.c_str(), IP.toString().c_str());
 #endif
 	}
 }
 void GetPacketFromThread(network::Packet packet, network::Packet::Type NeededPacket)
 {
+	if (packet && packet.getHeader().type == network::Packet::Type::Sync_File_Sync)
+	{
+		auto Obj = FS->GetFile(packet.getData()["_0"].get<json::string_t>());
+		if (Obj && Obj->Size > 0)
+		{
+			std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+			packet->CreatePacket(network::Packet::Type::Sync_File_Sync, true,
+				{
+					{ "_0", "01.08.16.wav" },
+					{ "_1", "AD0234829205B9033196BA818F7A872B" }
+				});
+
+			Users.back()->Send(packet);
+
+			DebugBreak();
+		}
+		else
+		{
+			std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+			packet->CreatePacket(network::Packet::Type::Sync_File_Sync, true,
+				{
+					{ "_0", "01.08.16.wav" },
+					{ "_1", "0" }
+				});
+
+			Users.back()->Send(packet);
+		}
+
+		return;
+	}
+	if (packet && packet.getHeader().type == network::Packet::Type::Sync_File && packet.getHeader().IsAnswer)
+	{
+		auto ID = packet.getData()["header"]["_R"].get<json::number_integer_t>();
+		Users.back()->GetConnect()->getFtpClient()->Connect("127.0.0.1", Login, Pass);
+
+		auto FName = packet.getData()["_0"].get<json::string_t>();
+		std::string Path;
+		if (Users.back()->GetConnect()->getFtpClient()->ReceiveFile(ID + "/" + FName,
+			Path = FS->getPathFromType(FS->GetTypeFileByExt(FName)) + FName))
+		{
+			Logger_Debug_F("File: %s. Successfully Downloaded And Has In: %s", FName.c_str(), Path.c_str());
+		}
+		else
+		{
+			Logger_Error_F("File: %s. Unsuccessful Downloaded See Logs! It Must Will In: %s", FName.c_str(), Path.c_str());
+		}
+		return;
+	}
 	if (packet && (packet.getHeader().type == NeededPacket) && packet.getHeader().IsAnswer)
 	{
 		json unparsed = packet.getData();
 		size_t i = 0;
 		for (size_t i = 0; i < unparsed["_0"].size(); i++)
 		{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Info_F("\tID: %i - Name: %s\n", ((int)unparsed["_1"].at(i).front().get<json::number_integer_t>()),
 				unparsed["_0"].at(i).front().get<json::string_t>().c_str());
 #endif
@@ -68,18 +122,68 @@ int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "Russian");
 
-	DB->Connect("gb_1231", "J4hKTTK-LHwU",
+	if (DB->Connect("gb_newdone", "UU2a-yMjdYCJ",
 #if defined(_DEBUG)
-		"mysql92.1gb.ru"
+		"mysql94.1gb.ru"
 #else
 		"192.168.1.2"
 #endif
-		, "gb_1231");
+		, "gb_newdone") != mysql::Client::Done)
+	{
+#if __has_include("logger.h")
+		Logger_Critical("Something Is Went Wrong With Connection To MySQL Server!");
+#endif
+	}
+
+	FS = make_shared<File_system>();
+
+	std::thread([&]
+	{
+		while (true)
+		{
+			if (Project && (!Project->GetCurrentProject().empty() && Project->ThisLevel))
+			{
+				Project->ThisLevel->Update();
+				auto Objs = Project->ThisLevel->getChild()->GetNodes();
+				for (size_t i = 0; i < Objs.size(); i++)
+				{
+					auto Pos = Objs.at(i)->GM->GetPositionCord();
+					float vPos[3] = { Pos.x, Pos.y, Pos.z };
+
+					auto Rot = Objs.at(i)->GM->GetRotCord();
+					float vRot[3] = { Rot.x, Rot.y, Rot.z };
+
+					auto Scl = Objs.at(i)->GM->GetScaleCord();
+					float vScl[3] = { Scl.x, Scl.y, Scl.z };
+
+					//Logger_Info_F("Model indx: '%i', "\
+					//	"Model ID: '%s', "\
+					//	"Model R_ID: '%s', "\
+					//	"Model Pos 'X=%f, Y=%f, Z=%f', "\
+					//	"Model Scl 'X=%f, Y=%f, Z=%f', "\
+					//	"Model Rot 'X=%f, Y=%f, Z=%f'",
+					//	i, Objs.at(i)->ID.c_str(),
+					//	Objs.at(i)->RenderName.c_str(),
+					//	vPos[0], vPos[1], vPos[2],
+					//	vScl[0], vScl[1], vScl[2],
+					//	vRot[0], vRot[1], vRot[2]);
+
+					Objs.front()->GM->SetPositionCoords({ random_floats(0, 3), random_floats(0, 2), random_floats(1,1) });
+					this_thread::sleep_for(1s);
+				}
+			}
+		}
+	}).detach();
+	
+	auto fData = FS->LoadSettingsFile();
+	Project->OpenOrCreateDB();
+	//if (Project->Open("Test") == E_FAIL)
+	//	Logger_Critical("Failed To Open 'Test' Project!");
 
 	int Choice = 0;
 	while (true)
 	{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Info("Choice The One:\n");
 		Logger_Info("\t[0] - Login Under All Users That Are Free Now\n");
 		Logger_Info("\t[1] - Login Under Needed Account\n");
@@ -102,18 +206,18 @@ int main(int argc, char* argv[])
 		}
 		case 1:
 		{
-			string Login, Pass;
+			string _Login, _Pass;
 			system("cls");
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Info("Enter Login Here: ");
-			cin >> Login;
+			cin >> _Login;
 #endif
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Info("Enter Password Here: ");
-			cin >> Pass;
+			cin >> _Pass;
 #endif
 
-			ConnectFunc(Login, Pass);
+			ConnectFunc(_Login, _Pass);
 
 			break;
 		}
@@ -124,7 +228,7 @@ int main(int argc, char* argv[])
 		default:
 		{
 			system("cls");
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Error("Unrecognized Choice. Try Another One!\n");
 #endif
 			continue;
@@ -139,7 +243,7 @@ int main(int argc, char* argv[])
 		{
 			while (!Users.empty())
 			{
-				Sleep(1000);
+				Sleep(100);
 				network::Packet packet;
 
 				if (Users.size() == 1)
@@ -151,7 +255,13 @@ int main(int argc, char* argv[])
 						GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 						packet.clear();
 
-						OutputDebugStringA(("\n" + std::to_string(Users.front()->GetConnect()->GetCurrentPing()) + " ms\n").c_str());
+						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::Sync_File_Sync);
+						GetPacketFromThread(packet, network::Packet::Type::Sync_File_Sync);
+						packet.clear();
+
+						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::Sync_File);
+						GetPacketFromThread(packet, network::Packet::Type::Sync_File);
+						packet.clear();
 					}
 					while (UseRepeater)
 					{
@@ -160,7 +270,13 @@ int main(int argc, char* argv[])
 						GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 						packet.clear();
 
-						OutputDebugStringA(("\n" + std::to_string(Users.front()->GetConnect()->GetCurrentPing()) + " ms\n").c_str());
+						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::Sync_File_Sync);
+						GetPacketFromThread(packet, network::Packet::Type::Sync_File_Sync);
+						packet.clear();
+
+						Users.front()->GetConnect()->GetPacket(packet, network::Packet::Type::Sync_File);
+						GetPacketFromThread(packet, network::Packet::Type::Sync_File);
+						packet.clear();
 					}
 				}
 				else if (Users.size() > 1)
@@ -173,8 +289,14 @@ int main(int argc, char* argv[])
 							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 							GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 							packet.clear();
-						
-							OutputDebugStringA(("\n" + std::to_string(CurrentUser->GetConnect()->GetCurrentPing()) + " ms\n").c_str());
+
+							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::Sync_File_Sync);
+							GetPacketFromThread(packet, network::Packet::Type::Sync_File_Sync);
+							packet.clear();
+
+							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::Sync_File);
+							GetPacketFromThread(packet, network::Packet::Type::Sync_File);
+							packet.clear();
 						}
 					}
 					while (UseRepeater)
@@ -185,8 +307,14 @@ int main(int argc, char* argv[])
 							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::GetListUsersOnline);
 							GetPacketFromThread(packet, network::Packet::Type::GetListUsersOnline);
 							packet.clear();
-							
-							OutputDebugStringA(("\n" + std::to_string(CurrentUser->GetConnect()->GetCurrentPing()) + " ms\n").c_str());
+
+							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::Sync_File_Sync);
+							GetPacketFromThread(packet, network::Packet::Type::Sync_File_Sync);
+							packet.clear();
+
+							CurrentUser->GetConnect()->GetPacket(packet, network::Packet::Type::Sync_File);
+							GetPacketFromThread(packet, network::Packet::Type::Sync_File);
+							packet.clear();
 						}
 					}
 				}
@@ -196,11 +324,11 @@ int main(int argc, char* argv[])
 		while (true)
 		{
 			Sleep(1000);
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Info("Choice The One:\n");
 			Logger_Info("\t[0] - Get Ping (ECHO)\n");
 			Logger_Info("\t[1] - Send Chat Message Packet\n");
-			Logger_Info("\t[2] - Send Random Coordinates Level Object\n");
+			Logger_Info("\t[2] - Get File\n");
 			Logger_Info("\t[3] - Send \"Sound Play\" Packet (By Default It's \"01.08.16.wav\")\n");
 
 			Logger_Info("\t[4] - Get List Online Users\n");
@@ -220,8 +348,8 @@ int main(int argc, char* argv[])
 			{
 				std::thread t = std::thread([&]
 				{
-					network::Packet packet;
-					packet.CreatePacket(network::Packet::Type::Ping, false);
+					std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+					packet->CreatePacket(network::Packet::Type::Ping, false);
 
 					if (Users.size() == 1)
 					{
@@ -273,15 +401,15 @@ int main(int argc, char* argv[])
 			{
 				Text.clear();
 				system("cls");
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Info("Enter Message Here: ");
 #endif
 				cin >> Text;
 
 				std::thread t = std::thread([&]
 				{
-					network::Packet packet;
-					packet.CreatePacket(network::Packet::Type::Chat, false, { { "_0", Text + "\n" } });
+					std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+					packet->CreatePacket(network::Packet::Type::Chat, false, { { "_0", Text + "\n" } });
 
 					if (Users.size() == 1)
 					{
@@ -331,16 +459,20 @@ int main(int argc, char* argv[])
 			}
 			case 2:
 			{
-				// Get List Of Current Game Objects Project
+				std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+				packet->CreatePacket(network::Packet::Type::Sync_File, false,
+					{
+						{ "_0", "01.08.16.wav" }
+					});
 
-
+				Users.back()->Send(packet);
 				break;
 			}
 			case 3:
 			{
 				Text.clear();
 				system("cls");
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Info("Enter ID User Here (or '-1' To All Users That Are Online): ");
 #endif
 				cin >> Text;
@@ -348,15 +480,15 @@ int main(int argc, char* argv[])
 				if (Text == "-1")
 				{
 					auto AllUsersID = DB->SelectValues("Local", { "_N" }, { " WHERE _N = 1" });
-					vector<network::Packet> packet;
+					vector<std::shared_ptr<network::Packet>> packet;
 
 					for (auto ID: AllUsersID)
 					{
-						packet.push_back(network::Packet());
-						packet.back().CreatePacket(network::Packet::Type::PlaySound, false,
+						packet.push_back(std::make_shared<network::Packet>());
+						packet.back()->CreatePacket(network::Packet::Type::PlaySound, false,
 							{
 								{ "_0", ID.back().get<json::number_integer_t>() },
-								{ "_1", 0.016f },
+								{ "_1", 0.46f },
 								{ "_2", "01.08.16.wav" }
 							});
 					}
@@ -368,8 +500,8 @@ int main(int argc, char* argv[])
 				}
 				else
 				{
-					network::Packet packet;
-					packet.CreatePacket(network::Packet::Type::PlaySound, false,
+					std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+					packet->CreatePacket(network::Packet::Type::PlaySound, false,
 						{
 							{ "_0", atoi(Text.c_str()) },
 							{ "_1", 0.016f },
@@ -383,8 +515,8 @@ int main(int argc, char* argv[])
 			}
 			case 4:
 			{
-				network::Packet packet;
-				packet.CreatePacket(network::Packet::Type::GetListUsersOnline, false);
+				std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+				packet->CreatePacket(network::Packet::Type::GetListUsersOnline, false);
 
 				if (Users.size() == 1)
 				{

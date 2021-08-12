@@ -59,7 +59,7 @@ std::ostringstream Connection::ErrorCodeToString(const asio::error_code &errorCo
 		, m_sending(false)
 		, m_allReadData()
 	{
-	#if defined(HAS_LOGGER)
+	#if __has_include("logger.h")
 		Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
 	#endif
 	
@@ -67,7 +67,8 @@ std::ostringstream Connection::ErrorCodeToString(const asio::error_code &errorCo
 
 		Curr = Last = std::chrono::high_resolution_clock::now();
 		ftpClient = std::make_shared<FTPClient>();
-	}
+		m_receiveBuffer.prepare((size_t)std::numeric_limits<std::size_t>::max);
+}
 #else
 	Connection::Connection(ConnectionManager *connectionManager, asio::ip::tcp::socket socket) :
 		m_clientId(m_nextClientId++)
@@ -80,13 +81,14 @@ std::ostringstream Connection::ErrorCodeToString(const asio::error_code &errorCo
 		, m_sending(false)
 		, m_allReadData()
 	{
-	#if defined(HAS_LOGGER)
+	#if __has_include("logger.h")
 		Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
 	#endif
 
 		Curr = Last = std::chrono::high_resolution_clock::now();
 
 		ftpClient = std::make_shared<FTPClient>();
+		m_receiveBuffer.prepare((size_t)std::numeric_limits<std::size_t>::max);
 	}
 #endif
 
@@ -103,13 +105,14 @@ Connection::Connection(ConnectionManager *connectionManager):
 	, m_sending(false)
 	, m_allReadData()
 {
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 	Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
 #endif
 
 	Curr = Last = std::chrono::high_resolution_clock::now();
 
 	ftpClient = std::make_shared<FTPClient>();
+	m_receiveBuffer.prepare((size_t)std::numeric_limits<std::size_t>::max);
 }
 
 //--------------------------------------------------------------------
@@ -117,7 +120,7 @@ Connection::~Connection()
 {
 	Connected = false;
 	// Boost uses RAII, so we don't have anything to do. Let thier destructors take care of business
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 	Logger_Info_F("Client connection with id %zd has been destroyed.\n", m_clientId);
 #endif
 }
@@ -125,7 +128,7 @@ Connection::~Connection()
 //--------------------------------------------------------------------
 void Connection::Start()
 {
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 	Logger_Info_F("Client(%zd) Awaits Messages.\n", m_clientId);
 #endif
 
@@ -134,9 +137,11 @@ void Connection::Start()
 }
 
 //--------------------------------------------------------------------
+extern std::atomic_bool NoMessageLeft;
+extern std::condition_variable cvBlocking;
 void Connection::Stop(bool NeedLock)
 {
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 	Logger_Info_F("Client(%zd) Stops.\n", m_clientId);
 #endif
 
@@ -146,8 +151,8 @@ void Connection::Stop(bool NeedLock)
 	if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client &&
 		Connected)
 	{
-		network::Packet disconnect = network::Packet();
-		disconnect.CreatePacket(network::Packet::Type::Disconnection, false);
+		std::shared_ptr<network::Packet> disconnect = std::make_shared<network::Packet>();
+		disconnect->CreatePacket(network::Packet::Type::Disconnection, false);
 		Send(disconnect);
 	}
 	SetConnected(false);
@@ -156,7 +161,15 @@ void Connection::Stop(bool NeedLock)
 	successConn.notify_all();
 
 	if (NeedLock)
-		waiterDisconnection.wait(lock);
+	{
+		if (m_owner && m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client)
+		{
+			NoMessageLeft = false;
+			cvBlocking.notify_one();
+
+			Sleep(1000);
+		}
+	}
 }
 
 //--------------------------------------------------------------------
@@ -170,9 +183,10 @@ void Connection::Send(const std::vector<char> &data)
 	DoSend();
 }
 
-void Connection::Send(network::Packet &packet)
+void Connection::Send(std::shared_ptr<network::Packet> packet)
 {
-	auto Data = packet.getData().dump();
+	packet->getData()["header"]["_R"] = UserID_MetaDB;
+	auto Data = packet->getData().dump();
 
 	std::vector<char> &inactiveBuffer = m_sendBuffers[m_activeSendBufferIndex ^ 1];
 	inactiveBuffer.insert(inactiveBuffer.end(), Data.begin(), Data.end());
@@ -187,7 +201,7 @@ bool Connection::GetTimer()
 	Last = std::chrono::high_resolution_clock::now();
 	auto Diff = (Last - Curr);
 
-//#if defined(HAS_LOGGER)
+//#if __has_include("logger.h")
 //	Logger_Info_F("Client(%zd) Has Time: %lld\n", m_clientId,
 //		std::chrono::duration_cast<std::chrono::seconds>(Diff).count());
 //#endif
@@ -198,9 +212,6 @@ bool Connection::GetTimer()
 	return false;
 }
 
-extern std::atomic_bool NoMessageLeft;
-extern std::condition_variable cvBlocking;
-extern std::mutex muxBlocking;
 void Connection::GetPacket(network::Packet &packet, network::Packet::Type _CheckingByType, std::string _CheckingByData)
 {
 	std::scoped_lock get_packet(m_get_packet);
@@ -212,9 +223,9 @@ void Connection::GetPacket(network::Packet &packet, network::Packet::Type _Check
 		{
 			for (auto &_It: packet_queue)
 			{
-				if (_It.second && _It.second.getData().dump().find(_CheckingByData) != std::string::npos)
+				if (_It.second && _It.second->getData().dump().find(_CheckingByData) != std::string::npos)
 				{
-					packet = It->second;
+					packet = *It->second;
 					packet_queue.erase(_It.first);
 					return;
 				}
@@ -222,20 +233,24 @@ void Connection::GetPacket(network::Packet &packet, network::Packet::Type _Check
 		}
 		if (It != packet_queue.end())
 		{
-			packet = It->second;
+			packet = *It->second;
 			packet_queue.erase(It);
 		}
 	}
 	else
 	{
 		NoMessageLeft = true;
-		std::unique_lock<std::mutex> ul(muxBlocking);
 		cvBlocking.notify_one();
 	}
 }
 
 //--------------------------------------------------------------------
 extern std::mutex m_connectionsMutex;
+
+#include <boost/spirit/home/x3.hpp>
+#include <boost/algorithm/string.hpp>
+
+static auto const delim = std::string("}{");
 
 void Connection::DoSend()
 {
@@ -257,10 +272,10 @@ void Connection::DoSend()
 			{
 				std::scoped_lock<std::mutex> lock(m_connectionsMutex);
 
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Error_F("An error occured while attemping to send data to %s. Error Code: %s\n",
 					(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
-						std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
+						("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
 					ErrorCodeToString(errorCode).str().c_str());
 #endif
 
@@ -270,21 +285,8 @@ void Connection::DoSend()
 
 				self->SetConnected(false);
 
-				if (self->m_owner && (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP &&
-					self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server))
-				{
-					auto itConnectionTCP = std::find_if(ConnectionManager::m_connectionsTCP.begin(),
-						ConnectionManager::m_connectionsTCP.end(),
-						[&](const std::pair<asio::ip::tcp::endpoint, Connection::SharedPtr> &ThisConn)
-					{
-						if (ThisConn.second == self)
-							return true;
-						return false;
-					});
-
-					if (itConnectionTCP != ConnectionManager::m_connectionsTCP.end())
-						ConnectionManager::m_connectionsTCP.erase(itConnectionTCP);
-				}
+				NoMessageLeft = false;
+				cvBlocking.notify_one();
 
 				// An error occurred
 				// We do not stop or close on sends, but instead let the receive error out and then close
@@ -296,7 +298,7 @@ void Connection::DoSend()
 			else
 				self->m_sendBuffers[1].push_back('\0');
 
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Info_F("Sending data to %s: %s\n",
 				(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
 					std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
@@ -327,6 +329,7 @@ void Connection::DoSend()
 	}
 }
 
+#include <regex>
 //--------------------------------------------------------------------
 void Connection::DoReceive()
 {
@@ -342,25 +345,29 @@ void Connection::DoReceive()
 			// Check if the other side hung up
 			if (errorCode == asio::error::make_error_code(asio::error::eof))
 			{	// This is not really an error. The client is free to hang up whenever they like
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Info_F("Client %zd has disconnected.\n", self->m_clientId);
 #endif
+			
+				NoMessageLeft = false;
+				cvBlocking.notify_one();
 			}
 			else
 			{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Error_F("An error occured while attemping to receive data from %s. Error Code: %s\n",
 					(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
-					std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
+						("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
 					ErrorCodeToString(errorCode).str().c_str());
 #endif
 
 				self->getIsError() = true;
 				self->error_queue.push_back(errorCode);
 				self->get_cv_error().notify_one();
+			
+				NoMessageLeft = false;
+				cvBlocking.notify_one();
 			}
-
-			self->m_owner->OnConnectionClosed(self);
 
 			// An error occured
 			return;
@@ -371,7 +378,7 @@ void Connection::DoReceive()
 		std::istream istream(&self->m_receiveBuffer);
 		data << istream.rdbuf();
 
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Info_F("Received data from %s: %s\n",
 			(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ? 
 				std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
@@ -391,66 +398,88 @@ void Connection::DoReceive()
 		size = (size_t)data.tellg();
 		data.seekg(0, data.beg);
 
-		network::Packet newPacket = network::Packet();
-		if ((size != 0u || (data.str().find("header") != std::string::npos)) &&
-			newPacket.onReceive(data))
+		std::vector<std::string> packets;		
+		const std::string &Copy = data.str();
+		
+		size_t start = 0, end = 0;
+		// If Delimiter Found
+		while ((start = Copy.find_first_not_of(delim, end)) != std::string::npos)
 		{
-			std::scoped_lock get_packet(m_get_packet);
-			std::map<asio::ip::udp::endpoint, Connection::SharedPtr>::iterator itConnectionUDP;
-			if (self->m_owner &&
-				(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ||
-				(self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP && !self->GetLogged())))
+			end = Copy.find(delim, start);
+			if (Copy.substr(start - 1, (end + 1) - (start - 1)).find("header") != std::string::npos)
+				packets.push_back(Copy.substr(start - 1, (end + 1) - (start - 1)));
+		}
+
+		if (packets.empty())
+			packets.push_back(Copy);
+
+		for (size_t i = 0; i < packets.size(); i++)
+		{
+			std::shared_ptr<network::Packet> newPacket = std::make_shared<network::Packet>();
+			std::stringstream cache;
+			cache << packets.at(i);
+
+			if (newPacket->onReceive(cache))
 			{
-				if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
+				std::scoped_lock get_packet(m_get_packet);
+				std::map<asio::ip::udp::endpoint, Connection::SharedPtr>::iterator itConnectionUDP;
+				if (self->m_owner &&
+					(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ||
+					(self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP && !self->GetLogged())))
 				{
-					itConnectionUDP = std::find_if(ConnectionManager::m_connectionsUDP.begin(),
-						ConnectionManager::m_connectionsUDP.end(),
-						[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
+					if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
 					{
-						if (ThisConn.first == self->remote_endpoint())
-							return true;
-						return false;
-					});
-				}
-				if (newPacket.getHeader().type == network::Packet::Type::Connection || network::Packet::Type::MySQL)
-				{
-					if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP &&
-						self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server &&
-						newPacket.getHeader().type == network::Packet::Type::Connection &&
-						!newPacket.getHeader().IsAnswer)
-					{
-						if (itConnectionUDP == ConnectionManager::m_connectionsUDP.end())
+						itConnectionUDP = std::find_if(ConnectionManager::m_connectionsUDP.begin(),
+							ConnectionManager::m_connectionsUDP.end(),
+							[&](const std::pair<asio::ip::udp::endpoint, Connection::SharedPtr> &ThisConn)
 						{
-							self->SetConnected(true);
-							self->isLogged = false;
-							Connection::SharedPtr New = Connection::Create(self->m_owner);
-							New->SetEndPoint(self->remote_endpoint());
-							New->packet_queue.insert(
-								std::pair<network::Packet::Type,
-								network::Packet>((network::Packet::Type)newPacket.getHeader().type, newPacket));
-
-							ConnectionManager::m_connectionsUDP[self->remote_endpoint()] = New;
-						}
+							if (ThisConn.first == self->remote_endpoint())
+								return true;
+							return false;
+						});
 					}
-					if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP
-						&& itConnectionUDP != ConnectionManager::m_connectionsUDP.end())
-						itConnectionUDP->second->packet_queue.insert(
-							std::pair<network::Packet::Type,
-							network::Packet>((network::Packet::Type)newPacket.getHeader().type, newPacket));
-					else
-						self->packet_queue.insert(
-							std::pair<network::Packet::Type,
-							network::Packet>((network::Packet::Type)newPacket.getHeader().type, newPacket));
-				}
-			}
-			else
-				self->packet_queue.insert(
-					std::pair<network::Packet::Type, network::Packet>((network::Packet::Type)newPacket.getHeader().type,
-						newPacket));
+					if (newPacket->getHeader().type == network::Packet::Type::Connection || network::Packet::Type::MySQL)
+					{
+						if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP &&
+							self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server &&
+							newPacket->getHeader().type == network::Packet::Type::Connection &&
+							!newPacket->getHeader().IsAnswer)
+						{
+							if (itConnectionUDP == ConnectionManager::m_connectionsUDP.end())
+							{
+								self->SetConnected(true);
+								self->isLogged = false;
+								Connection::SharedPtr New = Connection::Create(self->m_owner);
+								New->SetEndPoint(self->remote_endpoint());
+								New->packet_queue.insert(
+									std::pair<network::Packet::Type,
+									std::shared_ptr<network::Packet>>((network::Packet::Type)newPacket->getHeader().type,
+										newPacket));
 
-			NoMessageLeft = false;
-			std::unique_lock<std::mutex> ul(muxBlocking);
-			cvBlocking.notify_one();
+								ConnectionManager::m_connectionsUDP[self->remote_endpoint()] = New;
+							}
+						}
+						if (self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP
+							&& itConnectionUDP != ConnectionManager::m_connectionsUDP.end())
+							itConnectionUDP->second->packet_queue.insert(
+								std::pair<network::Packet::Type,
+								std::shared_ptr<network::Packet>>((network::Packet::Type)newPacket->getHeader().type,
+									newPacket));
+						else
+							self->packet_queue.insert(
+								std::pair<network::Packet::Type,
+								std::shared_ptr<network::Packet>>((network::Packet::Type)newPacket->getHeader().type,
+									newPacket));
+					}
+				}
+				else
+					self->packet_queue.insert(
+						std::pair<network::Packet::Type, std::shared_ptr<network::Packet>>(
+						(network::Packet::Type)newPacket->getHeader().type, newPacket));
+
+				NoMessageLeft = false;
+				cvBlocking.notify_one();
+			}
 		}
 
 		// Issue the next receive
@@ -459,15 +488,17 @@ void Connection::DoReceive()
 	};
 
 	if (self->m_owner && self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::TCP)
+	{
 #if defined(USE_SSL)
 		asio::async_read_until(*m_socketTCP.get(), m_receiveBuffer, "\0", ReadFunction);
 #else
 		asio::async_read_until(m_socketTCP, m_receiveBuffer, "\0", ReadFunction);
 #endif
+	}
 	else if (self->m_owner && self->m_owner->GetProtocol() == ConnectionManager::TypeProtocol::UDP)
 	{
 		asio::streambuf::mutable_buffers_type mutableBuffer =
-			m_receiveBuffer.prepare(4096);
+			m_receiveBuffer.prepare((size_t)std::numeric_limits<std::size_t>::max);
 		m_owner->GetSocketUDP().async_receive_from(asio::buffer(mutableBuffer), remote_endpoint_, ReadFunction);
 	}
 }

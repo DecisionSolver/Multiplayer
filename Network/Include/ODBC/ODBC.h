@@ -16,12 +16,14 @@ namespace odbc
 
 		bool PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e);
 		typedef struct tagGETINFOALL {
-			TCHAR				szCol[255];			// Column name for display
-			SWORD				fSqlType;						// For GetData call
+			const wchar_t*				szCol[255];			// Column name for display
+			short				fSqlType;						// For GetData call
 			SQLULEN			cbValueMax;						// How much memory to allocate
-			PTR				rgbValue;						// Pointer to memory
+			void*				rgbValue;						// Pointer to memory
 		} GETINFOALL;
 		typedef GETINFOALL * lpGETINFOALL;
+
+		int GetCntData(const std::string &query);
 
 	public:
 		ODBC() {}
