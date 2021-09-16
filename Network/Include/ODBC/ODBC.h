@@ -16,12 +16,14 @@ namespace odbc
 
 		bool PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e);
 		typedef struct tagGETINFOALL {
-			TCHAR				szCol[255];			// Column name for display
-			SWORD				fSqlType;						// For GetData call
+			const wchar_t*				szCol[255];			// Column name for display
+			short				fSqlType;						// For GetData call
 			SQLULEN			cbValueMax;						// How much memory to allocate
-			PTR				rgbValue;						// Pointer to memory
+			void*				rgbValue;						// Pointer to memory
 		} GETINFOALL;
 		typedef GETINFOALL * lpGETINFOALL;
+
+		int GetCntData(const std::string &query);
 
 	public:
 		ODBC() {}
@@ -31,12 +33,14 @@ namespace odbc
 		void Connect(const std::string& driver, const std::string& path,
 			const std::string& attributes, const std::string& password);
 		nlohmann::json SelectValues(const std::string& name_table,
-			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {});
+			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {},
+			bool Need_SQL_TYPE = false);
 		void InsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
 			const std::vector<std::string>& values);
 		void UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,
 			const std::vector<std::string>& values, const std::vector<std::string>& condition = {});
-		void CreateTable(const std::string& name_table, const std::vector<std::string>& name_column, const std::vector<std::string>& type,
+		void CreateTable(const std::string& name_table, const std::vector<std::string>& name_column,
+			const std::vector<std::string>& type,
 			const std::vector<std::string>& value, const std::vector<std::vector<std::string>>& attributes);
 		void CreateColumn(const std::string& name_table, const std::string& name_column,
 			const std::string& type, const std::string& value, const std::vector<std::string>& attributes);
@@ -47,7 +51,7 @@ namespace odbc
 		void DeleteValues(const std::string& name_table, const std::string& condition);
 		
 		// For Other Stuffs
-		nlohmann::json Query(const std::string& query);
+		nlohmann::json Query(const std::string& query, bool Need_SQL_TYPE = false);
 
 		void Exit();
 

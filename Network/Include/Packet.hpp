@@ -12,7 +12,7 @@ namespace network
 		{
 			Chat = 0,
 			File,
-			MySQL,
+			Login, // Was MySQL
 			Connection,
 			Disconnection,
 			PlaySound,
@@ -28,6 +28,30 @@ namespace network
 			Sync_SclChanges,
 
 			Sync_NewNodeName,
+
+			// First of all we send this packet to check who has this file in resources
+			// If not then client (who has this file) will send the file to FTP and share
+			// With this file with users who not have it
+			//
+			// Packet should have data like this
+			//
+			// "Sync_FileName":
+			// {
+			//		"File_Name.obj":
+			//		{
+			//			"id_who_sent_it": 1,
+			//		},
+			//		...
+			// }
+			//
+			// "id_who_sent_it" needs to know who sent it 'cause it uses for indicate where the file has
+			// it means that user who share this file uploaded it to his FTP folder and we can get it
+			// with that ID (and file name)
+			//
+			// Note: Sync_File Needs ONLY For Upload And Detected That Server Will Start Asking Users About This File
+			// And Sync_File_Sync Needs ONLY For Answering That If Have File Or Not!
+			//
+			Sync_File, Sync_File_Sync,
 			Sync_NewNode,
 
 			// JSON e.g. Name Project, Name Each GO (count + ID), Each GO Parameter (transformations, etc)
@@ -56,6 +80,16 @@ namespace network
 			// }
 			Get_MetaData_Project,
 
+			// Get All The Projects From The Server (If User Has Connect To)
+			Get_AllProjects,
+
+			// This Will Work If User Is Admin
+			Make_Commit,
+			
+			// It Indicates And Need To Block Everything About Change The Level (Project)
+			// Unblock Will After Full Commiting
+			IsCommiting, IsCommitingDone, IsCommitingFailed,
+
 			Ping // Echo Packet
 		};
 
@@ -68,6 +102,9 @@ namespace network
 			uint8_t Settings = 0; // IsCompressed etc...
 			int type;
 			bool IsAnswer = false; // Sets Only When Comes In onReceive Function
+
+			// Came ONLY From Server! (-1 By Default Means Non User!)
+			int ID_Receiver = -1; // ID From MySQL Line Of User Row To Easy Get Data
 			size_t OrigSize = 0u;
 
 			Header(Type NewType): type(NewType), Settings(0) {}
@@ -85,7 +122,7 @@ namespace network
 
 		void clear();
 		size_t getSize() const;
-		json getData();
+		json &getData();
 
 		// Filling data
 		void FillIn(Header NewHeader, std::stringstream &Data);

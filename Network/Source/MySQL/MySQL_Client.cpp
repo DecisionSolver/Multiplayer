@@ -4,7 +4,7 @@
 ///////////////////////////////////////
 									 //
 #include "MySQL/MySQL_Client.h"		 //
-#include "SQL_Query.hpp"			 //
+#include "DB_Query.hpp"				 //
 									 //
 ///////////////////////////////////////
 
@@ -52,9 +52,9 @@ namespace mysql
 				isReadOnly = true;
 			return Client::Status::Done;
 		}
-		catch (sql::SQLException &e)
+		catch (const sql::SQLException &e)
 		{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
 #endif
 			return Client::Status::Error;
@@ -92,12 +92,12 @@ namespace mysql
 				driver = get_driver_instance();
 				connection.reset(driver->connect(connection_properties));
 
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Info("Made Reconnect To Server");
 #endif
 				return Query(query);
 			}
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
 #endif
 		}
@@ -115,6 +115,8 @@ namespace mysql
 				throw sql::SQLException("Not Connected!");
 			if (!wasSelectedDB)
 				throw sql::SQLException("Database Was Not Selected!");
+			else if (isReadOnly)
+				throw sql::SQLException("It's Read Only :O !");
 			else
 			{
 				std::string NewQuery = query;
@@ -136,12 +138,12 @@ namespace mysql
 				driver = get_driver_instance();
 				connection.reset(driver->connect(connection_properties));
 
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 				Logger_Info("Made Reconnect To Server");
 #endif
 				Exec(query);
 			}
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
 #endif
 		}
@@ -150,27 +152,22 @@ namespace mysql
 	////////////////////////////////////////////////////////////////////////////////////
 	void Client::CreateDatabase(const std::string &name)							  //
 	{
-		Exec(std::string("CREATE DATABASE " + name).c_str());
+		Exec(("CREATE DATABASE " + name).c_str());
 	}
 
 
 	////////////////////////////////////////////////////////////////////////////////////
 	void Client::DeleteDatabase(const std::string &name)							  //
 	{
-		Exec(std::string("DROP DATABASE " + name).c_str());
+		Exec(("DROP DATABASE " + name).c_str());
 	}
 
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::CreateTable(const std::string &name_table, const std::vector<std::string> &name_column,				//
-		const std::vector<std::string> &type, const std::vector<std::string> &value, const std::vector<std::vector<std::string>> &attributes)	//
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	void Client::CreateTable(const std::string &name_table, const std::vector<std::string> &name_column,									  //
+		const std::vector<std::string> &type, const std::vector<std::string> &value, const std::vector<std::vector<std::string>> &attributes) //
 	{
-		if (!connection)
-			throw sql::SQLException("Not Connected!");
-		else if (isReadOnly)
-			throw sql::SQLException("It's Read Only :O !");
-		else
-			Exec(query::MakeCreateTableQuery(name_table, name_column, type, value, attributes));
+		Exec(query::MakeCreateTableQuery(name_table, name_column, type, value, attributes));
 	}
 
 
@@ -178,12 +175,7 @@ namespace mysql
 	void Client::CreateColumn(const std::string &name_table, const std::string &name_column,			//
 		const std::string &type, const std::string &value, const std::vector<std::string> &attributes)  //
 	{
-		if (!connection)
-			throw sql::SQLException("Not Connected!");
-		else if (isReadOnly)
-			throw sql::SQLException("It's Read Only :O !");
-		else
-			Exec(query::MakeCreateColumnQuery(name_table, name_column, type, value, attributes));
+		Exec(query::MakeCreateColumnQuery(name_table, name_column, type, value, attributes));
 	}
 
 
@@ -191,12 +183,7 @@ namespace mysql
 	void Client::ModifyColumn(const std::string &name_table, const std::string &name_column,			//
 		const std::string &type, const std::string &value, const std::vector<std::string> &attributes)  //
 	{
-		if (!connection)
-			throw sql::SQLException("Not Connected!");
-		else if (isReadOnly)
-			throw sql::SQLException("It's Read Only :O !");
-		else
-			Exec(query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes));
+		Exec(query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes));
 	}
 
 
@@ -233,7 +220,7 @@ namespace mysql
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	nlohmann::json Client::TrySelectValues(const std::string &name_table,									//
+	nlohmann::json Client::SelectValues(const std::string &name_table,										//
 		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)			//
 	{
 		if (!connection)
@@ -289,8 +276,9 @@ namespace mysql
 			{
 				// In This Column (Horizontal, Left-Right Direction)
 				auto MetaData = ResultExec->getMetaData();
-				auto cnt = MetaData->getColumnCount();
-				for (size_t i = 1; i <= cnt; i++)
+				auto cnt = ResultExec->rowsCount();
+				auto c_cnt = MetaData->getColumnCount();
+				for (size_t i = 1; i <= MetaData->getColumnCount(); i++)
 				{
 					int colType = MetaData->getColumnType(i);
 					std::string ColumnName, /*"_" + std::to_string(ID),*/ ColumnID = MetaData->getColumnLabel(i);
@@ -305,7 +293,7 @@ namespace mysql
 					case sql::DataType::TINYINT:
 					case sql::DataType::SMALLINT:
 					case sql::DataType::BIGINT:
-						if (cnt == 1)
+						if (cnt == 1 && c_cnt == 1)
 							js = json::object({ {ColumnName, ResultExec->getInt64(ColumnID)} });
 						else
 							js[ColumnName].push_back(ResultExec->getInt64(ColumnID));
@@ -313,7 +301,7 @@ namespace mysql
 					case sql::DataType::REAL:
 					case sql::DataType::DECIMAL:
 					case sql::DataType::DOUBLE:
-						if (cnt == 1)
+						if (cnt == 1 && c_cnt == 1)
 							js = json::object({ {ColumnName, ResultExec->getDouble(ColumnID)} });
 						else
 							js[ColumnName].push_back(ResultExec->getDouble(ColumnID));
@@ -364,7 +352,7 @@ namespace mysql
 							}
 						}
 
-						if (cnt == 1)
+						if (cnt == 1 && c_cnt == 1)
 							js = _js;
 						else
 							js[ColumnName].push_back(str.empty() ? "" : _js);
@@ -378,7 +366,7 @@ namespace mysql
 		}
 		catch (sql::SQLException &e)
 		{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
 #endif
 		}
@@ -390,29 +378,17 @@ namespace mysql
 
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::TryUpdateValues(const std::string &name_table, const std::vector<std::string> &name_columns, //
+	void Client::UpdateValues(const std::string &name_table, const std::vector<std::string> &name_columns,	  //
 		const std::vector<std::string> &values, const std::vector<std::string> &condition)					  //
 	{
-		if (!connection)
-			throw sql::SQLException("Not Connected!");
-
-		if (!wasSelectedDB)
-			throw sql::SQLException("Database Was Not Selected!");
-
 		Exec(query::MakeUpdateValuesQuery(name_table, name_columns, values, condition));
 	}
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::TryInsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,	//
+	void Client::InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,		//
 		const std::vector<std::string> &values)																	//
 	{
-		if (!connection)
-			throw sql::SQLException("Not Connected!");
-
-		if (!wasSelectedDB)
-			throw sql::SQLException("Database Was Not Selected!");
-
 		Exec(query::MakeInsertValuesQuery(name_table, name_columns, values));
 	}
 } // namespace mysql

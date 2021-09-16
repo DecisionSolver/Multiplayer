@@ -15,8 +15,9 @@ namespace net
 			ConnectionManager(ConnectionManager::TypeWorking::Server, _Proto, IP.toString(), Port, numThreads) {}
 		~Server() {}
 		void Start();
-		void Send(std::string Packet);
-		
+		void Send(const std::string &Packet);
+		void Send(const std::shared_ptr<network::Packet> &Packet);
+
 		bool IsWorking() const { return IsRunning(); }
 	private:
 		void OnPacketHandler(Connection::SharedPtr connection);

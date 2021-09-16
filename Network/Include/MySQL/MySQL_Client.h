@@ -44,14 +44,15 @@ namespace mysql
 		sql::ResultSet *Query(const std::string &query);
 		void Exec(const std::string &query);
 
-		void TryInsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,
+		void InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,
 			const std::vector<std::string> &values);
 
-		nlohmann::json TrySelectValues(const std::string &name_table,
+		nlohmann::json SelectValues(const std::string &name_table,
 			const std::vector<std::string> &name_columns, const std::vector<std::string> &condition = {});
 
 		void CreateTable(const std::string &name_table, const std::vector<std::string> &name_column,
-			const std::vector<std::string> &type, const std::vector<std::string> &value, const std::vector<std::vector<std::string>> &attributes);
+			const std::vector<std::string> &type, const std::vector<std::string> &value,
+			const std::vector<std::vector<std::string>> &attributes);
 
 		void CreateColumn(const std::string &name_table, const std::string &name_column,
 			const std::string &type, const std::string &value, const std::vector<std::string> &attributes);
@@ -73,7 +74,7 @@ namespace mysql
 
 		void Disconnect();
 
-		void TryUpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,
+		void UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,
 			const std::vector<std::string>& values, const std::vector<std::string>& condition = {});
 	};
 
