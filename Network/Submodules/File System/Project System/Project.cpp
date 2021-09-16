@@ -143,7 +143,7 @@ HRESULT ProjectFile::Open(const std::string &Name, const std::string &ID_Commit,
 							PermToLoadProj = true;
 					}
 
-					if ((CurrentProj != Name && PermToLoadProj) || !ThisLevel->IsLoaded())
+					if (PermToLoadProj && ((CurrentProj != Name) || !ThisLevel->IsLoaded()))
 					{
 						if (ThisLevel->Load(Data.back().get<nlohmann::json::string_t>()) == E_FAIL)
 						{
@@ -159,7 +159,25 @@ HRESULT ProjectFile::Open(const std::string &Name, const std::string &ID_Commit,
 							}
 						}
 					}
-#endif
+					// If Has User And It Isn't Admin
+					else if (User && !PermToLoadProj)
+					{
+						std::shared_ptr<network::Packet> Pack = std::make_shared<network::Packet>();
+						Pack->CreatePacket(Type, true,
+							{
+								{
+									"Err",
+									(boost::format("You're Not Admin and don't have permissions to load project on server %s")
+									% (!ThisLevel->IsLoaded() ? "And Server Not Have Loaded Project!" :
+									"")).str(),
+								}
+							});
+
+						User->Send(Pack);
+
+						return S_OK;
+					}
+
 					// Client Logic
 					// Here's Require The User Who Wants Get This Project From Server! MUST BE CONNECTED TO SERVER BEFORE!
 					//
@@ -173,7 +191,7 @@ HRESULT ProjectFile::Open(const std::string &Name, const std::string &ID_Commit,
 						//{
 						if (Type == Packet::Type::Get_MetaData_Project)
 						{
-							for (const auto &It : Nodes)
+							for (const auto &It: Nodes)
 							{
 								JData_Full["_0"].push_back({ { "ID", It->ID }, {"RName", It->RenderName },
 									{ "ModelFName", It->GM->GetModelNameFile() } });
@@ -184,7 +202,7 @@ HRESULT ProjectFile::Open(const std::string &Name, const std::string &ID_Commit,
 						//{
 						if (Type == Packet::Type::Get_MetaData_Project_Ex)
 						{
-							for (const auto &It : Nodes)
+							for (const auto &It: Nodes)
 							{
 								auto GM = It->GM;
 								std::string Pos, Rot, Scl;
@@ -213,9 +231,9 @@ HRESULT ProjectFile::Open(const std::string &Name, const std::string &ID_Commit,
 							Info_Full->CreatePacket(Type, true, JData_Full);
 
 							User->Send(Info_Full);
-							//Info_Full->clear();
-							//JData_Full.clear();
-							//JData_Full = nlohmann::json();
+							Info_Full->clear();
+							JData_Full.clear();
+							JData_Full = nlohmann::json();
 						}
 						if (Type == Packet::Type::Get_MetaData_Project &&
 							(!JData_Less.empty() && JData_Less.dump() != "null"))
@@ -225,6 +243,8 @@ HRESULT ProjectFile::Open(const std::string &Name, const std::string &ID_Commit,
 							User->Send(Info_Less);
 						}
 					}
+#endif
+
 					if (CurrentProj != Name)
 						SetCurProject(Name);
 

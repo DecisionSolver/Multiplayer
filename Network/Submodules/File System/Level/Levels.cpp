@@ -1,26 +1,26 @@
 #include "Levels.h"
 
 #if defined (DS_Engine)
-	class Engine;
-	extern shared_ptr<Engine> Application;
-	#include "Engine.h"
-	#include "Project Manager/File System/File_system.h"
-	#include "Multiplayer/Include/pch.h"
+class Engine;
+extern shared_ptr<Engine> Application;
+#include "Engine.h"
+#include "Project Manager/File System/File_system.h"
+#include "Multiplayer/Include/pch.h"
 #else
-	#include "File System/File_system.h"
+#include "File System/File_system.h"
 #endif
 extern std::shared_ptr<File_system> FS;
 
 #if defined (DS_Engine)
-	#include "Project Manager/Project System/Project.h"
+#include "Project Manager/Project System/Project.h"
 #else
-	#include "../Project System/Project.h"
+#include "../Project System/Project.h"
 #endif
 
 extern std::unique_ptr<ProjectFile> Project;
 
 #if defined (DS_Engine)
-		#include "Entity/Camera.h"
+#include "Entity/Camera.h"
 extern shared_ptr<Camera> camera;
 #endif
 #include "Model/Models.h"
@@ -28,9 +28,9 @@ extern shared_ptr<Camera> camera;
 #include "Logic/SimpleLogic.h"
 
 #if defined (DS_Engine)
-	// Sound Objects Type
-	#include "Audio System/Audio.h"
-	extern shared_ptr<Audio> Sound;
+// Sound Objects Type
+#include "Audio System/Audio.h"
+extern shared_ptr<Audio> Sound;
 #endif
 
 
@@ -39,7 +39,7 @@ nlohmann::json Level::Decompress(const std::string &Buffer)
 	auto Decomp = nlohmann::json::from_msgpack(std::vector<uint8_t>{Buffer.begin(),
 		Buffer.end()}).front();
 #if defined (DEBUG) || defined (_DEBUG)
-	OutputDebugStringA(("\n" + Decomp.dump() + "\n").c_str());
+	Logger_Debug_F("Decompressed Data Project Is:\n%s\n", Decomp.dump().c_str());
 #endif
 	return Decomp;
 }
@@ -47,7 +47,7 @@ nlohmann::json Level::Decompress(const std::vector<uint8_t> &Buffer)
 {
 	auto Decomp = nlohmann::json::from_msgpack(Buffer).front();
 #if defined (DEBUG) || defined (_DEBUG)
-	OutputDebugStringA(("\n" + Decomp.dump() + "\n").c_str());
+	Logger_Debug_F("Decompressed Data Project Is:\n%s\n", Decomp.dump().c_str());
 #endif
 	return Decomp;
 }
@@ -59,7 +59,7 @@ HRESULT Level::Load(const std::shared_ptr<tinyxml2::XMLDocument> &NewDoc)
 	else
 		doc = NewDoc;
 	Process();
-	
+
 	Loaded = true;
 	return S_OK;
 }
@@ -83,26 +83,26 @@ HRESULT Level::Load(const std::string &FileBuff)
 
 void Level::Spawn(/*Vector3 pos, GameObjects::TYPE type*/)
 {
-//	switch (type)
-//	{
-	//case GameObjects::OBJECTS_Dyn:
-		//Obj_other.push_back(make_shared<GameObjects::Object>(ID_TEXT, i, ModelName,
-	//Logic, type, Pos, Scale, Rotate));
-	//	break;
-//	case GameObjects::NPC:
-//		break;
-//	case GameObjects::ACTOR:
-//		break;
-//	case GameObjects::OBJECTS_Stat:
-//		break;
-//	case GameObjects::ETC:
-//		break;
-//	case GameObjects::NONE:
-//		break;
+	//	switch (type)
+	//	{
+		//case GameObjects::OBJECTS_Dyn:
+			//Obj_other.push_back(make_shared<GameObjects::Object>(ID_TEXT, i, ModelName,
+		//Logic, type, Pos, Scale, Rotate));
+		//	break;
+	//	case GameObjects::NPC:
+	//		break;
+	//	case GameObjects::ACTOR:
+	//		break;
+	//	case GameObjects::OBJECTS_Stat:
+	//		break;
+	//	case GameObjects::ETC:
+	//		break;
+	//	case GameObjects::NONE:
+	//		break;
 
-	//default:
-	//	break;
-//	}
+		//default:
+		//	break;
+	//	}
 }
 
 void Level::Process()
@@ -118,7 +118,7 @@ void Level::Process()
 #if defined (DS_Engine)
 		auto settings = scene->FirstChildElement(_SETTINGS_);
 		XMLAttribute *FirstAttr = const_cast<XMLAttribute *>(settings->FirstAttribute());
-		
+
 		Vector3 Pos = Vector3::Zero;
 		Vector3 Look = Vector3::Zero;
 
@@ -172,7 +172,7 @@ void Level::Process()
 		for (;;)
 		{
 			//After Load We Need To Clear Commit's Data (When We Commit Project There's Write New Nodes)
-	
+
 			if (models->NoChildren()) break; // <models/>
 			if (Models.empty())
 				Models.push_back(models->FirstChildElement());
@@ -229,7 +229,7 @@ void Level::Process()
 					ModelFileName = FirstAttr->Value();
 				if (ID_TEXT == _ATTR_NAME_)
 					NameOfNode = FirstAttr->Value();
-				
+
 				// No Need To Do Something When It Will Remove
 				if (!IsRemoved)
 				{
@@ -335,7 +335,7 @@ void Level::Process()
 					NewNode->SaveInfo->IsAddLogic = false;
 				}
 			}
-		
+
 			I++;
 		}
 	}
@@ -364,7 +364,7 @@ void Level::Update()
 
 #if defined (DS_Engine)
 #if !defined(without_multiplayer)
-	#include "Multiplayer/Include/pch.h"
+#include "Multiplayer/Include/pch.h"
 #endif
 #endif
 
@@ -378,16 +378,18 @@ std::shared_ptr<Level::Node> Level::Add(const std::string &PathModel, const std:
 #if defined(without_multiplayer)
 	nd->ID = to_std::string(MainChild->GetNodes().size());
 #else
-	nd->ID = md5_from_buffer(PathModel);
+	nd->ID = md5_from_file(PathModel);
 #endif
 #else
-	nd->ID = md5_from_buffer(PathModel);
+	nd->ID = md5_from_file(PathModel);
 #endif
-	nd->RenderName = NodeName.empty() ? path(PathModel).filename().string() : NodeName;
-	nd->GM = make_shared<GameObject::Object>(nd->ID, nd->RenderName,
+	nd->RenderName = NodeName.empty() ? path(PathModel).filename().string(): NodeName;
+	nd->GM = make_shared<GameObject::Object>(nd->ID, path(PathModel).filename().string(),
 		nullptr, Model, Pos, Scale, Rotate);
 	if (!nd->GM || (nd->GM && nd->GM->GetIdText().empty()))
 		return make_shared<Level::Node>();
+
+	Logger_Debug_F("Trying To Add Object To The Scene:\nID: %s,\nRender Name: %s", nd->ID.c_str(), nd->RenderName.c_str());
 
 	// Need To Save It As New Object (or mark it)
 	nd->SaveInfo->T = nd->GM->GetType();
@@ -395,7 +397,7 @@ std::shared_ptr<Level::Node> Level::Add(const std::string &PathModel, const std:
 	nd->SaveInfo->IsVisible = nd->GM->RenderIt;
 	nd->SaveInfo->Pos = nd->SaveInfo->Rot =
 		nd->SaveInfo->Scale = true;
- 
+
 	auto Obj = MainChild->AddNewNode(nd);
 
 	if (clb_OnAddNewNode)
@@ -413,7 +415,7 @@ std::shared_ptr<Level::Node> Level::Add(const std::shared_ptr<GameObject::Object
 	nd->GM = GM;
 	if (nd->GM->GetIdText().empty())
 		return std::shared_ptr<Level::Node>();
-	
+
 	auto Obj = MainChild->AddNewNode(nd);
 
 	if (clb_OnAddNewNode)
@@ -549,7 +551,7 @@ std::string Level::Save(const std::shared_ptr<tinyxml2::XMLDocument> &Doc, const
 		Result.push_back(camera->GetEyePt().z);
 		getTextFloat3(Data, ", ", Result);
 		tmp->SetAttribute(_ATTR_CAM_POSITION_, Data.c_str());
-		
+
 		Data.clear();
 		Result.clear();
 		Result.push_back(camera->GetLookAtPt().x);
@@ -575,7 +577,7 @@ std::string Level::Save(const std::shared_ptr<tinyxml2::XMLDocument> &Doc, const
 			models = scene->FirstChildElement(_MODELS_);
 	}
 	auto Needed = (Node->SaveInfo->T == GameObject::TYPE::Sound_Obj
-		? s_objs : models)->FirstChildElement();
+		? s_objs: models)->FirstChildElement();
 	if (Needed)
 	{
 		for (;;)
@@ -585,7 +587,7 @@ std::string Level::Save(const std::shared_ptr<tinyxml2::XMLDocument> &Doc, const
 			to_lower(id);
 			if (Name == id)
 			{
-				(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj : model) = Needed;
+				(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj: model) = Needed;
 				break;
 			}
 
@@ -608,7 +610,7 @@ std::string Level::Save(const std::shared_ptr<tinyxml2::XMLDocument> &Doc, const
 		tmp->SetAttribute(_ATTR_POSITION_, "0.000, 0.000, 0.000");
 		tmp->SetAttribute(_ATTR_SCALE_, "0.000, 0.000, 0.000");
 		tmp->SetAttribute(_ATTR_ROTATE_, "0.000, 0.000, 0.000");
-		
+
 		Node->SaveInfo->Pos = true;
 		Node->SaveInfo->Rot = true;
 		Node->SaveInfo->Scale = true;
@@ -671,7 +673,7 @@ std::string Level::Save(const std::shared_ptr<tinyxml2::XMLDocument> &Doc, const
 	{
 		XMLAttribute *FirstAttr = const_cast<XMLAttribute *>(
 			(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj
-				? s_obj : model)->ToElement()->FirstAttribute());
+				? s_obj: model)->ToElement()->FirstAttribute());
 		for (;;) // Count Of Nodes
 		{
 			std::vector<float> Pass;
@@ -683,12 +685,12 @@ std::string Level::Save(const std::shared_ptr<tinyxml2::XMLDocument> &Doc, const
 				FirstAttr->SetAttribute(Node->ID.c_str());
 
 			if (nameNode == _ATTR_FILE_NAME_ ||
-				!(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj : model)
+				!(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj: model)
 				->ToElement()->FindAttribute(_ATTR_FILE_NAME_))
 			{
-				if (!(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj : model)
+				if (!(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj: model)
 					->ToElement()->FindAttribute(_ATTR_FILE_NAME_))
-					(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj : model)
+					(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj: model)
 					->ToElement()->SetAttribute(_ATTR_FILE_NAME_,
 						path(Node->GM->GetModelNameFile()).filename().string().c_str());
 				else
@@ -696,12 +698,12 @@ std::string Level::Save(const std::shared_ptr<tinyxml2::XMLDocument> &Doc, const
 						.string().c_str());
 			}
 			if (nameNode == _ATTR_NAME_ || !(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj
-				? s_obj : model)
+				? s_obj: model)
 				->ToElement()->FindAttribute(_ATTR_NAME_))
 			{
-				if (!(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj : model)
+				if (!(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj: model)
 					->ToElement()->FindAttribute(_ATTR_NAME_))
-					(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj : model)
+					(Node->SaveInfo->T == GameObject::TYPE::Sound_Obj ? s_obj: model)
 					->ToElement()->SetAttribute(_ATTR_NAME_, Node->RenderName.c_str());
 				else
 					FirstAttr->SetAttribute(Node->RenderName.c_str());
@@ -787,7 +789,7 @@ std::string Level::Save(const std::shared_ptr<tinyxml2::XMLDocument> &Doc, const
 			}
 			Node->SaveInfo->IsAddLogic = false;
 		}
-		
+
 		Node->SaveInfo->IsRemoved = false;
 	}
 
@@ -837,12 +839,12 @@ bool Level::Commit(const std::string &Author, const std::string &Description)
 		auto CurrentProj = Project->GetCurrentProject();
 
 		Project->DataBase->UpdateValues(CurrentProj,
-			{ "Hash_ID"}, { "" });
+			{ "Hash_ID" }, { "" });
 
 		ToDo("Add Desc In Commits");
 		Project->DataBase->InsertValues(CurrentProj,
 			{ "Name Author", "Description", "Date Create", "Data Commit", "Hash Commit", "Hash_ID" },
-			{ "root", Description, Date, BuffCommit, Hash, Hash });
+			{ Author, Description, Date, BuffCommit, Hash, Hash });
 
 		SetNotSaved(false);
 		return true;
@@ -894,7 +896,7 @@ void Level::Child::Update()
 
 		it->UpdateLogic(
 #if defined (DS_Engine)
-			Application->getframeTime();
+			Application->getframeTime()
 #else
 			1
 #endif
@@ -927,7 +929,7 @@ std::shared_ptr<Level::Node> Level::Child::getNodeByID(const std::string &ID)
 
 void Level::CheckOut(const std::vector<uint8_t> &Comm)
 {
-	std::shared_ptr<tinyxml2::XMLDocument> OneDoc = make_shared<tinyxml2::XMLDocument>(); 
+	std::shared_ptr<tinyxml2::XMLDocument> OneDoc = make_shared<tinyxml2::XMLDocument>();
 
 	OneDoc.reset(JSONtoXML(Decompress(Comm)));
 	if (OneDoc->Error())

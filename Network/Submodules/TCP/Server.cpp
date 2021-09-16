@@ -16,6 +16,7 @@ using namespace network;
 
 IPEndpoint IP = IPEndpoint(
 	//#if defined(_DEBUG)
+	//"0.0.0.0"
 	"127.0.0.1"
 	//#else
 	//		"192.168.1.4"
@@ -28,8 +29,10 @@ int main()
 {
 	setlocale(LC_ALL, "Russian");
 
+	CppLogger::registerTarget(new FileLoggerTarget("ServerTCP-info.log", LogLevel::LOG_LEVEL_INFO));
+	CppLogger::registerTarget(new FileLoggerTarget("ServerTCP-info.log", LogLevel::LOG_LEVEL_DEBUG));
 
-	This_Server->Set_All_Paths("keys/rootca.crt", "keys/rootca.key", "keys/dh2048.pem");
+	This_Server->Set_All_Paths("keys/rootca.crt", "keys/rootca.key", "keys/dh2048.pem", "keys/user.key");
 
 	This_Server->Start();
 

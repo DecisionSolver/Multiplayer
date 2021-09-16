@@ -15,9 +15,9 @@ std::map<asio::ip::tcp::endpoint, Connection::SharedPtr> ConnectionManager::m_co
 std::mutex m_connectionsMutex;
 
 //------------------------------------------------------------------------------
-ConnectionManager::ConnectionManager(TypeWorking _Type, TypeProtocol _Proto, std::string IP, USHORT port,
+ConnectionManager::ConnectionManager(TypeWorking _Type, TypeProtocol _Proto, const std::string &IP, const USHORT &port,
 	size_t numThreads): m_io_service(), m_acceptor(asio::ip::tcp::acceptor(m_io_service,
-		asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(IP), port)))
+		asio::ip::tcp::endpoint(asio::ip::address::from_string(IP), port)))
 	, m_threads(numThreads)
 	, _IP(IP)
 	, _Port(port)
@@ -27,11 +27,6 @@ ConnectionManager::ConnectionManager(TypeWorking _Type, TypeProtocol _Proto, std
 	, Context_SSL(asio::ssl::context::sslv23)
 #endif
 {
-	m_SocketUDP.reset(new asio::ip::udp::socket(m_io_service,
-		_Type == TypeWorking::Server ?
-		asio::ip::udp::endpoint(asio::ip::address_v4::from_string(IP), port)
-		: asio::ip::udp::endpoint(asio::ip::udp::v4(), 0)));
-	m_SocketUDP->set_option(asio::ip::udp::socket::reuse_address(true));
 }
 
 //------------------------------------------------------------------------------
@@ -54,7 +49,7 @@ void ConnectionManager::StartSystem(std::function<void(Connection::SharedPtr)> F
 	}
 
 #if defined(USE_SSL)
-	if (_Type != TypeWorking::Client && 
+	if (_Type != TypeWorking::Client &&
 		(!IsSetupPathsCert_All || !(IsSetupPathsCert_Chain && IsSetupPathsCert_Private && IsSetupPathsCert_DH)))
 	{
 #if __has_include("logger.h")
@@ -120,8 +115,9 @@ void ConnectionManager::StartSystem(std::function<void(Connection::SharedPtr)> F
 		;
 
 #if __has_include("logger.h")
-	Logger_Warn_F("The Listening IP: %s\nPort: %lu\nProtocol: %sIs Secured By SSL? %s", _IP.c_str(), _Port,
-		_Proto == TypeProtocol::TCP ? "TCP\n" : "UDP\n", UseSSL);
+	Logger_Warn_F("%s %s\nPort: %lu\nProtocol: %sIs Secured By SSL? %s",
+		_Type == TypeWorking::Server ? "Listening IP:" : "Connected To IP:",
+		_IP.c_str(), _Port, _Proto == TypeProtocol::TCP ? "TCP\n" : "UDP\n", UseSSL);
 #endif
 
 	DoAccept();
@@ -135,7 +131,6 @@ void ConnectionManager::StartSystem(std::function<void(Connection::SharedPtr)> F
 
 	IsWorking = true;
 
-	Curr = Last = std::chrono::high_resolution_clock::now();
 	Handler(Func ? Func : nullptr);
 }
 
@@ -143,10 +138,11 @@ void ConnectionManager::StartSystem(std::function<void(Connection::SharedPtr)> F
 void ConnectionManager::StopSystem()
 {
 	IsWorking = false;
-
+#if !defined(USE_SSL)
 	if (_Type == TypeWorking::Server && _Proto == TypeProtocol::TCP)
 		m_connectionsTCP.clear();
-	else if (_Type == TypeWorking::Server && _Proto == TypeProtocol::UDP)
+#endif
+	if (_Type == TypeWorking::Server && _Proto == TypeProtocol::UDP)
 		m_connectionsUDP.clear();
 
 	if (_Type == TypeWorking::Client && one_connection && (one_connection->GetStopped()
@@ -185,6 +181,9 @@ bool ConnectionManager::ConnectToServer()
 #endif
 
 	asio::error_code ec;
+	/* Sending ACCEPT CONNECTION Packet */
+	std::shared_ptr<network::Packet> AnswerPacket = std::make_shared<network::Packet>();
+	AnswerPacket->CreatePacket(network::Packet::Type::Connection, true, { { "_1", "OK" } });
 
 	// Create the connection from the connected socket
 	if (_Proto == TypeProtocol::TCP)
@@ -194,15 +193,9 @@ bool ConnectionManager::ConnectToServer()
 #else
 		m_SocketTCP.reset(new asio::ip::tcp::socket(m_io_service));
 		m_SocketTCP->connect(asio::ip::tcp::endpoint(asio::ip::address::from_string(_IP), _Port), ec);
+		m_SocketTCP->set_option(asio::ip::tcp::no_delay(true));
+		m_SocketTCP->set_option(asio::ip::tcp::socket::reuse_address(true));
 #endif
-
-		one_connection = Connection::Create(this,
-#if defined(USE_SSL)
-			std::move(newConnTCP_SSL)
-#else
-				*m_SocketTCP
-#endif
-			);
 
 #if defined(USE_SSL)
 		one_connection->get_socketTCP().set_verify_mode(asio::ssl::verify_peer);
@@ -211,16 +204,22 @@ bool ConnectionManager::ConnectToServer()
 		one_connection->get_socketTCP().lowest_layer().connect(tcp::endpoint(asio::ip::address::from_string(_IP), _Port), ec);
 #endif
 	}
-	else
-		one_connection = Connection::Create(this);
+	else if (_Proto == TypeProtocol::UDP)
+	{
+		auto EndPoint = asio::ip::udp::endpoint(asio::ip::address::from_string(_IP), _Port);
+		one_connection = std::make_shared<Connection>(this, m_io_service);
+		one_connection->get_socketUDP()->open(asio::ip::udp::v4(), ec);
+		one_connection->SetEndPoint(EndPoint);
+		one_connection->get_socketUDP()->send_to(asio::buffer(AnswerPacket->getData().dump()), EndPoint);
+	}
 
 #if defined(USE_SSL)
 	if (!ec || (one_connection && one_connection->get_socketTCP().lowest_layer().is_open())
 #else
-	if (!ec || (m_SocketTCP && m_SocketTCP->is_open())
+	if (!ec || (one_connection->get_socketTCP()->is_open())
 
 #endif
-		|| m_SocketUDP)
+	 || (one_connection->get_socketUDP()->is_open()))
 	{
 #if defined(USE_SSL)
 		if (!IsSetupPathsCert_Chain)
@@ -263,22 +262,11 @@ bool ConnectionManager::ConnectToServer()
 #if __has_include("logger.h")
 		Logger_Info("Success Connecting! Now Sending Back-Response");
 #endif
-		if (_Proto == TypeProtocol::UDP)
-		{
-			asio::ip::udp::resolver resolver(m_io_service);
-			asio::ip::udp::endpoint receiver_endpoint = *resolver.resolve(asio::ip::udp::v4(),
-				_IP, std::to_string(_Port));
-			one_connection->SetEndPoint(receiver_endpoint);
-		}
-	
 		one_connection->Start();
 
-		/* Sending ACCEPT CONNECTION Packet */
-		std::shared_ptr<network::Packet> AnswerPacket = std::make_shared<network::Packet>();
-		AnswerPacket->CreatePacket(network::Packet::Type::Connection, true, { {"_1", "OK"} });
+		if (_Proto == TypeProtocol::TCP)
+			one_connection->Send(AnswerPacket);
 
-		one_connection->Send(AnswerPacket);
-		
 		return true;
 	}
 	else
@@ -321,7 +309,7 @@ void ConnectionManager::Send(const std::string &Packet)
 				connection.second->Send({ Packet.begin(), Packet.end() });
 			}
 		}
-		else if (_Proto == TypeProtocol::UDP)
+		if (_Proto == TypeProtocol::UDP)
 		{
 			for (auto connection: m_connectionsUDP)
 			{
@@ -350,7 +338,7 @@ void ConnectionManager::Send(const std::shared_ptr<network::Packet> &Packet)
 				connection.second->Send(Packet);
 			}
 		}
-		else if (_Proto == TypeProtocol::UDP)
+		if (_Proto == TypeProtocol::UDP)
 		{
 			for (auto connection: m_connectionsUDP)
 			{
@@ -389,6 +377,9 @@ void ConnectionManager::IoServiceThreadProc()
 		// Run the asynchronous callbacks from the socket on this thread
 		// Until the io_service is stopped from another thread
 		m_io_service.run();
+		DWORD last_error = ::GetLastError();
+		asio::error_code ec(last_error, asio::error::get_system_category());
+		asio::detail::throw_error(ec, "IoServiceThreadProc");
 	}
 	catch (std::system_error &e)
 	{
@@ -441,15 +432,15 @@ void ConnectionManager::DoAccept()
 	}
 	else
 	{
-		OneConnForServerUDP = Connection::Create(this);
+		auto EndPoint = asio::ip::udp::endpoint(asio::ip::address::from_string(_IP), _Port);
+		OneConnForServerUDP = std::make_shared<Connection>(this, m_io_service, EndPoint);
+		Curr = Last = std::chrono::high_resolution_clock::now();
 		if (Callback_Accept)
 			Callback_Accept(OneConnForServerUDP);
-		
-		asio::ip::udp::resolver resolver(m_io_service);
-		asio::ip::udp::resolver::query query(asio::ip::udp::v4(), _IP, std::to_string(_Port));
-		asio::ip::udp::endpoint receiver_endpoint = *resolver.resolve(query);
-		OneConnForServerUDP->SetEndPoint(receiver_endpoint);
+
+		//OneConnForServerUDP->get_socketUDP().set_option(asio::ip::udp::socket::reuse_address(true));
 		OneConnForServerUDP->Start();
+		Curr = std::chrono::high_resolution_clock::now();
 	}
 
 	if (_Proto == TypeProtocol::TCP)
@@ -481,10 +472,13 @@ void ConnectionManager::DoAccept()
 				//connectionTCP->get_socketTCP().lowest_layer().close();
 			}
 #endif
+
+			Curr = Last = std::chrono::high_resolution_clock::now();
+
 #if defined(USE_SSL)
 			Connection::SharedPtr connectionTCP = Connection::Create(this, std::move(newConnTCP_SSL));
 #else
-			Connection::SharedPtr connectionTCP = Connection::Create(this, *newConnTCP);
+			Connection::SharedPtr connectionTCP;// = Connection::Create(this, *newConnTCP);
 #endif
 
 #if __has_include("logger.h")
@@ -492,13 +486,13 @@ void ConnectionManager::DoAccept()
 #if defined(USE_SSL)
 				connectionTCP->get_socketTCP().lowest_layer().remote_endpoint().address().to_string();
 #else
-				connectionTCP->get_socketTCP().remote_endpoint().address().to_string();
+				connectionTCP->get_socketTCP()->remote_endpoint().address().to_string();
 #endif
 			USHORT Port =
 #if defined(USE_SSL)
 				connectionTCP->get_socketTCP().lowest_layer().remote_endpoint().port();
 #else
-				connectionTCP->get_socketTCP().remote_endpoint().port();
+				connectionTCP->get_socketTCP()->remote_endpoint().port();
 #endif
 
 			Logger_Info_F("Accept New Client! Where Are You Frommmmm? IP: %s, Port: %u", IP.c_str(), Port);
@@ -538,7 +532,7 @@ void ConnectionManager::DoAccept()
 					m_connectionsTCP.erase(itConnection);
 #else
 				if (itConnection == m_connectionsTCP.end())
-					m_connectionsTCP[connectionTCP->get_socketTCP().remote_endpoint()] = connectionTCP;
+					m_connectionsTCP[connectionTCP->get_socketTCP()->remote_endpoint()] = connectionTCP;
 				else
 					m_connectionsTCP.erase(itConnection);
 #endif
@@ -548,6 +542,7 @@ void ConnectionManager::DoAccept()
 				Callback_Accept(connectionTCP);
 
 			connectionTCP->Start();
+			Curr = std::chrono::high_resolution_clock::now();
 
 			DoAccept();
 		});
@@ -555,8 +550,9 @@ void ConnectionManager::DoAccept()
 }
 
 //------------------------------------------------------------------------------
-void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, std::function<void()> Func)
+void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, bool Need2DiscFromMySQL)
 {
+	std::lock_guard<std::mutex> lk(m_ConnectedClose);
 	if (_Type == TypeWorking::Client)
 	{
 #if __has_include("logger.h")
@@ -585,31 +581,30 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, std
 				return true;
 			return false;
 		});
+
+		// Check If Still Connected
 		if (itConnection != m_connectionsTCP.end())
 		{
-			if (itConnection->second->IsConnected() && itConnection->second->GetLogged()
-				&& !itConnection->second->getIsError())
+			if (Need2DiscFromMySQL)
 				MySQL_DB->UpdateValues("Local", { "_2" }, { { "0" } }, { { " WHERE _N = '" +
 					std::to_string(connection->GetMetaDB_User()) + "'" } });
 
 #if defined(USE_SSL)
 			ToDo("Very Insecure!");
-			//one_connection->get_socketTCP().shutdown();
+			connection->get_socketTCP().shutdown();
 #else
 			if (m_SocketTCP)
 			{
 				m_SocketTCP->close();
 				m_SocketTCP.reset();
 			}
+			connection->get_socketTCP()->close();
 #endif
 			m_connectionsTCP.erase(itConnection);
 
 			connection->Stop(false);
-
-			if (Func)
-				Func();
-			}
 		}
+	}
 	else
 		one_connection.reset();
 }
@@ -632,6 +627,25 @@ std::condition_variable &ConnectionManager::IsWait()
 		return one_connection->successConn;
 }
 
+bool ConnectionManager::GetTimer(const Connection::SharedPtr &User)
+{
+	if (User->GetLogged() ||
+		User->m_owner && User->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client) return false;
+
+	Last = std::chrono::high_resolution_clock::now();
+	auto Diff = (Last - Curr);
+
+#if __has_include("logger.h")
+	Logger_Info_F("Client(%zd) Has Time: %lld\n", User->m_clientId,
+		std::chrono::duration_cast<std::chrono::seconds>(Diff).count());
+#endif
+
+	if (Diff > std::chrono::seconds(60))
+		return true;
+
+	return false;
+}
+
 //------------------------------------------------------------------------------
 void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 {
@@ -639,11 +653,13 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 	{
 		if (Func)
 			Callback_OnClientHandler = Func;
-		
+
 		std::thread([&]
 		{
 			auto Lambd = [&](Connection::SharedPtr connection)
 			{
+				if (!connection) return false;
+
 				network::Packet packet = network::Packet();
 				if (_Type == TypeWorking::Server)
 				{
@@ -652,100 +668,94 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					{
 						OnConnectionClosed(connection);
 						return false;
+
+						packet.clear();
 					}
 				}
 
-				if (connection && (!connection->GetLogged()))
+				connection->GetPacket(packet, network::Packet::Type::Connection);
+				if (packet)
 				{
-					if (_Type == TypeWorking::Server)
+					json dataJSON;
+					if (_Type == TypeWorking::Client)
 					{
-						connection->GetPacket(packet, network::Packet::Type::MySQL);
-						if (packet)
+						Logger_Warn_F("We're get the network::Packet::Type::Connection and try to check 'OK',"\
+							" from this data: %s", packet.getData().dump().c_str());
+						dataJSON = packet.getData();
+						if (!dataJSON.empty() && dataJSON["_1"] == "OK")
 						{
-							json temp = packet.getData();
-							if (!temp.empty())
-							{
-								std::string Login = temp["_0"].get<std::string>(),
-									Pass = temp["_1"].get<std::string>();
-
-								auto Obj = MySQL_DB->SelectValues("Local", { "*" },
-									{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
-
-								// If Successful Then Send Answer About It
-								std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
-								json pack = Answer->CreatePacket(network::Packet::Type::MySQL)->getData();
-								if (!Obj.empty())
-								{
-									pack["data"]["body"]["_0"] = "OK";
-
-									connection->SetMetaDB_User((int)Obj["_N"].front().get<json::number_integer_t>());
-
-									if (Obj["_2"].front().get<json::number_integer_t>() == 1)
-										pack["data"]["body"]["_0"] = "AlreadyOnl";
-								}
-								else
-									pack["data"]["body"]["_0"] = "NotFound";
-								Answer->FillIn(pack);
-
-								connection->Send(Answer);
-
-								if (pack["data"]["body"]["_0"] == "NotFound" ||
-									pack["data"]["body"]["_0"] == "AlreadyOnl")
-								{
-									OnConnectionClosed(connection);
-									return false;
-								}
-								if (pack["data"]["body"]["_0"] == "OK")
-								{
-									connection->SetLogged();
-									MySQL_DB->UpdateValues("Local", { "_2" }, { { "1" } }, { {
-										" WHERE _N = '" +
-										std::to_string(connection->GetMetaDB_User()) + "'" } });
-
-									return true;
-								}
-							}
-							else
-							{
-								OnConnectionClosed(connection);
-								return false;
-							}
+							connection->SetConnected(true);
+							connection->successConn.notify_all();
+							if (Callback_OnLoggin)
+								Callback_OnLoggin(connection);
 						}
 					}
+					else
+					{
+						/* Sending ACCEPT CONNECTION Packet */
+						std::shared_ptr<network::Packet> AnswerPacket = std::make_shared<network::Packet>();
+						AnswerPacket->CreatePacket(network::Packet::Type::Connection, true,
+							{ {"_1", "OK"} });
+						connection->Send(AnswerPacket);
+						connection->SetConnected(true);
+					}
+					packet.clear();
+				}
 
-					connection->GetPacket(packet, network::Packet::Type::Connection);
+				if (!connection->GetLogged() && _Type == TypeWorking::Server)
+				{
+					connection->GetPacket(packet, network::Packet::Type::Login);
 					if (packet)
 					{
-						json dataJSON;
-						if (_Type == TypeWorking::Client)
+						json temp = packet.getData();
+						if (!temp.empty())
 						{
-							Logger_Warn_F("We're get the network::Packet::Type::Connection and try to check 'OK',"\
-								" from thi data: %s", packet.getData().dump().c_str());
-							dataJSON = packet.getData();
-							if (!dataJSON.empty() && dataJSON["_1"] == "OK")
+							std::string Login = temp["_0"].get<std::string>(),
+								Pass = temp["_1"].get<std::string>();
+
+							auto Obj = MySQL_DB->SelectValues("Local", { "*" },
+								{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
+
+							// If Successful Then Send Answer About It
+							std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
+							json pack = Answer->CreatePacket(network::Packet::Type::Login)->getData();
+							if (!Obj.empty())
 							{
-								connection->SetConnected(true);
-								connection->successConn.notify_all();
-								if (Callback_OnLoggin)
-									Callback_OnLoggin(connection);
+								pack["data"]["body"]["_0"] = "OK";
+
+								connection->SetMetaDB_User((int)Obj["_N"].front().get<json::number_integer_t>());
+
+								if (Obj["_2"].front().get<json::number_integer_t>() == 1)
+									pack["data"]["body"]["_0"] = "AlreadyOnl";
+							}
+							else
+								pack["data"]["body"]["_0"] = "NotFound";
+							Answer->FillIn(pack);
+
+							connection->Send(Answer);
+
+							if (pack["data"]["body"]["_0"] == "NotFound" ||
+								pack["data"]["body"]["_0"] == "AlreadyOnl")
+							{
+								OnConnectionClosed(connection, false);
+								return false;
+							}
+							if (pack["data"]["body"]["_0"] == "OK")
+							{
+								connection->SetLogged();
+								MySQL_DB->UpdateValues("Local", { "_2" }, { { "1" } }, { {
+									" WHERE _N = '" +
+									std::to_string(connection->GetMetaDB_User()) + "'" } });
+
+								return true;
 							}
 						}
 						else
 						{
-							/* Sending ACCEPT CONNECTION Packet */
-							std::shared_ptr<network::Packet> AnswerPacket = std::make_shared<network::Packet>();
-							AnswerPacket->CreatePacket(network::Packet::Type::Connection, true,
-								{ {"_1", "OK"} });
-							connection->Send(AnswerPacket);
-							connection->SetConnected(true);
+							OnConnectionClosed(connection);
+							return false;
 						}
-					}
-
-					// If Wasn't MySQL Packet And Timer Is Done
-					if (_Type == TypeWorking::Server && connection->GetTimer())
-					{
-						OnConnectionClosed(connection);
-						return false;
+						packet.clear();
 					}
 				}
 
@@ -761,16 +771,106 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					WaitForMySQL.wait(MySQL_Lock);
 				}
 			}
+			std::thread([&]
+			{
+				while ((!m_io_service.stopped() || IsRunning()) && !isUpdate)
+				{
+					std::this_thread::sleep_for(1s);
+					if (m_connectionsTCP.empty() || m_connectionsUDP.empty() || _Type != TypeWorking::Server) continue;
+
+					std::unique_lock<std::mutex> MainLock(m_connectionsMutex);
+					if (_Proto == TypeProtocol::TCP)
+					{
+						std::map<asio::ip::tcp::endpoint, Connection::SharedPtr>::iterator connection =
+							m_connectionsTCP.begin();
+						while (connection != m_connectionsTCP.end())
+						{
+							if (!connection->second) continue;
+
+							if (!connection->second->GetStopped() && (!connection->second->getIsError() &&
+								connection->second->get_error_queue().empty()))
+							{
+								// If Wasn't MySQL Packet And Timer Is Done
+								if (GetTimer(connection->second))
+								{
+									Logger_Info("User Has Disconnected By Left Time Waiting For MySQL Packet!");
+									OnConnectionClosed(connection->second);
+
+									connection = m_connectionsTCP.begin();
+									if (connection == m_connectionsTCP.end())
+										connection = m_connectionsTCP.begin();
+									continue;
+								}
+								// Check If We Connected In MySQL
+								else if (connection->second->GetLogged())
+								{
+									auto Obj = MySQL_DB->SelectValues("Local", { "_2" }, { { " WHERE _N = '" +
+											std::to_string(connection->second->GetMetaDB_User()) + "'" } });
+									if (!Obj.empty())
+									{
+										if (Obj["_0"] == 0)
+										{
+											OnConnectionClosed(connection->second);
+
+											connection = m_connectionsTCP.begin();
+											if (connection == m_connectionsTCP.end())
+												connection = m_connectionsTCP.begin();
+											continue;
+										}
+									}
+								}
+							}
+							connection++;
+						}
+					}
+					if (_Proto == TypeProtocol::UDP)
+					{
+						std::map<asio::ip::udp::endpoint, Connection::SharedPtr>::iterator connection =
+							m_connectionsUDP.begin();
+						while (connection != m_connectionsUDP.end())
+						{
+							if (!connection->second) continue;
+
+							if (!connection->second->GetStopped() && (!connection->second->getIsError() &&
+								connection->second->get_error_queue().empty()))
+							{
+								// If Wasn't MySQL Packet And Timer Is Done
+								if (GetTimer(connection->second))
+								{
+									Logger_Info("User Has Disconnected By Left Time Waiting For MySQL Packet!");
+									OnConnectionClosed(connection->second);
+									connection = m_connectionsUDP.begin();
+									if (connection == m_connectionsUDP.end())
+										connection = m_connectionsUDP.begin();
+									continue;
+								}
+								// Check If We Connected In MySQL
+								else if (connection->second->GetLogged())
+								{
+									auto Obj = MySQL_DB->SelectValues("Local", { "_2" }, { { " WHERE _N = '" +
+											std::to_string(connection->second->GetMetaDB_User()) + "'" } });
+									if (!Obj.empty())
+									{
+										if (Obj["_0"] == 0)
+										{
+											OnConnectionClosed(connection->second);
+
+											connection = m_connectionsUDP.begin();
+											if (connection == m_connectionsUDP.end())
+												connection = m_connectionsUDP.begin();
+											continue;
+										}
+									}
+								}
+							}
+							connection++;
+						}
+					}
+				}
+			}).detach();
+
 			while ((!m_io_service.stopped() || IsRunning()) && !isUpdate)
 			{
-				while ((_Type == TypeWorking::Server &&
-					(_Proto == TypeProtocol::TCP ? m_connectionsTCP.empty() : m_connectionsUDP.empty()))
-					|| NoMessageLeft)
-				{
-					std::unique_lock<std::mutex> ul(muxBlocking);
-					cvBlocking.wait(ul);
-				}
-
 				if (_Type == TypeWorking::Client && one_connection)
 				{
 					while (one_connection && (one_connection->getIsError() &&
@@ -812,7 +912,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 									!connection->second->get_error_queue().empty())
 								{
 									OnConnectionClosed(connection->second);
-									
+
 									connection = m_connectionsTCP.begin();
 									if (connection == m_connectionsTCP.end())
 										connection = m_connectionsTCP.begin();
@@ -822,7 +922,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							}
 						}
 					}
-					else if (_Proto == TypeProtocol::UDP)
+					if (_Proto == TypeProtocol::UDP)
 					{
 						{
 							std::unique_lock<std::mutex> MainLock(m_connectionsMutex);
@@ -848,6 +948,16 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						}
 					}
 				}
+				while ((_Type == TypeWorking::Server &&
+					(_Proto == TypeProtocol::TCP ?
+						m_connectionsTCP.empty() :
+						m_connectionsUDP.empty())
+					)
+					|| NoMessageLeft)
+				{
+					std::unique_lock<std::mutex> ul(muxBlocking);
+					cvBlocking.wait(ul);
+				}
 			}
 		}).detach();
 	}
@@ -867,7 +977,10 @@ bool ConnectionManager::verify_certificate(bool preverified, asio::ssl::verify_c
 	char subject_name[256];
 	X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
 	X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-	std::cout << "Verifying " << subject_name << "\n";
+	
+#if __has_include("logger.h")
+	Logger_Info_F("Verifying %s", subject_name);
+#endif
 
 	return preverified;
 }

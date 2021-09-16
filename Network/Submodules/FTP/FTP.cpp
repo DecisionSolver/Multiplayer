@@ -250,7 +250,7 @@ int main()
 
 	local_root = local_root.generic_path();
 
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 	if (!exists(local_root.string() + "logs"))
 		create_directories(local_root.string() + "logs/");
 
@@ -270,7 +270,7 @@ int main()
 #endif
 		, "gb_z_rod2_rf") == mysql::Client::Done)
 	{
-#if defined(_DEBUG) && defined(HAS_LOGGER)
+#if defined(_DEBUG) && __has_include("logger.h")
 		const char* _IP =
 #if defined(_DEBUG)
 			"188.210.240.246"
@@ -280,14 +280,13 @@ int main()
 			;
 		Logger_Debug_F("Successful Connected To %s", _IP);
 #endif
-#if defined(HAS_LOGGER)
-
+#if __has_include("logger.h")
 		Logger_Info("Successful Connect To MySQL DB");
 #endif
 	}
 	else
 	{
-#if defined(_DEBUG) && defined(HAS_LOGGER)
+#if defined(_DEBUG) && __has_include("logger.h")
 		const char* _IP =
 #if defined(_DEBUG)
 			"188.210.240.246"
@@ -297,7 +296,7 @@ int main()
 			;
 		Logger_Debug_F("Failure Connected To %s", _IP);
 #endif
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Info("Failure Connect To MySQL DB");
 #endif
 		return -1;
@@ -312,7 +311,7 @@ int main()
 	//mysql::updateFilesRights("user3", { {"mp4.mp4", 0} });
 	//std::cout << mysql::hasUserAccessToProject("user1", 1);
 
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 	Logger_Info_F("Current Used Path Is: %s", local_root.string().c_str());
 #endif
 
@@ -353,13 +352,13 @@ int main()
 	// performance with multiple clients, but don't over-do it.
 	if (server.start(4))
 	{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Info_F("FTP Server Has Been Started On IP %s And Port 2121 And 4 Threads", _IP);
 #endif
 	}
 	else
 	{
-#if defined(HAS_LOGGER)
+#if __has_include("logger.h")
 		Logger_Critical("Something Is Wrong With Starting FTP Server!");
 #endif
 	}

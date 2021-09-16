@@ -62,9 +62,9 @@ FTPClient::FTPClient()
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 
 #if defined(USE_SSL)
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER , 1);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST , 1);
-	curl_easy_setopt(curl, CURLOPT_CAINFO , "./ca.cert");
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 1);
+	curl_easy_setopt(curl, CURLOPT_CAINFO, "./ca.cert");
 #endif
 
 	// Enable Upload
@@ -91,10 +91,10 @@ bool FTPClient::SendFile(const boost::filesystem::path &FilePath)
 		return false;
 	}
 	FILE *File;
-	long uploaded_len = 0; 
+	long uploaded_len = 0;
 	CURLcode res = CURLE_GOT_NOTHING;
 	int c = 0;
-	
+
 	File = fopen(FilePath.string().c_str(), "rb");
 	if (!File)
 		return false;
@@ -127,9 +127,9 @@ bool FTPClient::SendFile(const boost::filesystem::path &FilePath)
 
 		res = curl_easy_perform(curl);
 	}
-	
+
 	fclose(File); /* close the local file */
-	
+
 	if (res != CURLE_OK && res != CURLE_PARTIAL_FILE)
 	{
 #if __has_include("logger.h")

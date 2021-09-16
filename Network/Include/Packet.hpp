@@ -12,7 +12,7 @@ namespace network
 		{
 			Chat = 0,
 			File,
-			MySQL,
+			Login, // Was MySQL
 			Connection,
 			Disconnection,
 			PlaySound,

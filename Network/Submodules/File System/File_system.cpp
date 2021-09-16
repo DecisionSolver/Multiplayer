@@ -1,12 +1,12 @@
 #include "File_system.h"
 
 #if !defined (DS_Engine)
-	#include "Level/Levels.h"
+#include "Level/Levels.h"
 #else
-	class Engine;
-	extern shared_ptr<Engine> Application;
-	#include "Engine.h"
-	#include "Project Manager/Level/Levels.h"
+class Engine;
+extern shared_ptr<Engine> Application;
+#include "Engine.h"
+#include "Project Manager/Level/Levels.h"
 #endif
 
 void File_system::Update()
@@ -37,9 +37,9 @@ File_system::File_system()
 	WorkDirSources = WorkDir.generic_string() + ((WorkDir.generic_string().back() == '/')
 		? "resource/"
 		: "/resource/");
-	
+
 	ScanFiles();
-	
+
 #if defined (DS_Engine)
 	try
 	{
@@ -53,7 +53,7 @@ File_system::File_system()
 }
 
 #if defined (DS_Engine)
-	#include "Multiplayer/Include/pch.h"
+#include "Multiplayer/Include/pch.h"
 #endif
 void File_system::ScanFiles()
 {
@@ -87,31 +87,31 @@ void File_system::ScanFiles()
 		case MODELS:
 			Models.push_back(make_pair(make_shared<File_system::File>(someFile, ext,
 				Fname, (size_t)file_size(someFile), type, false, Hash), file.at(i)));
-			
+
 			c_AllFilesWasAdded++;
 			break;
 		case TEXTURES:
 			Textures.push_back(make_pair(make_shared<File_system::File>(someFile, ext,
 				Fname, (size_t)file_size(someFile), type, false, Hash), file.at(i)));
-			
+
 			c_AllFilesWasAdded++;
 			break;
 		case LEVELS:
 			Levels.push_back(make_pair(make_shared<File_system::File>(someFile, ext,
 				Fname, (size_t)file_size(someFile), type, false, Hash), file.at(i)));
-			
+
 			c_AllFilesWasAdded++;
 			break;
 		case DIALOGS:
 			Dialogs.push_back(make_pair(make_shared<File_system::File>(someFile, ext,
 				Fname, (size_t)file_size(someFile), type, false, Hash), file.at(i)));
-			
+
 			c_AllFilesWasAdded++;
 			break;
 		case SOUNDS:
 			Sounds.push_back(make_pair(make_shared<File_system::File>(someFile, ext,
 				Fname, (size_t)file_size(someFile), type, false, Hash), file.at(i)));
-			
+
 			c_AllFilesWasAdded++;
 			break;
 		case SHADERS:
@@ -123,7 +123,7 @@ void File_system::ScanFiles()
 		case UIS:
 			Uis.push_back(make_pair(make_shared<File_system::File>(someFile, ext,
 				Fname, (size_t)file_size(someFile), type, false, Hash), file.at(i)));
-			
+
 			c_AllFilesWasAdded++;
 			break;
 		case SCRIPTS:
@@ -212,7 +212,7 @@ _TypeOfFile File_system::GetTypeFileByExt(const path &File)
 
 string File_system::getPathFromType(const _TypeOfFile &T)
 {
-	string New = WorkDirSources.string() + ((WorkDirSources.string().back() == '/') ? "" : "/");
+	string New = WorkDirSources.string() + ((WorkDirSources.string().back() == '/') ? "": "/");
 	switch (T)
 	{
 	case MODELS:
@@ -264,7 +264,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) ||
 				Files.string().find("models/") != string::npos)
 			{
-				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".obj" : "")))
+				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".obj": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -278,7 +278,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 					else
 						return F;
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".3ds" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".3ds": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -293,7 +293,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 						return F;
 
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".fbx" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".fbx": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -313,7 +313,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) ||
 				Files.string().find("textures/") != string::npos)
 			{
-				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".dds" : "")))
+				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".dds": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -328,7 +328,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 						return F;
 
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".png" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".png": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -341,7 +341,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 					else
 						return F;
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".bmp" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".bmp": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -355,7 +355,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 					else
 						return F;
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".jpg" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".jpg": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -375,7 +375,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) ||
 				Files.string().find("shaders/") != string::npos)
 			{
-				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".hlsl" : "")))
+				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".hlsl": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -389,7 +389,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 					else
 						return F;
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".fx" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".fx": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -403,7 +403,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 					else
 						return F;
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".vs" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".vs": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -417,7 +417,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 					else
 						return F;
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".ps" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".ps": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -434,10 +434,10 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 			}
 
 			// Sounds
-			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) || 
+			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) ||
 				Files.string().find("sounds/") != string::npos)
 			{
-				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".wav" : "")))
+				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".wav": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -445,7 +445,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 						// If need to add it to engine
 						NewObj->TypeOfFile = _TypeOfFile::SOUNDS;
 						NewObj->Ext = ".wav";
-					
+
 						NeedToAdd = true;
 					}
 					else
@@ -454,12 +454,12 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 			}
 
 			// Maps, UI and etc
-			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) || 
+			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) ||
 				Files.string().find("ui/") != string::npos ||
 				Files.string().find("maps/") != string::npos ||
 				Files.string().find("text/") != string::npos)
 			{
-				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".xml" : "")))
+				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".xml": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -480,10 +480,10 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 			}
 
 			// Scripts
-			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) || 
+			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) ||
 				Files.string().find("scripts/") != string::npos)
 			{
-				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".lua" : "")))
+				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".lua": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -491,7 +491,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 						// If need to add it to engine
 						NewObj->TypeOfFile = _TypeOfFile::SCRIPTS;
 						NewObj->Ext = ".lua";
-					
+
 						NeedToAdd = true;
 					}
 					else
@@ -500,10 +500,10 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 			}
 
 			// Fonts
-			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) || 
+			if (((!File.has_branch_path() && !File.has_root_path()) || !File.has_extension()) ||
 				Files.string().find("fonts/") != string::npos)
 			{
-				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".ttf" : "")))
+				if (contains(Files.string(), File.string() + (!File.has_extension() ? ".ttf": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -517,7 +517,7 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 					else
 						return F;
 				}
-				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".ttc" : "")))
+				else if (contains(Files.string(), File.string() + (!File.has_extension() ? ".ttc": "")))
 				{
 					auto F = GetFileByPath(Files);
 					if (!F || F->FName.empty())
@@ -525,14 +525,14 @@ shared_ptr<File_system::File> File_system::Find(const path &File, bool AlsoAddFi
 						// If need to add it to engine
 						NewObj->TypeOfFile = _TypeOfFile::FONTS;
 						NewObj->Ext = ".ttc";
-						
+
 						NeedToAdd = true;
 					}
 					else
 						return F;
 				}
 			}
-			
+
 			if (NeedToAdd)
 			{
 				NewObj->Path = Files.string();
@@ -738,7 +738,9 @@ shared_ptr<File_system::File> File_system::GetFileByPath(const path &File)
 std::pair<bool, std::shared_ptr<File_system::File>> File_system::IsSame(const std::string &FileName, std::string &Hash)
 {
 	if (FileName.empty() || Hash.empty()) return { false, nullptr };
-	
+
+	boost::to_lower(Hash);
+
 	if (!path(FileName).has_extension())
 	{
 		auto Obj = Find(FileName, false);
@@ -758,65 +760,83 @@ std::pair<bool, std::shared_ptr<File_system::File>> File_system::IsSame(const st
 	switch (T)
 	{
 	case MODELS:
-		for (auto It: Models)
+		for (const auto &It: Models)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
 	case TEXTURES:
-		for (auto It: Textures)
+		for (const auto &It: Textures)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
 	case LEVELS:
-		for (auto It: Levels)
+		for (const auto &It: Levels)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
 	case DIALOGS:
-		for (auto It : Models)
+		for (const auto &It: Models)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
 	case SOUNDS:
-		for (auto It: Sounds)
+		for (const auto &It: Sounds)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
 	case SHADERS:
-		for (auto It: Shaders)
+		for (const auto &It: Shaders)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
 	case UIS:
-		for (auto It: Uis)
+		for (const auto &It: Uis)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
 	case SCRIPTS:
-		for (auto It: Scripts)
+		for (const auto &It: Scripts)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
 	case FONTS:
-		for (auto It: Fonts)
+		for (const auto &It: Fonts)
 		{
-			if (contains(It.first->Hash, Hash))
+			auto Str = It.first->Hash;
+			boost::to_lower(Str);
+			if (contains(Str, Hash))
 				return { true, It.first };
 		}
 		break;
@@ -829,7 +849,7 @@ std::pair<bool, std::shared_ptr<File_system::File>> File_system::IsSame(const st
 shared_ptr<File_system::File> File_system::GetFile(path File)
 {
 	if (File.empty()) return shared_ptr<File_system::File>();
-	
+
 	auto copy = File.generic();
 	File.swap(copy);
 	string Fname = File.generic_string();
@@ -953,9 +973,9 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 	return shared_ptr<File_system::File>();
 }
 #if defined (DS_Engine)
-	shared_ptr<File_system::File> File_system::AddFile(path File, pair<string, vector<pair<bool, string>>> &ListTextures)
+shared_ptr<File_system::File> File_system::AddFile(path File, pair<string, vector<pair<bool, string>>> &ListTextures)
 #else
-	shared_ptr<File_system::File> File_system::AddFile(path File)
+shared_ptr<File_system::File> File_system::AddFile(path File)
 #endif
 {
 	_TypeOfFile T = NONE;
@@ -1014,7 +1034,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 				Finded = true;
 
 			path _File = path(Obj);
-			
+
 			// Try To Find It In Resource Of Engine
 			_Obj = Find(_File.filename().string(), false);
 
@@ -1096,7 +1116,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 
 #if defined (DS_Engine)
 		// Try To Find Some Textures From File And Add It To Queue Engine To Model
-		
+
 		if (T == _TypeOfFile::MODELS)
 		{
 			auto importer = new Assimp::Importer;
@@ -1138,7 +1158,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 
 				boost::filesystem::copy(File, path(Path));
 				Models.push_back(make_pair(make_shared<File_system::File>(Path.string(), ext, Fname,
-					exists(path(pathType + delExt)) ? (size_t)file_size(Path) : 0, T, false,
+					exists(path(pathType + delExt)) ? (size_t)file_size(Path): 0, T, false,
 					md5_from_file(File.string())), Path.string()));
 			}
 		}
@@ -1167,7 +1187,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 					boost::filesystem::copy(path(PathFile + "/" + Fname), path(Path));
 
 				Textures.push_back(make_pair(make_shared<File_system::File>(Path, ext, Fname,
-					(exists(path(PathFile + "/" + Fname)) ? (size_t)file_size(Path) : 0), T, false,
+					(exists(path(PathFile + "/" + Fname)) ? (size_t)file_size(Path): 0), T, false,
 					md5_from_file(PathFile + "/" + Fname)), path(Path).string()));
 			}
 			catch (boost::filesystem::filesystem_error const &e)

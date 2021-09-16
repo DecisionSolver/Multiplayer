@@ -22,6 +22,9 @@ extern std::unique_ptr<ProjectFile> Project;
 
 std::string Login, Pass;
 
+//Test
+nlohmann::json _Data;
+
 bool UseRepeater = false, UseClear = false;
 void ConnectFunc(string _Login, string _Pass)
 {
@@ -40,7 +43,7 @@ void ConnectFunc(string _Login, string _Pass)
 
 		// Create MySQL Packet That We're Connection To
 		std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
-		Answer->CreatePacket(network::Packet::Type::MySQL, true, { { "_0", _Login },
+		Answer->CreatePacket(network::Packet::Type::Login, true, { { "_0", _Login },
 			{ "_1", Pass = md5_from_buffer(_Pass) } });
 
 		Users.back()->Send(Answer);
@@ -122,13 +125,13 @@ int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "Russian");
 
-	if (DB->Connect("gb_newdone", "UU2a-yMjdYCJ",
+	if (DB->Connect("test", "vextern123",
 #if defined(_DEBUG)
-		"mysql94.1gb.ru"
+		"188.210.240.246"
 #else
-		"192.168.1.2"
+		"188.210.240.246"
 #endif
-		, "gb_newdone") != mysql::Client::Done)
+		, "gb_z_rod2_rf") != mysql::Client::Done)
 	{
 #if __has_include("logger.h")
 		Logger_Critical("Something Is Went Wrong With Connection To MySQL Server!");
@@ -174,11 +177,39 @@ int main(int argc, char* argv[])
 			}
 		}
 	}).detach();
-	
+
 	auto fData = FS->LoadSettingsFile();
 	Project->OpenOrCreateDB();
 	//if (Project->Open("Test") == E_FAIL)
 	//	Logger_Critical("Failed To Open 'Test' Project!");
+
+	//auto File = FS->GetFile("ak47.obj")->Path.string();
+
+	//for (size_t i = 0; i <= 1000; i++)
+	//{
+	//	auto Obj = Project->ThisLevel->Add(File);
+
+	//	if (Obj)
+	//	{
+	//		auto GM = Obj->GM;
+	//		std::string Pos, Rot, Scl;
+
+	//		getTextFloat3(Pos, ",",
+	//			{ GM->GetPositionCord().x, GM->GetPositionCord().y, GM->GetPositionCord().z });
+	//		getTextFloat3(Rot, ",",
+	//			{ GM->GetRotCord().x, GM->GetRotCord().y, GM->GetRotCord().z });
+	//		getTextFloat3(Scl, ",",
+	//			{ GM->GetScaleCord().x, GM->GetScaleCord().y, GM->GetScaleCord().z });
+
+	//		_Data["_0"].push_back({ { "ID", Obj->ID }, {"RName", Obj->RenderName },
+	//			{ "ModelFName", GM->GetModelNameFile() } });
+	//		_Data["_1"].push_back({
+	//			{ "Pos", Pos },
+	//			{ "Scl", Scl },
+	//			{ "Rot", Rot },
+	//			});
+	//	}
+	//}
 
 	int Choice = 0;
 	while (true)
@@ -188,7 +219,7 @@ int main(int argc, char* argv[])
 		Logger_Info("\t[0] - Login Under All Users That Are Free Now\n");
 		Logger_Info("\t[1] - Login Under Needed Account\n");
 		Logger_Info("\t[2] - Exit\n");
-	
+
 		Logger_Info(": ");
 #endif
 
@@ -336,7 +367,7 @@ int main(int argc, char* argv[])
 			Logger_Info("\t[5] - Back To Previous Menu\n");
 
 			Logger_Info_F("\t[6] - Use Repeater Any Packets (%s - is now)\n", UseRepeater ? "ON" : "OFF");
-			
+
 			Logger_Info_F("\t[7] - Use Clear Screen After Command (%s - is now)\n", UseClear ? "ON" : "OFF");
 
 			Logger_Info(": ");
@@ -477,6 +508,11 @@ int main(int argc, char* argv[])
 #endif
 				cin >> Text;
 
+				std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+				packet->CreatePacket(network::Packet::Type::Chat, false, _Data);
+				if (Users.front()->GetConnect())
+					Users.front()->GetConnect()->Send(packet);
+
 				if (Text == "-1")
 				{
 					auto AllUsersID = DB->SelectValues("Local", { "_N" }, { " WHERE _N = 1" });
@@ -501,13 +537,13 @@ int main(int argc, char* argv[])
 				else
 				{
 					std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
-					packet->CreatePacket(network::Packet::Type::PlaySound, false,
-						{
-							{ "_0", atoi(Text.c_str()) },
-							{ "_1", 0.016f },
-							{ "_2", "01.08.16.wav" }
-						});
-
+					//packet->CreatePacket(network::Packet::Type::PlaySound, false,
+					//	{
+					//		{ "_0", atoi(Text.c_str()) },
+					//		{ "_1", 0.016f },
+					//		{ "_2", "01.08.16.wav" }
+					//	});
+					packet->CreatePacket(network::Packet::Type::Chat, false, _Data);
 					if (Users.front()->GetConnect())
 						Users.front()->GetConnect()->Send(packet);
 				}

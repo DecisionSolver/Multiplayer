@@ -4,10 +4,6 @@
 #include <curl/curl.h>
 #include <Boost/filesystem.hpp>
 
-#if defined(IP)
-	#undef IP
-#endif
-
 class FTPClient
 {
 public:

@@ -29,6 +29,7 @@ namespace net
 		{
 			std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
 			Answer->CreatePacket(network::Packet::Type::Chat, true, packet.getData());
+#if !defined(USE_SSL)
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (const auto &Next: m_connectionsTCP)
@@ -38,7 +39,8 @@ namespace net
 					Next.second->Send(Answer);
 				}
 			}
-			else if (_Proto == TypeProtocol::UDP)
+#endif 
+			if (_Proto == TypeProtocol::UDP)
 			{
 				for (const auto &Next: m_connectionsUDP)
 				{
@@ -73,6 +75,7 @@ namespace net
 			json unparse = packet.getData();
 			std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
 			Answer->CreatePacket(network::Packet::Type::PlaySound, true, packet.getData());
+#if !defined(USE_SSL)
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (const auto &Next: m_connectionsTCP)
@@ -84,38 +87,8 @@ namespace net
 						continue;
 				}
 			}
-			else if (_Proto == TypeProtocol::UDP)
-			{
-				for (const auto &Next: m_connectionsUDP)
-				{
-					Next.second->Send(Answer);
-					if (unparse["_0"].get<int>() != -1)
-						break;
-					else if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>())
-						continue;
-				}
-			}
-			packet.clear();
-		}
-
-		connection->GetPacket(packet, network::Packet::Type::PlayVoice);
-		if (packet)
-		{
-			json unparse = packet.getData();
-			std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
-			Answer->CreatePacket(network::Packet::Type::PlayVoice, true, packet.getData());
-			if (_Proto == TypeProtocol::TCP)
-			{
-				for (const auto &Next: m_connectionsTCP)
-				{
-					Next.second->Send(Answer);
-					if (unparse["_0"].get<int>() != -1)
-						break;
-					else if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>())
-						continue;
-				}
-			}
-			else if (_Proto == TypeProtocol::UDP)
+#endif 
+			if (_Proto == TypeProtocol::UDP)
 			{
 				for (const auto &Next: m_connectionsUDP)
 				{
@@ -142,14 +115,23 @@ namespace net
 				if (NeededNode && NeededNode->GM || !NeededNode->ID.empty())
 				{
 					auto END = JSData.end();
-					Vector3 NewPos = Vector3(
-						JSData.find("X") != END ? std::stof(JSData["X"].get<json::string_t>().c_str())
-						: NeededNode->GM->GetPositionCord().x,
-						JSData.find("Y") != END ? std::stof(JSData["Y"].get<json::string_t>().c_str())
-						: NeededNode->GM->GetPositionCord().y,
-						JSData.find("Z") != END ? std::stof(JSData["Z"].get<json::string_t>().c_str())
-						: NeededNode->GM->GetPositionCord().z);
-					NeededNode->GM->SetPositionCoords(NewPos);
+					vector<float> Float3;
+					std::string Context;
+					if (JSData.find("X") != END)
+						Context += JSData["X"].get<json::string_t>();
+					else
+						Context += std::to_string(NeededNode->GM->GetPositionCord().x);
+					if (JSData.find("Y") != END)
+						Context += "," + JSData["Y"].get<json::string_t>();
+					else
+						Context += "," + std::to_string(NeededNode->GM->GetPositionCord().x);
+					if (JSData.find("Z") != END)
+						Context += "," + JSData["Z"].get<json::string_t>();
+					else
+						Context += "," + std::to_string(NeededNode->GM->GetPositionCord().x);
+
+					getFloat3Text(Context, ",", Float3);
+					NeededNode->GM->SetPositionCoords(Vector3(Float3.data()));
 
 					NeededNode->IsItChanged = true;
 					NeededNode->SaveInfo->Pos = true;
@@ -157,6 +139,7 @@ namespace net
 				}
 			}
 
+#if !defined(USE_SSL)
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (const auto &Next: m_connectionsTCP)
@@ -166,7 +149,8 @@ namespace net
 					Next.second->Send(Answer);
 				}
 			}
-			else if (_Proto == TypeProtocol::UDP)
+#endif 
+			if (_Proto == TypeProtocol::UDP)
 			{
 				for (const auto &Next: m_connectionsUDP)
 				{
@@ -191,21 +175,31 @@ namespace net
 				if (NeededNode && NeededNode->GM || !NeededNode->ID.empty())
 				{
 					auto END = JSData.end();
-					Vector3 NewRot = Vector3(
-						JSData.find("X") != END ? std::stof(JSData["X"].get<json::string_t>().c_str())
-						: NeededNode->GM->GetRotCord().x,
-						JSData.find("Y") != END ? std::stof(JSData["Y"].get<json::string_t>().c_str())
-						: NeededNode->GM->GetRotCord().y,
-						JSData.find("Z") != END ? std::stof(JSData["Z"].get<json::string_t>().c_str())
-						: NeededNode->GM->GetRotCord().z);
-					NeededNode->GM->SetRotationCoords(NewRot);
-				
+					vector<float> Float3;
+					std::string Context;
+					if (JSData.find("X") != END)
+						Context += JSData["X"].get<json::string_t>();
+					else
+						Context += std::to_string(NeededNode->GM->GetRotCord().x);
+					if (JSData.find("Y") != END)
+						Context += "," + JSData["Y"].get<json::string_t>();
+					else
+						Context += "," + std::to_string(NeededNode->GM->GetRotCord().x);
+					if (JSData.find("Z") != END)
+						Context += "," + JSData["Z"].get<json::string_t>();
+					else
+						Context += "," + std::to_string(NeededNode->GM->GetRotCord().x);
+
+					getFloat3Text(Context, ",", Float3);
+					NeededNode->GM->SetRotationCoords(Vector3(Float3.data()));
+
 					NeededNode->IsItChanged = true;
 					NeededNode->SaveInfo->Rot = true;
 					NeededNode->SaveInfo->T = NeededNode->GM->GetType();
 				}
 			}
 
+#if !defined(USE_SSL)
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (const auto &Next: m_connectionsTCP)
@@ -215,7 +209,8 @@ namespace net
 					Next.second->Send(Answer);
 				}
 			}
-			else if (_Proto == TypeProtocol::UDP)
+#endif 
+			if (_Proto == TypeProtocol::UDP)
 			{
 				for (const auto &Next: m_connectionsUDP)
 				{
@@ -223,7 +218,6 @@ namespace net
 					if (connection == Next.second) continue;
 					Next.second->Send(Answer);
 				}
-
 			}
 			packet.clear();
 		}
@@ -241,21 +235,31 @@ namespace net
 				if (NeededNode && NeededNode->GM || !NeededNode->ID.empty())
 				{
 					auto END = JSData.end();
-					Vector3 NewScale = Vector3(
-						JSData.find("X") != END ? std::stof(JSData["X"].get<json::string_t>().c_str())
-						: NeededNode->GM->GetScaleCord().x,
-						JSData.find("Y") != END ? std::stof(JSData["Y"].get<json::string_t>().c_str())
-							: NeededNode->GM->GetScaleCord().y,
-						JSData.find("Z") != END ? std::stof(JSData["Z"].get<json::string_t>().c_str())
-							: NeededNode->GM->GetScaleCord().z);
-					NeededNode->GM->SetScaleCoords(NewScale);
-				
+					vector<float> Float3;
+					std::string Context;
+					if (JSData.find("X") != END)
+						Context += JSData["X"].get<json::string_t>();
+					else
+						Context += std::to_string(NeededNode->GM->GetScaleCord().x);
+					if (JSData.find("Y") != END)
+						Context += "," + JSData["Y"].get<json::string_t>();
+					else
+						Context += "," + std::to_string(NeededNode->GM->GetScaleCord().x);
+					if (JSData.find("Z") != END)
+						Context += "," + JSData["Z"].get<json::string_t>();
+					else
+						Context += "," + std::to_string(NeededNode->GM->GetScaleCord().x);
+
+					getFloat3Text(Context, ",", Float3);
+					NeededNode->GM->SetScaleCoords(Vector3(Float3.data()));
+
 					NeededNode->IsItChanged = true;
 					NeededNode->SaveInfo->Scale = true;
 					NeededNode->SaveInfo->T = NeededNode->GM->GetType();
 				}
 			}
 
+#if !defined(USE_SSL)
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (const auto &Next: m_connectionsTCP)
@@ -265,7 +269,8 @@ namespace net
 					Next.second->Send(Answer);
 				}
 			}
-			else if (_Proto == TypeProtocol::UDP)
+#endif 
+			if (_Proto == TypeProtocol::UDP)
 			{
 				for (const auto &Next: m_connectionsUDP)
 				{
@@ -290,14 +295,15 @@ namespace net
 				if (NeededNode && !NeededNode->ID.empty())
 				{
 					NeededNode->RenderName = JSData.find("NodeName") != JSData.end()
-						? JSData["NodeName"].get<json::string_t>() : NeededNode->RenderName;
-					
+						? JSData["NodeName"].get<json::string_t>(): NeededNode->RenderName;
+
 					// In This "IsItChanged" Means That It Changes Only Name Of Node
 					NeededNode->IsItChanged = true;
 					Project->ThisLevel->SetNotSaved(true);
 				}
 			}
 
+#if !defined(USE_SSL)
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (const auto &Next: m_connectionsTCP)
@@ -307,7 +313,8 @@ namespace net
 					Next.second->Send(Answer);
 				}
 			}
-			else if (_Proto == TypeProtocol::UDP)
+#endif 
+			if (_Proto == TypeProtocol::UDP)
 			{
 				for (const auto &Next: m_connectionsUDP)
 				{
@@ -340,6 +347,7 @@ namespace net
 				}
 			}
 
+#if !defined(USE_SSL)
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (const auto &Next: m_connectionsTCP)
@@ -349,7 +357,8 @@ namespace net
 					Next.second->Send(Answer);
 				}
 			}
-			else if (_Proto == TypeProtocol::UDP)
+#endif 
+			if (_Proto == TypeProtocol::UDP)
 			{
 				for (const auto &Next: m_connectionsUDP)
 				{
@@ -414,20 +423,22 @@ namespace net
 
 			if (IfNeed2Send)
 			{
+#if !defined(USE_SSL)
 				if (_Proto == TypeProtocol::TCP)
 				{
 					for (const auto &Next: m_connectionsTCP)
 					{
-						// To ME!!!
+						// Not To ME!!!
 						if (connection != Next.second) continue;
 						Next.second->Send(Answer);
 					}
 				}
-				else if (_Proto == TypeProtocol::UDP)
+#endif 
+				if (_Proto == TypeProtocol::UDP)
 				{
 					for (const auto &Next: m_connectionsUDP)
 					{
-						// To ME!!!
+						// Not To ME!!!
 						if (connection != Next.second) continue;
 						Next.second->Send(Answer);
 					}
@@ -441,6 +452,7 @@ namespace net
 			std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
 			Answer->CreatePacket(network::Packet::Type::Sync_File_Sync, false, packet.getData());
 
+#if !defined(USE_SSL)
 			if (_Proto == TypeProtocol::TCP)
 			{
 				for (const auto &Next: m_connectionsTCP)
@@ -450,7 +462,8 @@ namespace net
 					Next.second->Send(Answer);
 				}
 			}
-			else if (_Proto == TypeProtocol::UDP)
+#endif 
+			if (_Proto == TypeProtocol::UDP)
 			{
 				for (const auto &Next: m_connectionsUDP)
 				{
@@ -543,6 +556,7 @@ namespace net
 
 					std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
 					Answer->CreatePacket(network::Packet::Type::IsCommiting, true);
+#if !defined(USE_SSL)
 					if (_Proto == TypeProtocol::TCP)
 					{
 						for (const auto &Next: m_connectionsTCP)
@@ -550,7 +564,8 @@ namespace net
 							Next.second->Send(Answer);
 						}
 					}
-					else if (_Proto == TypeProtocol::UDP)
+#endif 
+					if (_Proto == TypeProtocol::UDP)
 					{
 						for (const auto &Next: m_connectionsUDP)
 						{
@@ -563,8 +578,14 @@ namespace net
 						Answer->clear();
 						Answer = nullptr;
 						Answer = std::make_shared<network::Packet>();
-						Answer->CreatePacket(network::Packet::Type::IsCommitingFailed, true, { { "Err",
-							"Can't Make Commit In Project: " + Project->GetCurrentProject() + "!" } });
+						Answer->CreatePacket(network::Packet::Type::IsCommitingFailed, true,
+							{
+								{
+									"Err",
+									"Can't Make Commit In Project: " + Project->GetCurrentProject() + "!",
+								}
+							}
+						);
 
 #if __has_include("logger.h")
 						Logger_Error_F("Can't Make Commit In Project: %s!", Project->GetCurrentProject().c_str());
@@ -572,15 +593,12 @@ namespace net
 					}
 					else
 					{
-						ToDo("Move It Away");
-						Project->ThisLevel->SetNotSaved(false);
-
 						Answer->clear();
 						Answer = nullptr;
 						Answer = std::make_shared<network::Packet>();
 						Answer->CreatePacket(network::Packet::Type::IsCommitingDone, true);
 					}
-
+#if !defined(USE_SSL)
 					if (_Proto == TypeProtocol::TCP)
 					{
 						for (const auto &Next: m_connectionsTCP)
@@ -588,15 +606,29 @@ namespace net
 							Next.second->Send(Answer);
 						}
 					}
-					else if (_Proto == TypeProtocol::UDP)
+#endif 
+					if (_Proto == TypeProtocol::UDP)
 					{
 						for (const auto &Next: m_connectionsUDP)
 						{
 							Next.second->Send(Answer);
 						}
 					}
-
 					IsBlockByCommiting.store(false);
+				}
+				else
+				{
+					std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
+					Answer->CreatePacket(network::Packet::Type::IsCommitingFailed, true,
+						{
+							{
+								"Err",
+								"User Doesn't Have Permissions To Make Commits To The Server!",
+							}
+						}
+					);
+
+					connection->Send(Answer);
 				}
 			}
 			packet.clear();
@@ -624,7 +656,7 @@ namespace net
 		else
 		{
 #if __has_include("logger.h")
-		Logger_Critical("Something Is Went Wrong With Connection To MySQL Server!");
+			Logger_Critical("Something Is Went Wrong With Connection To MySQL Server!");
 #endif
 			WaitForMySQL.notify_all();
 		}
