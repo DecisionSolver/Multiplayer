@@ -873,6 +873,8 @@ namespace fineftp
 		else
 			local_path = "";
 
+		std::replace(local_path.begin(), local_path.end(), '\\', '/');
+
 		return hasObjectPermissionsImpl(local_path, permissions, logged_in_user_->files_permissions_);
 	}
 

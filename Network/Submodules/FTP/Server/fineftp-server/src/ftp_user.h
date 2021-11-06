@@ -41,14 +41,15 @@ namespace fineftp
 		{
 			if (div_pos != std::string::npos)
 			{
-				if (!(subjson[".AllFolderFiles"] & (int)permissions) && !(subjson[object_name][1] & (int)permissions))
+				if (!(subjson[".AllFolderFiles"] & (int)permissions))
 					return hasObjectPermissionsImpl(object_path.substr(div_pos + 1), permissions, subjson[object_name][0]);
 				else
 					return false;
 			}
 			else
 			{
-				if ((subjson[object_name].is_array() ? !(subjson[object_name][1] & (int)permissions) : !(subjson[object_name] & (int)permissions)) && !(subjson[".AllFolderFiles"] & (int)permissions))
+				if ((subjson[object_name].is_array() ? !(subjson[object_name][1] & (int)permissions)  && !(subjson[".AllFolderFiles"] & (int)permissions) :
+				                                       !(subjson[object_name]    & (int)permissions)) && !(subjson[".AllFolderFiles"] & (int)permissions))
 					return true;
 				else
 					return false;
