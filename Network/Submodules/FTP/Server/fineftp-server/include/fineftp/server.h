@@ -2,6 +2,9 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+
+#include <nlohmann/json.hpp>
 
 #include <fineftp/permissions.h>
 
@@ -46,9 +49,15 @@ namespace fineftp
      * @param port: The port to start the FTP server on. Defaults to 21.
      * @param host: The host to accept incoming connections from.
      */
-    FtpServer(const std::string& address, uint16_t port = 21);
+    FtpServer(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBuser, const std::string& DBpassword,
+        const std::string& DBhost, const std::string& DB, const unsigned short& DBport = 3306, const std::string& DBcharset = "utf8",
+        bool DBOnlyRead = false);
+    FtpServer(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBdriver, const std::string& DBpath,
+        const std::vector<std::string>& DBattributes, const std::string& DBpassword = {});
 
     /**
+     * !HIDDEN, USELESS
+     * 
      * @brief Creates an FTP Server instance that will listen on the the given control port.
      * 
      * If no port is provided, the default FTP Port 21 is used. If you want to
@@ -65,7 +74,7 @@ namespace fineftp
      *
      * @param port: The port to start the FTP server on. Defaults to 21.
      */
-    FtpServer(uint16_t port = 21);
+    //FtpServer(uint16_t port = 21);
 
     ~FtpServer();
 
@@ -90,7 +99,7 @@ namespace fineftp
      * 
      * @return True if adding the user was successful (i.e. it didn't exit already).
      */
-    bool addUser(const std::string& username, const std::string& password, const std::string& local_root_path, const Permission permissions);
+    bool addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions);
     
     /**
      * @brief Adds the "anonymous" / "ftp" user that FTP clients use to access FTP servers without password
@@ -100,7 +109,7 @@ namespace fineftp
      * 
      * @return True if adding the anonymous user was successful (i.e. it didn't exit already).
      */
-    bool addUserAnonymous(const std::string& local_root_path, const Permission permissions);
+    bool addUserAnonymous(const UserPermission user_permissions, const nlohmann::json& files_permissions);
 
     /**
      * @brief Starts the FTP Server

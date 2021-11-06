@@ -28,8 +28,8 @@ namespace odbc
 		~ODBC() {}
 		void CreateDataBase(const std::string& driver, const std::string& path,
 			const std::string& attributes = {}, const std::string& password = {});
-		void Connect(const std::string& driver, const std::string& path,
-			const std::string& attributes, const std::string& password);
+		bool Connect(const std::string& driver, const std::string& path,
+			const std::vector<std::string>& attributes, const std::string& password = {});
 		nlohmann::json SelectValues(const std::string& name_table,
 			const std::vector<std::string>& name_columns, const std::vector<std::string>& condition = {},
 			bool Need_SQL_TYPE = false);

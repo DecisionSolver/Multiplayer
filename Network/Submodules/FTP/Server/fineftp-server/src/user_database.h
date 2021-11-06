@@ -7,23 +7,69 @@
 
 #include "ftp_user.h"
 
+#include <mysql/MySQL_Client.h>
+#include <ODBC/ODBC.h>
+
 namespace fineftp
 {
-  class UserDatabase
-  {
-  public:
-    UserDatabase();
-    ~UserDatabase();
+	class UserDatabase
+	{
+	public:
+		UserDatabase();
+		~UserDatabase();
 
-    bool addUser(const std::string& username, const std::string& password, const std::string& local_root_path, Permission permissions);
+		std::shared_ptr<FtpUser> getUser(const std::string& username, const std::string& password) const;
 
-    std::shared_ptr<FtpUser> getUser(const std::string& username, const std::string& password) const;
+		virtual bool Connect(const std::string& user, const std::string& password, const std::string& host,
+			const std::string& DB, const unsigned short& port = 3306, const std::string& charset = "utf8",
+			bool OnlyRead = false);
+		virtual bool Connect(const std::string& driver, const std::string& path,
+			const std::vector<std::string>& attributes, const std::string& password);
 
-  private:
-    bool isUsernameAnonymousUser(const std::string& username) const;
+		virtual bool addNewUser(const std::string& username, const std::string& password,
+			const UserPermission user_permissions, const nlohmann::json& files_permissions) = 0;
 
-    mutable std::mutex                              database_mutex_;
-    std::map<std::string, std::shared_ptr<FtpUser>> database_;
-    std::shared_ptr<FtpUser>                        anonymous_user_;
-  };
+		virtual void updatePermissions(const std::shared_ptr<FtpUser>& user, const std::string& username) = 0;
+
+	private:
+
+		mutable std::mutex                              database_mutex_;
+		std::map<std::string, std::shared_ptr<FtpUser>> database_;
+
+	protected:
+		bool addUser(const std::string& username, const std::string& password,
+			const UserPermission user_permissions, const nlohmann::json& files_permissions);
+	};
+
+	class MySQLUserDatabase : public UserDatabase
+	{
+	public:
+		bool Connect(const std::string& user, const std::string& password,
+			const std::string& host, const std::string& DB, const unsigned short& port = 3306,
+			const std::string& charset = "utf8", bool OnlyRead = false) override;
+
+		bool addNewUser(const std::string& username, const std::string& password,
+			const UserPermission user_permissions, const nlohmann::json& files_permissions) override;
+
+		void updatePermissions(const std::shared_ptr<FtpUser>& user, const std::string& username) override;
+
+	private:
+		mysql::Client mysqlDB;
+	};
+
+	class ODBCUserDatabase : public UserDatabase
+	{
+	public:
+		bool Connect(const std::string& driver, const std::string& path,
+			const std::vector<std::string>& attributes, const std::string& password) override;
+
+		bool addNewUser(const std::string& username, const std::string& password,
+			const UserPermission user_permissions, const nlohmann::json& files_permissions) override;
+
+		void updatePermissions(const std::shared_ptr<FtpUser>& user, const std::string& username) override;
+
+	private:
+
+		odbc::ODBC odbcDB;
+	};
 }

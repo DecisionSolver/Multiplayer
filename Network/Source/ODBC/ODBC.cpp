@@ -16,29 +16,35 @@ namespace odbc
 			Logger_Error_F("Something is wrong with create a database file, error code: %i", GetLastError());
 	}
 
-	void ODBC::Connect(const std::string& driver, const std::string& path,
-		const std::string& attributes, const std::string& password)
+	bool ODBC::Connect(const std::string& driver, const std::string& path,
+		const std::vector<std::string>& attributes, const std::string& password)
 	{
 		if (SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &hEnv) == SQL_ERROR)
 		{
 			Logger_Error("Unable to allocate an environment handle\n");
-			return;
+			return false;
 		}
 
 		if (PrintError(hEnv, SQL_HANDLE_ENV, SQLSetEnvAttr(hEnv, SQL_ATTR_ODBC_VERSION,
 			(SQLPOINTER)SQL_OV_ODBC3, 0)))
-			return;
+			return false;
 
 		if (PrintError(hEnv, SQL_HANDLE_ENV, SQLAllocHandle(SQL_HANDLE_DBC, hEnv, &hDbc)))
-			return;
+			return false;
+
+		std::string allattributes = "";
+		for (auto attribute : attributes)
+			allattributes += attribute + ";";
 
 		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLDriverConnectA(hDbc, nullptr,
-			(SQLCHAR*)(("Driver={" + driver + "};Dbq=" + path + ";" + attributes + ";PWD=" + password + ";").c_str()),
+			(SQLCHAR*)(("Driver={" + driver + "};Dbq=" + path + ";" + allattributes + "PWD=" + password + ";").c_str()),
 			SQL_NTS, nullptr, 0, nullptr, SQL_DRIVER_NOPROMPT)))
-			return;
+			return false;
 
 		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt)))
-			return;
+			return false;
+
+		return true;
 	}
 
 	bool ODBC::PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e)
@@ -584,7 +590,7 @@ namespace odbc
 		auto SecondFile = std::make_shared<ODBC>();
 		// Create A New DB
 		SecondFile->CreateDataBase(c_str, NameNewFile);
-		SecondFile->Connect(c_str, NameNewFile, "", "");
+		SecondFile->Connect(c_str, NameNewFile, {});
 
 		// Then Get * From NameTable And Add It To New DB
 		auto CurrDB = SelectValues(NameTable, { "*" }, {}, true);

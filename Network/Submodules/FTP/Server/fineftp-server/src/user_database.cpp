@@ -5,81 +5,118 @@
 
 namespace fineftp
 {
-  UserDatabase::UserDatabase()
-  {}
+	UserDatabase::UserDatabase()
+	{}
 
-  UserDatabase::~UserDatabase()
-  {}
+	UserDatabase::~UserDatabase()
+	{}
 
-  bool UserDatabase::addUser(const std::string& username, const std::string& password, const std::string& local_root_path, Permission permissions)
-  {
-    std::lock_guard<decltype(database_mutex_)> database_lock(database_mutex_);
+	bool UserDatabase::addUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions)
+	{
+		std::lock_guard<decltype(database_mutex_)> database_lock(database_mutex_);
 
-    if (isUsernameAnonymousUser(username))
-    {
-      if (anonymous_user_)
-      {
-        std::cerr << "Error adding user with username \"" << username << "\". The username denotes the anonymous user, which is already present." << std::endl;
-        return false;
-      }
-      else
-      {
-        anonymous_user_ = std::shared_ptr<FtpUser>(new FtpUser(password, local_root_path, permissions));
+		auto user_it = database_.find(username);
+		if (user_it == database_.end())
+		{
+			database_.emplace(username, std::shared_ptr<FtpUser>(new FtpUser(password, user_permissions, files_permissions)));
+
 #ifndef NDEBUG
-        std::cout << "Successfully added anonymous user." << std::endl;
+			std::cout << "Successfully added user \"" << username << "\"." << std::endl;
 #endif // !NDEBUG
-        return true;
-      }
-    }
-    else
-    {
-      auto user_it = database_.find(username);
-      if (user_it == database_.end())
-      {
-        database_.emplace(username, std::shared_ptr<FtpUser>(new FtpUser(password, local_root_path, permissions)));
-#ifndef NDEBUG
-        std::cout << "Successfully added user \"" << username << "\"." << std::endl;
-#endif // !NDEBUG
-        return true;
-      }
-      else
-      {
-        std::cerr << "Error adding user with username \"" << username << "\". The user already exists." << std::endl;
-        return false;
-      }
-    }
-  }
+			return true;
+		}
+		else
+		{
+			std::cerr << "Error adding user with username \"" << username << "\". The user already exists." << std::endl;
+			return false;
+		}
+	}
 
-  std::shared_ptr<FtpUser> UserDatabase::getUser(const std::string& username, const std::string& password) const
-  {
-    std::lock_guard<decltype(database_mutex_)> database_lock(database_mutex_);
+	std::shared_ptr<FtpUser> UserDatabase::getUser(const std::string& username, const std::string& password) const
+	{
+		std::lock_guard<decltype(database_mutex_)> database_lock(database_mutex_);
 
-    if (isUsernameAnonymousUser(username))
-    {
-      return anonymous_user_;
-    }
-    else
-    {
-      auto user_it = database_.find(username);
-      if (user_it == database_.end())
-      {
-        return nullptr;
-      }
-      else
-      {
-        if (user_it->second->password_ == password)
-          return user_it->second;
-        else
-          return nullptr;
-      }
-    }
-  }
+		auto user_it = database_.find(username);
+		if (user_it == database_.end())
+		{
+			return nullptr;
+		}
+		else
+		{
+			if (user_it->second->password_ == password)
+				return user_it->second;
+			else
+				return nullptr;
+		}
+	}
 
-  bool UserDatabase::isUsernameAnonymousUser(const std::string& username) const
-  {
-    return (username.empty()
-      || username == "ftp"
-      || username == "anonymous");
-  }
+	bool UserDatabase::Connect(const std::string& user, const std::string& password, const std::string& host, const std::string& DB, const unsigned short& port, const std::string& charset, bool OnlyRead)
+	{
+		std::cerr << "You have used wrong function on wrong subclass (MySQL variant)\n";
+		return false;
+	}
 
+	bool UserDatabase::Connect(const std::string& driver, const std::string& path, const std::vector<std::string>& attributes, const std::string& password)
+	{
+		std::cerr << "You have used wrong function on wrong subclass (ODBC variant)\n";
+		return false;
+	}
+
+	bool MySQLUserDatabase::Connect(const std::string& user, const std::string& password, const std::string& host, const std::string& DB, const unsigned short& port, const std::string& charset, bool OnlyRead)
+	{
+		if (mysqlDB.Connect(user, password, host, DB, port, charset, OnlyRead) != mysql::Client::Status::Done)
+			return false;
+			
+		auto res = mysqlDB.SelectValues("user_wright", { "*" });
+
+		for (int col = 0; col < res["_N"].size(); ++col)
+			addUser(res["Username"][col], res["Password"][col], res["UserPermissions"][col], res["FilesPermissions"][col]);
+
+		return true;
+	}
+
+	void MySQLUserDatabase::updatePermissions(const std::shared_ptr<FtpUser>& user, const std::string& username)
+	{
+		auto res = mysqlDB.SelectValues("user_wright", {"UserPermissions", "FilesPermissions" }, { "`Username`='" + username + "'" });
+		user->user_permissions_ = (UserPermission)atoi(res["_0"][0].dump().c_str());
+		user->files_permissions_ = res["_1"][0];
+	}
+
+	bool MySQLUserDatabase::addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions)
+	{
+		if (!addUser(username, password, user_permissions, files_permissions))
+			return false;
+
+		mysqlDB.InsertValues("user_wright", { "Username", "Password", "UserPermissions", "FilesPermissions" }, { username, password, std::to_string((int)user_permissions), files_permissions.dump() });
+		return true;
+	}
+
+	bool ODBCUserDatabase::Connect(const std::string& driver, const std::string& path, const std::vector<std::string>& attributes, const std::string& password)
+	{
+		if (!odbcDB.Connect(driver, path, attributes, password))
+			return false;
+
+		auto res = odbcDB.SelectValues("user_wright", { "*" });
+
+		for (int col = 0; col < res["_N"].size(); ++col)
+			addUser(res["Username"][col], res["Password"][col], res["UserPermissions"][col], res["FilesPermissions"][col]);
+
+		return true;
+	}
+
+	void ODBCUserDatabase::updatePermissions(const std::shared_ptr<FtpUser>& user, const std::string& username)
+	{
+		auto res = odbcDB.SelectValues("user_wright", { "FilesPermissions", "UserPermissions" }, {"`Username`='" + username + "'"});
+		user->user_permissions_ = (UserPermission)atoi(res["UserPermissions"][0].dump().c_str());
+		user->files_permissions_ = res["FilesPermissions"][0];
+	}
+
+	bool ODBCUserDatabase::addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions)
+	{
+		if (!addUser(username, password, user_permissions, files_permissions))
+			return false;
+
+		odbcDB.InsertValues("user_wright", { "Username", "Password", "UserPermissions", "FilesPermissions" }, { username, password, std::to_string((int)user_permissions), files_permissions.dump() });
+		return true;
+	}
 }

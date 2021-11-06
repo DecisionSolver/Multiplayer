@@ -5,25 +5,32 @@
 
 namespace fineftp
 {
-  FtpServer::FtpServer(const std::string& address, uint16_t port)
-    : ftp_server_(std::make_unique<FtpServerImpl>(address, port))
+    FtpServer::FtpServer(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBuser, const std::string& DBpassword,
+        const std::string& DBhost, const std::string& DB, const unsigned short& DBport, const std::string& DBcharset,
+        bool DBOnlyRead)
+        : ftp_server_(std::make_unique<FtpServerImpl>(address, port, ftp_working_directory, DBuser, DBpassword, DBhost, DB, DBport, DBcharset, DBOnlyRead))
   {}
 
-  FtpServer::FtpServer(uint16_t port)
-    : FtpServer(std::string("0.0.0.0"), port)
+  FtpServer::FtpServer(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBdriver, const std::string& DBpath,
+      const std::vector<std::string>& DBattributes, const std::string& DBpassword)
+      : ftp_server_(std::make_unique<FtpServerImpl>(address, port, ftp_working_directory, DBdriver, DBpath, DBattributes, DBpassword))
   {}
+
+  /*FtpServer::FtpServer(uint16_t port)
+    : FtpServer(std::string("0.0.0.0"), port)
+  {}*/
 
   FtpServer::~FtpServer()
   {}
 
-  bool FtpServer::addUser(const std::string& username, const std::string& password, const std::string& local_root_path, const Permission permissions)
+  bool FtpServer::addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions)
   {
-    return ftp_server_->addUser(username, password, local_root_path, permissions);
+    return ftp_server_->addNewUser(username, password, user_permissions, files_permissions);
   }
 
-  bool FtpServer::addUserAnonymous(const std::string& local_root_path, const Permission permissions)
+  bool FtpServer::addUserAnonymous(const UserPermission user_permissions, const nlohmann::json& files_permissions)
   {
-    return ftp_server_->addUserAnonymous(local_root_path, permissions);
+    return ftp_server_->addUserAnonymous(user_permissions, files_permissions);
   }
 
   bool FtpServer::start(size_t thread_count)

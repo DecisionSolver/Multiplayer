@@ -8,31 +8,51 @@
 namespace fineftp
 {
 
-  FtpServerImpl::FtpServerImpl(const std::string& address, uint16_t port)
-    : port_                 (port)
-    , address_              (address)
-    , acceptor_             (io_service_)
-    , open_connection_count_(0)
-  {}
+    FtpServerImpl::FtpServerImpl(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBuser, const std::string& DBpassword,
+        const std::string& DBhost, const std::string& DB, const unsigned short& DBport, const std::string& DBcharset,
+        bool DBOnlyRead)
+        : port_(port)
+        , address_(address)
+        , ftp_working_directory_(ftp_working_directory)
+        , acceptor_(io_service_)
+        , open_connection_count_(0)
+    {
+        ftp_users_ = std::make_shared<MySQLUserDatabase>();
+        if (!ftp_users_->Connect(DBuser, DBpassword, DBhost, DB, DBport, DBcharset, DBOnlyRead))
+            std::cerr << "Error coonecting to DB" << std::endl;
+    }
+
+  FtpServerImpl::FtpServerImpl(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBdriver,
+      const std::string& DBpath, const std::vector<std::string>& DBattributes, const std::string& DBpassword)
+      : port_                 (port)
+      , address_              (address)
+      , ftp_working_directory_(ftp_working_directory)
+      , acceptor_             (io_service_)
+      , open_connection_count_(0)
+  {
+      ftp_users_ = std::make_shared<ODBCUserDatabase>();
+      if (!ftp_users_->Connect(DBdriver, DBpath, DBattributes, DBpassword))
+          std::cerr << "Error connecting to DB" << std::endl;
+  }
 
   FtpServerImpl::~FtpServerImpl()
   {
     stop();
   }
 
-  bool FtpServerImpl::addUser(const std::string& username, const std::string& password, const std::string& local_root_path, const Permission permissions)
+  bool FtpServerImpl::addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions)
   {
-    return ftp_users_.addUser(username, password, local_root_path, permissions);
+    return ftp_users_->addNewUser(username, password, user_permissions, files_permissions);
   }
 
-  bool FtpServerImpl::addUserAnonymous(const std::string& local_root_path, const Permission permissions)
+  bool FtpServerImpl::addUserAnonymous(const UserPermission user_permissions, const nlohmann::json& files_permissions)
   {
-    return ftp_users_.addUser("anonymous", "", local_root_path, permissions);
+    return ftp_users_->addNewUser("anonymous", "", user_permissions, files_permissions);
   }
 
   bool FtpServerImpl::start(size_t thread_count)
   {
-    auto ftp_session = std::make_shared<FtpSession>(io_service_, ftp_users_, [this]() { open_connection_count_--; });
+    auto ftp_session = std::make_shared<FtpSession>(io_service_, ftp_users_, ftp_working_directory_, [this]() { open_connection_count_--; });
 
     // set up the acceptor to listen on the tcp port
     asio::error_code make_address_ec;
@@ -129,7 +149,7 @@ namespace fineftp
 
     ftp_session->start();
 
-    auto new_session = std::make_shared<FtpSession>(io_service_, ftp_users_, [this]() { open_connection_count_--; });
+    auto new_session = std::make_shared<FtpSession>(io_service_, ftp_users_, ftp_working_directory_, [this]() { open_connection_count_--; });
 
     acceptor_.async_accept(new_session->getSocket()
                           , [=](auto ec)

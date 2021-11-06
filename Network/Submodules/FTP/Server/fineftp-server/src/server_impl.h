@@ -17,12 +17,16 @@ namespace fineftp
   class FtpServerImpl
   {
   public:
-    FtpServerImpl(const std::string& address, uint16_t port);
+    FtpServerImpl(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBuser, const std::string& DBpassword,
+        const std::string& DBhost, const std::string& DB, const unsigned short& DBport = 3306, const std::string& DBcharset = "utf8",
+        bool DBOnlyRead = false);
+    FtpServerImpl(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBdriver, const std::string& DBpath,
+        const std::vector<std::string>& DBattributes, const std::string& DBpassword = {});
 
     ~FtpServerImpl();
 
-    bool addUser(const std::string& username, const std::string& password, const std::string& local_root_path, const Permission permissions);
-    bool addUserAnonymous(const std::string& local_root_path, const Permission permissions);
+    bool addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions);
+    bool addUserAnonymous(const UserPermission permissions, const nlohmann::json& files_permissions);
 
     bool start(size_t thread_count = 1);
 
@@ -38,10 +42,11 @@ namespace fineftp
     void acceptFtpSession(std::shared_ptr<FtpSession> ftp_session, asio::error_code const& error);
 
   private:
-    UserDatabase   ftp_users_;
+    std::shared_ptr<UserDatabase> ftp_users_ = nullptr;
 
     const uint16_t port_;
     const std::string address_;
+    const std::string ftp_working_directory_;
 
     std::vector<std::thread> thread_pool_;
     asio::io_service         io_service_;

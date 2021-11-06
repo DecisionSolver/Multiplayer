@@ -2,30 +2,45 @@
 
 namespace fineftp
 {
-  enum class Permission : int
-  {
-    FileRead   = (1 << 0),  /**< Download files */
-    FileWrite  = (1 << 1),  /**< Upload files as new files */
-    FileAppend = (1 << 2),  /**< Upload files that get appended to existing files */
-    FileDelete = (1 << 3),  /**< Delete existing files or overwrite an existing file */
-    FileRename = (1 << 4),  /**< Rename existing files */
+	enum class FilePermission : int
+	{
+		FileRead   = (1 << 0),  /**< Download files */
+		FileAppend = (1 << 1),  /**< Upload files that get appended to existing files */
+		FileDelete = (1 << 2),  /**< Delete existing files or overwrite an existing file */
+		FileRename = (1 << 3),  /**< Rename existing files */
 
-    DirList    = (1 << 5),  /**< Retrieve the content of directories */
-    DirCreate  = (1 << 6),  /**< Create new directories */
-    DirDelete  = (1 << 7),  /**< Delete existing directories */
-    DirRename  = (1 << 8),  /**< Rename existing directories */
+		DirList    = (1 << 4),  /**< Retrieve the content of directories */
+		DirDelete  = (1 << 5),  /**< Delete existing directories */
+		DirRename  = (1 << 6),  /**< Rename existing directories */
 
-    All      = (FileRead | FileWrite | FileAppend | FileDelete | FileRename | DirList | DirCreate | DirDelete | DirRename),
-    ReadOnly = (FileRead | DirList),
-    None     = 0
-  };
+		FileAll = (FileRead | FileAppend | FileDelete | FileRename),
+		DirAll  = (DirList | DirDelete | DirRename),
+		None = 0
+	};
 
-  inline Permission operator~   (Permission a)                { return (Permission)~(int)a; }
-  inline Permission operator|   (Permission a, Permission b)  { return (Permission)((int)a | (int)b); }
-  inline Permission operator&   (Permission a, Permission b)  { return (Permission)((int)a & (int)b); }
-  inline Permission operator^   (Permission a, Permission b)  { return (Permission)((int)a ^ (int)b); }
-  inline Permission& operator|= (Permission& a, Permission b) { return (Permission&)((int&)a |= (int)b); }
-  inline Permission& operator&= (Permission& a, Permission b) { return (Permission&)((int&)a &= (int)b); }
-  inline Permission& operator^= (Permission& a, Permission b) { return (Permission&)((int&)a ^= (int)b); }
+	enum class UserPermission : int
+	{
+		FileWrite = (1 << 0),  /**< Upload files as new files */
 
+		DirCreate = (1 << 1),  /**< Create new directories */
+
+		All = (FileWrite | DirCreate),
+		None = 0
+	};
+
+	inline FilePermission operator~   (FilePermission a)                    { return (FilePermission)~(int)a; }
+	inline FilePermission operator|   (FilePermission a,  FilePermission b) { return (FilePermission)((int)a | (int)b); }
+	inline FilePermission operator&   (FilePermission a,  FilePermission b) { return (FilePermission)((int)a & (int)b); }
+	inline FilePermission operator^   (FilePermission a,  FilePermission b) { return (FilePermission)((int)a ^ (int)b); }
+	inline FilePermission& operator|= (FilePermission& a, FilePermission b) { return (FilePermission&)((int&)a |= (int)b); }
+	inline FilePermission& operator&= (FilePermission& a, FilePermission b) { return (FilePermission&)((int&)a &= (int)b); }
+	inline FilePermission& operator^= (FilePermission& a, FilePermission b) { return (FilePermission&)((int&)a ^= (int)b); }
+
+	inline UserPermission operator~   (UserPermission a)                    { return (UserPermission)~(int)a; }
+	inline UserPermission operator|   (UserPermission a,  UserPermission b) { return (UserPermission)((int)a | (int)b); }
+	inline UserPermission operator&   (UserPermission a,  UserPermission b) { return (UserPermission)((int)a & (int)b); }
+	inline UserPermission operator^   (UserPermission a,  UserPermission b) { return (UserPermission)((int)a ^ (int)b); }
+	inline UserPermission& operator|= (UserPermission& a, UserPermission b) { return (UserPermission&)((int&)a |= (int)b); }
+	inline UserPermission& operator&= (UserPermission& a, UserPermission b) { return (UserPermission&)((int&)a &= (int)b); }
+	inline UserPermission& operator^= (UserPermission& a, UserPermission b) { return (UserPermission&)((int&)a ^= (int)b); }
 }
