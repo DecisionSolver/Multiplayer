@@ -128,7 +128,7 @@ int main()
 		"192.168.1.2"
 #endif
 		;
-	fineftp::FtpServer server(_IP, 2121, local_root.string(), "test", "vextern123", "188.210.240.246", "gb_z_rod2_rf");
+	//fineftp::FtpServer server(_IP, 2121, local_root.string(), "test", "vextern123", "188.210.240.246", "gb_z_rod2_rf");
 	//fineftp::FtpServer server(_IP, 2121, local_root.string(), "Microsoft Access Driver (*.mdb)", "F:\\Programming\\C++\\Project\\ODBC\\ODBC\\test.MDB", std::vector<std::string>({ "READONLY=false" }), "12345");
 	
 	// Add the well known anonymous user and some normal users. The anonymous user
@@ -171,7 +171,7 @@ int main()
 
 	for (;;)
 	{
-		/*std::string Cmd;
+		std::string Cmd;
 		std::cin >> Cmd;
 		if (Cmd == "disable")
 		{
@@ -182,8 +182,8 @@ int main()
 		{
 			CppLogger::EnablePrintAll();
 			Logger_Error("Now It Works");
-		}*/
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 
 	return 0;

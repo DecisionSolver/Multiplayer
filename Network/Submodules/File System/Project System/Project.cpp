@@ -37,7 +37,7 @@ void ProjectFile::OpenOrCreateDB(bool ifNeedConnect)
 		DataBase->CreateDataBase(DriverString, FilePath);
 
 	if (ifNeedConnect)
-		DataBase->Connect(DriverString, FilePath, { "READONLY=false" }, {});
+		DataBase->Connect(DriverString, FilePath, "READONLY=false", {});
 }
 
 // To Hold Data To Not Recreate It Every Calls "Open"!
