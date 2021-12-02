@@ -54,7 +54,7 @@ int main()
 
 	local_root = local_root.generic_path();
 
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
 	if (!exists(local_root.string() + "logs"))
 		create_directories(local_root.string() + "logs/");
 
@@ -66,7 +66,7 @@ int main()
 		new FileLoggerTarget(local_root.string() + "logs/FTP-server-crit.log", LogLevel::LOG_LEVEL_CRITICAL));
 #endif
 
-	if (mysqlDB->Connect("test", "vextern123",
+	/*if (mysqlDB->Connect("test", "vextern123",
 #if defined(_DEBUG)
 		"188.210.240.246"
 #else
@@ -74,7 +74,7 @@ int main()
 #endif
 		, "gb_z_rod2_rf") == mysql::Client::Done)
 	{
-#if defined(_DEBUG) && __has_include("logger.h")
+#if defined(_DEBUG) && defined(HAS_LOGGER)
 		const char* _IP =
 #if defined(_DEBUG)
 			"188.210.240.246"
@@ -84,13 +84,14 @@ int main()
 			;
 		Logger_Debug_F("Successful Connected To %s", _IP);
 #endif
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
+
 		Logger_Info("Successful Connect To MySQL DB");
 #endif
 	}
 	else
 	{
-#if defined(_DEBUG) && __has_include("logger.h")
+#if defined(_DEBUG) && defined(HAS_LOGGER)
 		const char* _IP =
 #if defined(_DEBUG)
 			"188.210.240.246"
@@ -100,11 +101,11 @@ int main()
 			;
 		Logger_Debug_F("Failure Connected To %s", _IP);
 #endif
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
 		Logger_Info("Failure Connect To MySQL DB");
 #endif
 		return -1;
-	}
+	}*/
 
 	/*mysql::addUser("user1", {}, 0);
 	mysql::addUser("user3", {}, 0);
@@ -115,7 +116,7 @@ int main()
 	mysql::updateFilesRights("user3", { {"mp4.mp4", 0} });
 	std::cout << mysql::hasUserAccessToProject("user1", 1);*/
 
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
 	Logger_Info_F("Current Used Path Is: %s", local_root.string().c_str());
 #endif
 
@@ -135,13 +136,13 @@ int main()
 	// can log in with username "anonyous" or "ftp" and any password. The normal
 	// users have to provide their username and password. 
 
-	auto AllUsers = mysqlDB->SelectValues("Local", { "*" });
+	//auto AllUsers = mysqlDB->SelectValues("Local", { "*" });
 
 	local_root += "Users/";
 
 	/*for (size_t i = 0; i < AllUsers["_N"].size(); i++)
 	{
-		auto ThisPath = local_root.string() + std::to_string(AllUsers["_N"].at(i).get<json::number_integer_t>());
+		auto ThisPath = local_root.string() + AllUsers["_0"].at(i).get<std::string>();
 		if (!exists(ThisPath))
 			create_directories(ThisPath);
 		if (AllUsers["_3"].at(i).get<json::number_integer_t>() == 1)
@@ -156,13 +157,13 @@ int main()
 	// performance with multiple clients, but don't over-do it.
 	if (server.start(4))
 	{
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
 		Logger_Info_F("FTP Server Has Been Started On IP %s And Port 2121 And 4 Threads", _IP);
 #endif
 	}
 	else
 	{
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
 		Logger_Critical("Something Is Wrong With Starting FTP Server!");
 #endif
 	}
@@ -171,19 +172,7 @@ int main()
 
 	for (;;)
 	{
-		std::string Cmd;
-		std::cin >> Cmd;
-		if (Cmd == "disable")
-		{
-			CppLogger::DisablePrintAll();
-			Logger_Error("Now It Doesn't Work");
-		}
-		if (Cmd == "enable")
-		{
-			CppLogger::EnablePrintAll();
-			Logger_Error("Now It Works");
-		}
-		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 
 	return 0;

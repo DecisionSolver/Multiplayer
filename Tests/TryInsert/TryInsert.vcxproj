@@ -16,11 +16,11 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{9C9ACE28-D793-4B08-A39D-110A40BDB40D}</ProjectGuid>
+    <ProjectGuid>{EF3F09EA-EE10-48B3-A698-E5EBFA3ABA68}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>TestServer</RootNamespace>
+    <RootNamespace>TryInsert</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
-    <ProjectName>ServerTCP</ProjectName>
+    <ProjectName>TrySomething</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -60,17 +60,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)Tests\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
-    <TargetName>update_tcp</TargetName>
+    <OutDir>$(SolutionDir)Tests\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
-    <TargetName>update_tcp</TargetName>
+    <OutDir>$(SolutionDir)Tests\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -79,10 +78,9 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_SERVER;ASIO_HAS_BOOST_THROW_EXCEPTION;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;ASIO_STANDALONE;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;CRYPTOPP_ENABLE_NAMESPACE_WEAK;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;MYSQLCLIENT_STATIC_BINDING;ASIO_STANDALONE;ASIO_HAS_BOOST_THROW_EXCEPTION;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;ASIO_DISABLE_STD_SYSTEM_ERROR;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\Network\Include;$(SolutionDir)..\..\Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)..\..\Network\Submodules\LZ4\Include;G:\DecisionSolver\submodules;$(SolutionDir)..\..\Network\Submodules\json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\SelfLogger;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules;$(SolutionDir)Network\Submodules\crypto++\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)include;$(SolutionDir)Network\Submodules\SelfLogger;$(SolutionDir)Network\Submodules\MySQL Connection\Include\;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules;%(AdditionalIncludeDirectories);$(SolutionDir)Network\Submodules\crypto++\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -90,6 +88,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\;$(SolutionDir)Network\Submodules\Boost\Libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Network.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>MSVCRT.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -105,8 +104,10 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\SelfLogger;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\boost;%(AdditionalIncludeDirectories);$(SolutionDir)Network\Submodules\crypto++\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
       <DebugInformationFormat>None</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,9 +127,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_SERVER;ASIO_HAS_BOOST_THROW_EXCEPTION;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;ASIO_STANDALONE;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;G:\DecisionSolver\submodules;$(SolutionDir)Network\Submodules\boost\asio\include;%(AdditionalIncludeDirectories);$(SolutionDir)Network\Submodules\crypto++\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)Network\Submodules\LZ4\Include;G:\DecisionSolver\submodules;%(AdditionalIncludeDirectories);$(SolutionDir)Network\Submodules\crypto++\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -137,11 +138,14 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Network.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\;$(SolutionDir)Network\Submodules\Boost\Libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Server.cpp" />
+    <ClCompile Include="TrySomething.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Client.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

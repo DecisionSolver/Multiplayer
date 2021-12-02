@@ -1,4 +1,4 @@
-#include "..\Include\DB_Query.hpp"
+#include "..\Include\SQL_Query.hpp"
 
 namespace query
 {
@@ -9,7 +9,7 @@ namespace query
 
 		if (name_column.size() != type.size() || name_column.size() != value.size() || name_column.size() != attributes.size())
 		{
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
 			Logger_Error("Not enough columns data to create table (amount mismatch)!\n");
 #endif // HAS_LOGGER
 
@@ -127,9 +127,10 @@ namespace query
 	std::string MakeUpdateValuesQuery(const std::string& name_table, const std::vector<std::string>& name_columns,
 		const std::vector<std::string>& values, const std::vector<std::string>& condition)
 	{
+
 		if (name_columns.size() != values.size())
 		{
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
 			Logger_Error("Not enough columns data to create table (amount mismatch)!\n");
 #endif // HAS_LOGGER
 
@@ -165,9 +166,10 @@ namespace query
 	std::string MakeInsertValuesQuery(const std::string& name_table, const std::vector<std::string>& name_columns,
 		const std::vector<std::string>& values)
 	{
+
 		if (name_columns.size() != values.size())
 		{
-#if __has_include("logger.h")
+#if defined(HAS_LOGGER)
 			Logger_Error("Not enough columns data to create table (amount mismatch)!\n");
 #endif // HAS_LOGGER
 
