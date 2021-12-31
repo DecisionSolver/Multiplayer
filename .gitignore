@@ -15,7 +15,7 @@
 *.pch
 
 # PBAX
-*.ipch
+*.ipch 
 
 # Compiled Dynamic libraries
 *.so
@@ -61,14 +61,11 @@
 *.iobj
 *.ipdb
 
-/Debug
-/Release
-/Build
-/intermediate
-resources
-!.txt
-workspace
+Debug/
+Release/
+Build/
+!Build/*.lib
+!*.lib
+intermediate/
 .vs
 Network/.vs
-!tinyxml2d.pdb
-

@@ -99,17 +99,7 @@ namespace fineftp
      * 
      * @return True if adding the user was successful (i.e. it didn't exit already).
      */
-    bool addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions);
-    
-    /**
-     * @brief Adds the "anonymous" / "ftp" user that FTP clients use to access FTP servers without password
-     * 
-     * @param local_root_path:  A path to any resource on the local filesystem that will be accessed by the user
-     * @param permissions:      A bit-mask of what the user will be able to do.
-     * 
-     * @return True if adding the anonymous user was successful (i.e. it didn't exit already).
-     */
-    bool addUserAnonymous(const UserPermission user_permissions, const nlohmann::json& files_permissions);
+    bool addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions = UserPermission::None, const nlohmann::json& files_permissions = "{\".AllFolderFiles\":127}"_json);
 
     /**
      * @brief Starts the FTP Server

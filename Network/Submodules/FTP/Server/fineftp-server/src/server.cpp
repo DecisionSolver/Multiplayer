@@ -28,11 +28,6 @@ namespace fineftp
     return ftp_server_->addNewUser(username, password, user_permissions, files_permissions);
   }
 
-  bool FtpServer::addUserAnonymous(const UserPermission user_permissions, const nlohmann::json& files_permissions)
-  {
-    return ftp_server_->addUserAnonymous(user_permissions, files_permissions);
-  }
-
   bool FtpServer::start(size_t thread_count)
   {
     assert(thread_count > 0);

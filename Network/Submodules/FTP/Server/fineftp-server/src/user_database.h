@@ -21,22 +21,21 @@ namespace fineftp
 		std::shared_ptr<FtpUser> getUser(const std::string& username, const std::string& password) const;
 
 		virtual bool Connect(const std::string& user, const std::string& password, const std::string& host,
-			const std::string& DB, const unsigned short& port = 3306, const std::string& charset = "utf8",
-			bool OnlyRead = false);
+			const std::string& DB, const unsigned short& port, const std::string& charset, bool OnlyRead);
 		virtual bool Connect(const std::string& driver, const std::string& path,
 			const std::vector<std::string>& attributes, const std::string& password);
 
 		virtual bool addNewUser(const std::string& username, const std::string& password,
 			const UserPermission user_permissions, const nlohmann::json& files_permissions) = 0;
 
-		virtual void updatePermissions(const std::shared_ptr<FtpUser>& user, const std::string& username) = 0;
+		virtual std::string updatePermissions(const std::string& username) = 0;
 
-	private:
+	protected:
 
 		mutable std::mutex                              database_mutex_;
 		std::map<std::string, std::shared_ptr<FtpUser>> database_;
+		unsigned long long                              new_id_ = 0;
 
-	protected:
 		bool addUser(const std::string& username, const std::string& password,
 			const UserPermission user_permissions, const nlohmann::json& files_permissions);
 	};
@@ -44,14 +43,13 @@ namespace fineftp
 	class MySQLUserDatabase : public UserDatabase
 	{
 	public:
-		bool Connect(const std::string& user, const std::string& password,
-			const std::string& host, const std::string& DB, const unsigned short& port = 3306,
-			const std::string& charset = "utf8", bool OnlyRead = false) override;
+		bool Connect(const std::string& user, const std::string& password, const std::string& host, 
+			const std::string& DB, const unsigned short& port, const std::string& charset, bool OnlyRead) override;
 
 		bool addNewUser(const std::string& username, const std::string& password,
 			const UserPermission user_permissions, const nlohmann::json& files_permissions) override;
 
-		void updatePermissions(const std::shared_ptr<FtpUser>& user, const std::string& username) override;
+	 std::string updatePermissions(const std::string& username) override;
 
 	private:
 		mysql::Client mysqlDB;
@@ -66,7 +64,7 @@ namespace fineftp
 		bool addNewUser(const std::string& username, const std::string& password,
 			const UserPermission user_permissions, const nlohmann::json& files_permissions) override;
 
-		void updatePermissions(const std::shared_ptr<FtpUser>& user, const std::string& username) override;
+		std::string updatePermissions(const std::string& username) override;
 
 	private:
 

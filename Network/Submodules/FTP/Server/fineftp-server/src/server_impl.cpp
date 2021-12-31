@@ -45,11 +45,6 @@ namespace fineftp
     return ftp_users_->addNewUser(username, password, user_permissions, files_permissions);
   }
 
-  bool FtpServerImpl::addUserAnonymous(const UserPermission user_permissions, const nlohmann::json& files_permissions)
-  {
-    return ftp_users_->addNewUser("anonymous", "", user_permissions, files_permissions);
-  }
-
   bool FtpServerImpl::start(size_t thread_count)
   {
     auto ftp_session = std::make_shared<FtpSession>(io_service_, ftp_users_, ftp_working_directory_, [this]() { open_connection_count_--; });

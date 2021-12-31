@@ -8,15 +8,17 @@ namespace fineftp
 {
 	struct FtpUser
 	{
-		FtpUser(const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions)
-			: password_(password)
-			, user_permissions_(user_permissions)
-			, files_permissions_(files_permissions)
+		FtpUser(const unsigned long long id, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions)
+			: id_                (id)
+			, password_          (password)
+			, user_permissions_  (user_permissions)
+			, files_permissions_ (files_permissions)
 		{}
 
-		const std::string password_;
-		UserPermission    user_permissions_;
-		nlohmann::json    files_permissions_;
+		const unsigned long long id_;
+		std::string              password_;
+		UserPermission           user_permissions_;
+		nlohmann::json           files_permissions_;
 	};
 
 	//Checks object(file or folder) for NOT having chosen permissions(actually they're restrictions)
@@ -26,6 +28,9 @@ namespace fineftp
 	//Else (and if it's file) it checks for ".AllFolderFiles" and for file's permissions (if presented) and returns true or false if it corresponds with chosen permissions
 	inline bool hasObjectPermissionsImpl(const std::string& object_path, const FilePermission permissions, nlohmann::json& subjson)
 	{
+		if (subjson.empty() || subjson.find(".AllFolderFiles") == subjson.end())
+			return false;
+
 		if (object_path.empty())
 		{
 			if (!(subjson[".AllFolderFiles"] & (int)permissions))

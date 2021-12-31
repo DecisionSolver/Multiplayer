@@ -106,18 +106,12 @@ namespace fineftp
     FtpMessage handleFtpCommandHELP(const std::string& param);
     FtpMessage handleFtpCommandNOOP(const std::string& param);
 
-    // Commands for DecisionSolver
-    FtpMessage handleFtpCommandUPPM(const std::string& param); //UPdate PerMissions
-
   ////////////////////////////////////////////////////////
   // FTP data-socket send
   ////////////////////////////////////////////////////////
   private:
-
-    bool hasObjectPermissions   (const std::string& object_path, const FilePermission permissions) const;
-
-    void sendDirectoryListing   (const std::map<std::string, Filesystem::FileStatus>& directory_content);
-    void sendNameList           (const std::map<std::string, Filesystem::FileStatus>& directory_content);
+    void sendDirectoryListing   (const std::map<std::string, Filesystem::FileStatus>& directory_content, const nlohmann::json& directory_permissions);
+    void sendNameList           (const std::map<std::string, Filesystem::FileStatus>& directory_content, const nlohmann::json& directory_permissions);
 
     void sendFile               (std::shared_ptr<IoFile>                file);
 
@@ -150,6 +144,8 @@ namespace fineftp
   // Helpers
   ////////////////////////////////////////////////////////
   private:
+    bool hasObjectPermissions(const std::string& object_path, const FilePermission permissions) const;
+    std::string toWorkingFtpPath(const std::string& ftp_path) const;
     std::string toAbsoluateFtpPath(const std::string& rel_or_abs_ftp_path) const;
     std::string toLocalPath(const std::string& ftp_path) const;
     std::string createQuotedFtpPath(const std::string& unquoted_ftp_path) const;
@@ -183,7 +179,7 @@ namespace fineftp
 
     // User management
     const std::shared_ptr<UserDatabase>& user_database_;
-    std::shared_ptr<FtpUser>             logged_in_user_;
+    std::shared_ptr<FtpUser>             logged_in_user_ = nullptr;
 
     // "Global" io service
     asio::io_service&        io_service_;
@@ -196,7 +192,7 @@ namespace fineftp
 
     std::string last_command_;
     std::string rename_from_path_;
-    std::string username_for_login_;
+    std::string username_for_login_ = "";
 
     // Data Socket (=> passive mode)
     bool                                           data_type_binary_;

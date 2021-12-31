@@ -18,15 +18,13 @@ namespace fineftp
   {
   public:
     FtpServerImpl(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBuser, const std::string& DBpassword,
-        const std::string& DBhost, const std::string& DB, const unsigned short& DBport = 3306, const std::string& DBcharset = "utf8",
-        bool DBOnlyRead = false);
+        const std::string& DBhost, const std::string& DB, const unsigned short& DBport, const std::string& DBcharset, bool DBOnlyRead);
     FtpServerImpl(const std::string& address, uint16_t port, const std::string& ftp_working_directory, const std::string& DBdriver, const std::string& DBpath,
-        const std::vector<std::string>& DBattributes, const std::string& DBpassword = {});
+        const std::vector<std::string>& DBattributes, const std::string& DBpassword);
 
     ~FtpServerImpl();
 
     bool addNewUser(const std::string& username, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions);
-    bool addUserAnonymous(const UserPermission permissions, const nlohmann::json& files_permissions);
 
     bool start(size_t thread_count = 1);
 

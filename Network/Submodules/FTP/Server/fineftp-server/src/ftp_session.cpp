@@ -186,18 +186,31 @@ namespace fineftp
 			{ "SYST", std::bind(&FtpSession::handleFtpCommandSYST, this, std::placeholders::_1) },
 			{ "STAT", std::bind(&FtpSession::handleFtpCommandSTAT, this, std::placeholders::_1) },
 			{ "HELP", std::bind(&FtpSession::handleFtpCommandHELP, this, std::placeholders::_1) },
-			{ "NOOP", std::bind(&FtpSession::handleFtpCommandNOOP, this, std::placeholders::_1) },
-
-			// Commands for DecisionSolver
-			{ "UPPM", std::bind(&FtpSession::handleFtpCommandUPPM, this, std::placeholders::_1) },
+			{ "NOOP", std::bind(&FtpSession::handleFtpCommandNOOP, this, std::placeholders::_1) }
 		};
 
 		auto command_it = command_map.find(ftp_command);
 		if (command_it != command_map.end())
 		{
-			FtpMessage reply = command_it->second(parameters);
-			sendFtpMessage(reply);
-			last_command_ = ftp_command;
+			try
+			{
+				if (logged_in_user_ != nullptr)
+				{
+					username_for_login_ = user_database_->updatePermissions(username_for_login_);
+					if (username_for_login_.empty())
+						throw -1;
+				}
+
+				FtpMessage reply = command_it->second(parameters);
+				sendFtpMessage(reply);
+				last_command_ = ftp_command;
+			}
+			catch (int)
+			{
+				sendFtpMessage(FtpReplyCode::NOT_LOGGED_IN, "User has been deleted");
+				sendFtpMessage(handleFtpCommandQUIT(""));
+				last_command_ = "QUIT";
+			}
 		}
 		else
 		{
@@ -246,11 +259,11 @@ namespace fineftp
 		}
 		else
 		{
+			user_database_->updatePermissions(username_for_login_);
 			auto user = user_database_->getUser(username_for_login_, param);
 			if (user)
 			{
 				logged_in_user_ = user;
-				user_database_->updatePermissions(user, username_for_login_);
 				return FtpMessage(FtpReplyCode::USER_LOGGED_IN, "Login successful");
 			}
 			else
@@ -758,8 +771,8 @@ namespace fineftp
 
 		if (!hasObjectPermissions(param, FilePermission::DirList)) return FtpMessage(FtpReplyCode::FILE_ACTION_NOT_TAKEN, "Permission denied");
 
-		std::string local_path = toLocalPath(param);
-		auto dir_status = Filesystem::FileStatus(local_path);
+		std::string working_path = toWorkingFtpPath(param);
+		auto dir_status = Filesystem::FileStatus(ftp_root_directory_ + working_path);
 
 		if (dir_status.isOk())
 		{
@@ -767,7 +780,29 @@ namespace fineftp
 			{
 				if (dir_status.canOpenDir())
 				{
-					sendDirectoryListing(Filesystem::dirContent(local_path)); //WE DON'T NEED FULL PATH, only the path from ftp_base_directory
+					nlohmann::json& directory_permissions = logged_in_user_->files_permissions_;
+					while (!working_path.empty() && !directory_permissions.empty())
+					{
+						size_t div_pos = working_path.find('/', 0);
+						std::string object_name = working_path.substr(0, div_pos);
+
+						if (!directory_permissions[object_name].is_null())
+						{
+							directory_permissions = directory_permissions[object_name][0];
+
+							if (div_pos != std::string::npos)
+								working_path = working_path.substr(div_pos + 1);
+							else
+								break;
+						}
+						else
+						{
+							directory_permissions = "{}"_json;
+							break;
+						}
+					}
+
+					sendDirectoryListing(Filesystem::dirContent(ftp_root_directory_ + working_path), directory_permissions); //WE DON'T NEED FULL PATH, only the path from ftp_base_directory
 					return FtpMessage(FtpReplyCode::FILE_STATUS_OK_OPENING_DATA_CONNECTION, "Sending directory listing");
 				}
 				else
@@ -794,8 +829,8 @@ namespace fineftp
 		// RFC 959 does not allow ACTION_NOT_TAKEN (-> permanent error), so we return a temporary error (FILE_ACTION_NOT_TAKEN).
 		if (!hasObjectPermissions(param, FilePermission::DirList)) return FtpMessage(FtpReplyCode::FILE_ACTION_NOT_TAKEN, "Permission denied");
 
-		std::string local_path = toLocalPath(param);
-		auto dir_status = Filesystem::FileStatus(local_path);
+		std::string working_path = toWorkingFtpPath(param);
+		auto dir_status = Filesystem::FileStatus(working_path);
 
 		if (dir_status.isOk())
 		{
@@ -803,7 +838,25 @@ namespace fineftp
 			{
 				if (dir_status.canOpenDir())
 				{
-					sendNameList(Filesystem::dirContent(local_path));
+					nlohmann::json& directory_permissions = logged_in_user_->files_permissions_;
+					while (!working_path.empty() && !directory_permissions.empty())
+					{
+						size_t div_pos = working_path.find('/', 0);
+						std::string object_name = working_path.substr(0, div_pos);
+
+						if (!directory_permissions[object_name].is_null())
+						{
+							directory_permissions = directory_permissions[object_name][0];
+							working_path = working_path.substr(div_pos + 1);
+						}
+						else
+						{
+							directory_permissions = "{}"_json;
+							break;
+						}
+					}
+
+					sendNameList(Filesystem::dirContent(ftp_root_directory_ + working_path), directory_permissions);
 					return FtpMessage(FtpReplyCode::FILE_STATUS_OK_OPENING_DATA_CONNECTION, "Sending name list");
 				}
 				else
@@ -855,37 +908,16 @@ namespace fineftp
 		return FtpMessage(FtpReplyCode::COMMAND_OK, "OK");
 	}
 
-	FtpMessage FtpSession::handleFtpCommandUPPM(const std::string& /*param*/)
-	{
-		if (!logged_in_user_) return FtpMessage(FtpReplyCode::NOT_LOGGED_IN, "Not logged in");
-
-		user_database_->updatePermissions(logged_in_user_, username_for_login_);
-
-		return FtpMessage(FtpReplyCode::COMMAND_OK, "OK");
-	}
-
-	//Checking permissions
-	bool FtpSession::hasObjectPermissions(const std::string& object_path, const FilePermission permissions) const
-	{
-		std::string local_path = toLocalPath(object_path);
-		if (ftp_root_directory_.size() <= local_path.size())
-			local_path = local_path.substr(ftp_root_directory_.size());
-		else
-			local_path = "";
-
-		return hasObjectPermissionsImpl(local_path, permissions, logged_in_user_->files_permissions_);
-	}
-
 	////////////////////////////////////////////////////////
 	// FTP data-socket send
 	////////////////////////////////////////////////////////
 
-	void FtpSession::sendDirectoryListing(const std::map<std::string, Filesystem::FileStatus>& directory_content)
+	void FtpSession::sendDirectoryListing(const std::map<std::string, Filesystem::FileStatus>& directory_content, const nlohmann::json& directory_permissions)
 	{
 		auto data_socket = std::make_shared<asio::ip::tcp::socket>(io_service_);
 
 		data_acceptor_.async_accept(*data_socket
-			, [data_socket, directory_content, me = shared_from_this()](auto ec)
+			, [data_socket, directory_content, directory_permissions, me = shared_from_this()](auto ec)
 		{
 			if (ec)
 			{
@@ -899,13 +931,16 @@ namespace fineftp
 			{
 				const std::string& filename(entry.first);
 				const fineftp::Filesystem::FileStatus& file_status(entry.second);
-
-				stream << ((file_status.type() == fineftp::Filesystem::FileType::Dir) ? 'd' : '-') << file_status.permissionString() << "   1 ";
-				stream << std::setw(10) << file_status.ownerString() << " " << std::setw(10) << file_status.groupString() << " ";
-				stream << std::setw(10) << file_status.fileSize() << " ";
-				stream << file_status.timeString() << " ";
-				stream << filename;
-				stream << "\r\n";
+				
+				if (directory_permissions.find(filename) == directory_permissions.end() || (directory_permissions[filename].is_array() ? !(directory_permissions[filename][1] & (int)FilePermission::DirList) : !(directory_permissions[filename] & (int)FilePermission::FileRead)))
+				{
+					stream << ((file_status.type() == fineftp::Filesystem::FileType::Dir) ? 'd' : '-') << file_status.permissionString() << "   1 ";
+					stream << std::setw(10) << file_status.ownerString() << " " << std::setw(10) << file_status.groupString() << " ";
+					stream << std::setw(10) << file_status.fileSize() << " ";
+					stream << file_status.timeString() << " ";
+					stream << filename;
+					stream << "\r\n";
+				}
 			}
 
 			// Copy the file list into a raw char vector
@@ -920,12 +955,12 @@ namespace fineftp
 		});
 	}
 
-	void FtpSession::sendNameList(const std::map<std::string, Filesystem::FileStatus>& directory_content)
+	void FtpSession::sendNameList(const std::map<std::string, Filesystem::FileStatus>& directory_content, const nlohmann::json& directory_permissions)
 	{
 		auto data_socket = std::make_shared<asio::ip::tcp::socket>(io_service_);
 
 		data_acceptor_.async_accept(*data_socket
-			, [data_socket, directory_content, me = shared_from_this()](auto ec)
+			, [data_socket, directory_content, directory_permissions, me = shared_from_this()](auto ec)
 		{
 			if (ec)
 			{
@@ -937,8 +972,11 @@ namespace fineftp
 			std::stringstream stream;
 			for (const auto& entry : directory_content)
 			{
-				stream << entry.first;
-				stream << "\r\n";
+				if (directory_permissions[entry.first].is_null() || (directory_permissions[entry.first].is_array() ? !(directory_permissions[entry.first][1] & (int)FilePermission::DirList) : !(directory_permissions[entry.first] & (int)FilePermission::FileRead)))
+				{
+					stream << entry.first;
+					stream << "\r\n";
+				}
 			}
 
 			// Copy the file list into a raw char vector
@@ -1123,6 +1161,22 @@ namespace fineftp
 	////////////////////////////////////////////////////////
 	// Helpers
 	////////////////////////////////////////////////////////
+
+	bool FtpSession::hasObjectPermissions(const std::string& object_path, const FilePermission permissions) const
+	{
+		return hasObjectPermissionsImpl(toWorkingFtpPath(object_path), permissions, logged_in_user_->files_permissions_);
+	}
+
+	std::string FtpSession::toWorkingFtpPath(const std::string& ftp_path) const
+	{
+		std::string working_path = toLocalPath(ftp_path);
+		if (ftp_root_directory_.size() <= working_path.size())
+			working_path = working_path.substr(ftp_root_directory_.size());
+		else
+			working_path = "";
+		
+		return working_path;
+	}
 
 	std::string FtpSession::toAbsoluateFtpPath(const std::string& rel_or_abs_ftp_path) const
 	{
