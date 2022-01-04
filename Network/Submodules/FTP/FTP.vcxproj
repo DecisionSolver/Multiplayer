@@ -31,7 +31,7 @@
     <ProjectGuid>{6C0F743C-BCDB-47E3-9248-3F5302390E41}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>FTP</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.22000.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -128,7 +128,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_WINDOWS;ASIO_STANDALONE;__USE_FILE_OFFSET64=1;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;CPPCONN_LIB_BUILD;MYSQLCLIENT_STATIC_BINDING;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;_DEBUG;_CONSOLE;_WINDOWS;ASIO_STANDALONE;__USE_FILE_OFFSET64=1;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;CPPCONN_LIB_BUILD;MYSQLCLIENT_STATIC_BINDING;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>

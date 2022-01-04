@@ -1,5 +1,7 @@
 #pragma once
 #include "pch.h"
+#include <asio.hpp>
+using asio::ip::tcp;
 
 namespace network
 {

@@ -5,7 +5,7 @@
 #include <fstream>
 
 #include <Client.hpp>
-#include <Server.hpp>
+
 namespace network
 {
 	bool FileTransfer::SeparateFileIntoPackets(std::string FileName, size_t HowManyParts, int ID_Recipient)

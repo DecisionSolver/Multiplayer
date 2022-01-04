@@ -931,7 +931,7 @@ namespace fineftp
 			{
 				const std::string& filename(entry.first);
 				const fineftp::Filesystem::FileStatus& file_status(entry.second);
-				
+
 				if (directory_permissions.find(filename) == directory_permissions.end() || (directory_permissions[filename].is_array() ? !(directory_permissions[filename][1] & (int)FilePermission::DirList) : !(directory_permissions[filename] & (int)FilePermission::FileRead)))
 				{
 					stream << ((file_status.type() == fineftp::Filesystem::FileType::Dir) ? 'd' : '-') << file_status.permissionString() << "   1 ";

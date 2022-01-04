@@ -19,6 +19,9 @@ namespace fineftp
 		~UserDatabase();
 
 		std::shared_ptr<FtpUser> getUser(const std::string& username, const std::string& password) const;
+	
+		virtual mysql::Client &GetClientMysql();
+		virtual odbc::ODBC &GetClientODBC();
 
 		virtual bool Connect(const std::string& user, const std::string& password, const std::string& host,
 			const std::string& DB, const unsigned short& port, const std::string& charset, bool OnlyRead);
@@ -51,8 +54,12 @@ namespace fineftp
 
 	 std::string updatePermissions(const std::string& username) override;
 
+		mysql::Client &GetClientMysql() override;
+
 	private:
 		mysql::Client mysqlDB;
+
+		bool HaveConnect = false;
 	};
 
 	class ODBCUserDatabase : public UserDatabase
@@ -65,9 +72,12 @@ namespace fineftp
 			const UserPermission user_permissions, const nlohmann::json& files_permissions) override;
 
 		std::string updatePermissions(const std::string& username) override;
+		
+		odbc::ODBC &GetClientODBC() override;
 
 	private:
-
 		odbc::ODBC odbcDB;
+
+		bool HaveConnect = false;
 	};
 }

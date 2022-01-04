@@ -54,6 +54,8 @@ namespace fineftp
 			else
 			{
 				if ((subjson[object_name].is_array() ? !(subjson[object_name][1] & (int)permissions) : !(subjson[object_name] & (int)permissions)) && !(subjson[".AllFolderFiles"] & (int)permissions))
+				if ((subjson[object_name].is_array() ? !(subjson[object_name][1] & (int)permissions)  && !(subjson[".AllFolderFiles"] & (int)permissions) :
+				                                       !(subjson[object_name]    & (int)permissions)) && !(subjson[".AllFolderFiles"] & (int)permissions))
 					return true;
 				else
 					return false;
