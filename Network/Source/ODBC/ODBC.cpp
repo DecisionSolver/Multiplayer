@@ -1,10 +1,14 @@
 #include <pch.h>
-#include <Windows.h>
+
+#include <windows.h>
 
 #include "ODBC/ODBC.h"
 #include "DB_Query.hpp"
 #include "boost/algorithm/string/case_conv.hpp"
 #include <odbcinst.h>
+
+#include <sql.h>
+#include <sqlext.h>
 
 #include <atlconv.h>
 namespace odbc
@@ -15,7 +19,7 @@ namespace odbc
 		USES_CONVERSION;
 		if ((SQLConfigDataSourceW(nullptr, ODBC_ADD_DSN, A2W(driver.c_str()),
 			A2W(("CREATE_DB=\"" + path + "\";" + attributes + (password.empty() ? "" : ";PWD=" + password)).c_str()))) != 1)
-			Logger_Error_F("Something is wrong with create a database file, error code: %i", GetLastError());
+			Logger_Error_F("Something is wrong with create a database file, error code: {}", GetLastError());
 	}
 
 	bool ODBC::Connect(const std::string& driver, const std::string& path,
@@ -69,13 +73,13 @@ namespace odbc
 			if (!strcmp((const char*)wszState, "01000"))
 			{
 #if __has_include("logger.h")
-				Logger_Warn_F("[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
+				Logger_Warn_F("[{0,5}] {} ({})\n", wszState, wszMessage, iError);
 #endif
 				return false;
 			}
 
 #if __has_include("logger.h")
-				Logger_Error_F("[%5.5s] %s (%d)\n", wszState, wszMessage, iError);
+				Logger_Error_F("{0,5}] {} ({})\n", wszState, wszMessage, iError);
 #endif
 		}
 
@@ -344,7 +348,7 @@ namespace odbc
 
 		default:
 #if __has_include("logger.h")
-			Logger_Error_F("Unexpected return code %hd!\n", rc);
+			Logger_Error_F("Unexpected return code {}!\n", rc);
 #endif
 		}
 

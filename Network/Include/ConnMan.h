@@ -2,11 +2,6 @@
 #include "pch.h"
 #include "Connection.h"
 
-// Standard Includes
-#include <thread>
-#include <vector>
-#include <functional>
-
 #include "MySQL/MySQL_Client.h"
 #include <fineftp/server.h>
 //fineftp::FtpServer server(_IP, 2121, local_root.string(), "Microsoft Access Driver (*.mdb)",

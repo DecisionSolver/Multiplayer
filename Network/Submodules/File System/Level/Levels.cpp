@@ -39,7 +39,7 @@ nlohmann::json Level::Decompress(const std::string &Buffer)
 	auto Decomp = nlohmann::json::from_msgpack(std::vector<uint8_t>{Buffer.begin(),
 		Buffer.end()}).front();
 #if defined (DEBUG) || defined (_DEBUG)
-	Logger_Debug_F("Decompressed Data Project Is:\n%s\n", Decomp.dump().c_str());
+	Logger_Debug_F("Decompressed Data Project Is:\n{}\n", Decomp.dump());
 #endif
 	return Decomp;
 }
@@ -47,7 +47,7 @@ nlohmann::json Level::Decompress(const std::vector<uint8_t> &Buffer)
 {
 	auto Decomp = nlohmann::json::from_msgpack(Buffer).front();
 #if defined (DEBUG) || defined (_DEBUG)
-	Logger_Debug_F("Decompressed Data Project Is:\n%s\n", Decomp.dump().c_str());
+	Logger_Debug_F("Decompressed Data Project Is:\n{}\n", Decomp.dump());
 #endif
 	return Decomp;
 }
@@ -279,8 +279,8 @@ void Level::Process()
 			else
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("Model: \"%s\" not found in resources Engine and be skiped",
-					ModelFileName.c_str());
+				Logger_Error_F("Model: \"{}\" not found in resources Engine and be skiped",
+					ModelFileName);
 #endif
 			}
 
@@ -389,7 +389,7 @@ std::shared_ptr<Level::Node> Level::Add(const std::string &PathModel, const std:
 	if (!nd->GM || (nd->GM && nd->GM->GetIdText().empty()))
 		return make_shared<Level::Node>();
 
-	Logger_Debug_F("Trying To Add Object To The Scene:\nID: %s,\nRender Name: %s", nd->ID.c_str(), nd->RenderName.c_str());
+	Logger_Debug_F("Trying To Add Object To The Scene:\nID: {},\nRender Name: {}", nd->ID, nd->RenderName);
 
 	// Need To Save It As New Object (or mark it)
 	nd->SaveInfo->T = nd->GM->GetType();
@@ -935,7 +935,7 @@ void Level::CheckOut(const std::vector<uint8_t> &Comm)
 	OneDoc.reset(JSONtoXML(Decompress(Comm)));
 	if (OneDoc->Error())
 	{
-		Logger_Error_F("Failed With Merge Commit Data! XML Error: %s", OneDoc->ErrorStr());
+		Logger_Error_F("Failed With Merge Commit Data! XML Error: {}", OneDoc->ErrorStr());
 		return;
 	}
 

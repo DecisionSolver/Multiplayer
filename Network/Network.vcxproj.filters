@@ -28,24 +28,39 @@
     <Filter Include="Include Files\ODBC">
       <UniqueIdentifier>{e8f2011a-1659-4942-acee-c02c2405564a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Project System">
+      <UniqueIdentifier>{1df9bc83-d160-48db-9c97-efeb2760fa44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Project System\File System">
+      <UniqueIdentifier>{9dec4551-168e-4626-bf0d-72b3780b3795}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Project System\Level">
+      <UniqueIdentifier>{1dff0991-8cd6-457c-918e-087969930314}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Project System\Model">
+      <UniqueIdentifier>{8ad2dc32-7277-451c-849f-353e4af1fa1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Project System\File System\File Watcher">
+      <UniqueIdentifier>{d97db834-4417-4fe7-bd97-226d70de2fc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Project System\Level\Game Object">
+      <UniqueIdentifier>{9c3272e4-5521-43be-b6db-eb306cdc5e80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Project System\Level\Simple Logic">
+      <UniqueIdentifier>{efbbb695-dacd-4725-bb3f-cb9d71233abc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\fineftp">
+      <UniqueIdentifier>{f45012a9-3238-48a5-bed9-e58bb80c06de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Include Files\fineftp">
+      <UniqueIdentifier>{ed159ace-94eb-4458-83f5-439452728752}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\File.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\IPEndpoint.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Packet.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Server.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Socket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\MySQL\MySQL_Client.cpp">
@@ -63,13 +78,58 @@
     <ClCompile Include="Source\FTPClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\SelfLogger\logger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ODBC\ODBC.cpp">
       <Filter>Source Files\ODBC</Filter>
     </ClCompile>
-    <ClCompile Include="Source\SQL_Query.cpp">
+    <ClCompile Include="Submodules\File System\Level\Game Object\GameObjects.cpp">
+      <Filter>Source Files\Project System\Level\Game Object</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\File System\FileWatcher\source\FileWatcherWin32.cpp">
+      <Filter>Source Files\Project System\File System\File Watcher</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\File System\FileWatcher\source\FileWatcher.cpp">
+      <Filter>Source Files\Project System\File System\File Watcher</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\File System\File_system.cpp">
+      <Filter>Source Files\Project System\File System</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\File System\Level\Levels.cpp">
+      <Filter>Source Files\Project System\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\File System\Tools.cpp">
+      <Filter>Source Files\Project System</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\File System\Project System\Project.cpp">
+      <Filter>Source Files\Project System</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\File System\Level\Logic\SimpleLogic.cpp">
+      <Filter>Source Files\Project System\Level\Simple Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\File System\Level\Model\Models.cpp">
+      <Filter>Source Files\Project System\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\filesystem.cpp">
+      <Filter>Source Files\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp">
+      <Filter>Source Files\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\server.cpp">
+      <Filter>Source Files\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\server_impl.cpp">
+      <Filter>Source Files\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\user_database.cpp">
+      <Filter>Source Files\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Servers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Submodules\SelfLogger\src\logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\DB_Query.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -77,19 +137,7 @@
     <ClInclude Include="Include\Client.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\File.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\IPEndpoint.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
     <ClInclude Include="Include\Packet.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Server.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Socket.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\LZ4\lz4.h">
@@ -116,13 +164,70 @@
     <ClInclude Include="Include\FTPClient.h">
       <Filter>Include Files</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\SelfLogger\logger.h">
-      <Filter>Include Files</Filter>
-    </ClInclude>
     <ClInclude Include="Include\ODBC\ODBC.h">
       <Filter>Include Files\ODBC</Filter>
     </ClInclude>
-    <ClInclude Include="Include\SQL_Query.hpp">
+    <ClInclude Include="Submodules\File System\Level\Game Object\GameObjects.h">
+      <Filter>Source Files\Project System\Level\Game Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\FileWatcher\FileWatcher\FileWatcherWin32.h">
+      <Filter>Source Files\Project System\File System\File Watcher</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\FileWatcher\FileWatcher\FileWatcherImpl.h">
+      <Filter>Source Files\Project System\File System\File Watcher</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\FileWatcher\FileWatcher\FileWatcher.h">
+      <Filter>Source Files\Project System\File System\File Watcher</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\File_system.h">
+      <Filter>Source Files\Project System\File System</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\Level\Levels.h">
+      <Filter>Source Files\Project System\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\Tools.h">
+      <Filter>Source Files\Project System</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\Project System\Project.h">
+      <Filter>Source Files\Project System</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\Level\Logic\SimpleLogic.h">
+      <Filter>Source Files\Project System\Level\Simple Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\File System\Level\Model\Models.h">
+      <Filter>Source Files\Project System\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\filesystem.h">
+      <Filter>Source Files\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_message.h">
+      <Filter>Source Files\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_session.h">
+      <Filter>Source Files\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_user.h">
+      <Filter>Source Files\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\server_impl.h">
+      <Filter>Source Files\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\user_database.h">
+      <Filter>Source Files\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h">
+      <Filter>Include Files\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\FTP\Server\fineftp-server\include\fineftp\server.h">
+      <Filter>Include Files\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Servers.hpp">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Submodules\SelfLogger\src\logger.h">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\DB_Query.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
   </ItemGroup>

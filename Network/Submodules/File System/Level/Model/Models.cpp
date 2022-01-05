@@ -27,7 +27,7 @@ bool Models::LoadFromFile(std::string Filename)
 	if (!pScene || pScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !pScene->mRootNode || !pScene->HasMeshes())
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Scene returns nullptr with text: %s and Scene Flags: %ul", importer->GetErrorString(),
+		Logger_Error_F("Scene returns nullptr with text: {} and Scene Flags: {}", importer->GetErrorString(),
 			pScene ? pScene->mFlags : 0);
 #endif
 		return false;
@@ -105,7 +105,7 @@ bool Models::LoadFromAllModels()
 		if (!pScene || pScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !pScene->mRootNode || !pScene->HasMeshes())
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("Scene returns nullptr with text: %s and Scene Flags: %ul", importer->GetErrorString(),
+			Logger_Error_F("Scene returns nullptr with text: {} and Scene Flags: {}", importer->GetErrorString(),
 				pScene->mFlags);
 #endif
 			return false;
@@ -155,13 +155,13 @@ Models::Models(std::string Filename)
 	if (Filename.empty())
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Model File: \"%s\" not found And Can't Be Load!", Filename.c_str());
+		Logger_Error_F("Model File: \"{}\" not found And Can't Be Load!", Filename);
 #endif
 	}
 	if (!LoadFromFile(Filename))
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Model File: \"%s\" not found And Can't Be Load!", Filename.c_str());
+		Logger_Error_F("Model File: \"{}\" not found And Can't Be Load!", Filename);
 #endif
 	}
 }
@@ -230,7 +230,7 @@ std::vector<Texture> Models::loadMaterialTextures(aiMaterial *mat, aiTextureType
 #if defined (DS_Engine)
 						if (FAILED(CreateDDSTextureFromFile(Application->getDevice(), textr->Path.c_str(),
 							&texture.TextureRes, &texture.TextureSHRes)))
-							Logger_Warn_F("Something is wrong with this texture: %s", textr->FName.string().c_str());
+							Logger_Warn_F("Something is wrong with this texture: {}", textr->FName.string());
 #endif
 					}
 					else
@@ -238,7 +238,7 @@ std::vector<Texture> Models::loadMaterialTextures(aiMaterial *mat, aiTextureType
 #if defined (DS_Engine)
 						if (FAILED(CreateWICTextureFromFile(Application->getDevice(), textr->Path.c_str(),
 							&texture.TextureRes, &texture.TextureSHRes)))
-							Logger_Warn_F("Something is wrong with Create the texture: %s", textr->FName.string().c_str());
+							Logger_Warn_F("Something is wrong with Create the texture: {}", textr->FName.string());
 #endif
 					}
 				}
@@ -369,7 +369,7 @@ ID3D11ShaderResourceView *Models::getTextureFromModel(const aiScene *Scene, int 
 	if (FAILED(CreateWICTextureFromMemory(Application->getDevice(),
 		reinterpret_cast<unsigned char*>(Scene->mTextures[Textureindex]->pcData), *size, nullptr, &texture)))
 	{
-		Logger_Warn_F("Something is wrong with this texture: %s", Scene->mTextures[Textureindex]->mFilename.C_Str());
+		Logger_Warn_F("Something is wrong with this texture: {}", Scene->mTextures[Textureindex]->mFilename.C_Str());
 
 		return nullptr;
 	}

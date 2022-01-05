@@ -1,3 +1,5 @@
+#include <windows.h>
+
 #include "user_database.h"
 
 #include <iostream>
@@ -21,12 +23,12 @@ namespace fineftp
 			database_.emplace(username, std::shared_ptr<FtpUser>(new FtpUser(new_id_++, md5_from_buffer(password), user_permissions,
 				files_permissions)));
 
-			Logger_Info_F("Successfully added user \"%s\".", username.c_str());
+			Logger_Info_F("Successfully added user \"{}\".", username);
 			return true;
 		}
 		else
 		{
-			Logger_Error_F("Error adding user with username \"%s\". The user already exists.", username.c_str());
+			Logger_Error_F("Error adding user with username \"{}\". The user already exists.", username);
 			return false;
 		}
 	}

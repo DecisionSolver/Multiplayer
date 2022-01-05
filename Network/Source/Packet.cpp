@@ -163,7 +163,7 @@ namespace network
 		catch (const json::parse_error &err)
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("json::parse_error Failed: %s\n", err.what());
+			Logger_Error_F("json::parse_error Failed: {}\n", err.what());
 #endif
 			return new Packet();
 		}
@@ -208,7 +208,7 @@ namespace network
 		catch (const json::parse_error &err)
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("json::parse_error Failed: %s\n", err.what());
+			Logger_Error_F("json::parse_error Failed: {}\n", err.what());
 #endif
 			return;
 		}

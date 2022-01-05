@@ -2,12 +2,13 @@
 #define ODBC_H
 
 #include <winapifamily.h>
-#include <windows.h>
 
 #include <pch.h>
-#include <sql.h>
-#include <sqlext.h>
 
+typedef void* SQLHENV;
+typedef void* SQLHDBC;
+typedef void* SQLHSTMT;
+typedef void* SQLHANDLE;
 namespace odbc
 {
 	class ODBC
@@ -17,11 +18,11 @@ namespace odbc
 		SQLHDBC  hDbc  = NULL;
 		SQLHSTMT hStmt = NULL;
 
-		bool PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e);
+		bool PrintError(SQLHANDLE hHandle, short hType, short e);
 		typedef struct tagGETINFOALL {
 			const wchar_t*				szCol[255];			// Column name for display
 			short				fSqlType;						// For GetData call
-			SQLULEN			cbValueMax;						// How much memory to allocate
+			unsigned long		cbValueMax;						// How much memory to allocate
 			void*				rgbValue;						// Pointer to memory
 		} GETINFOALL;
 		typedef GETINFOALL * lpGETINFOALL;

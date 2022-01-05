@@ -56,7 +56,7 @@ namespace mysql
 		catch (const sql::SQLException &e)
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+			Logger_Error_F("SQLException:\n{}\nCode: {},\nSQLState: {}", e.what(), e.getErrorCode(), e.getSQLState());
 #endif
 			return Client::Status::Error;
 		}
@@ -98,7 +98,7 @@ namespace mysql
 				return Query(query);
 			}
 #if __has_include("logger.h")
-			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+			Logger_Error_F("SQLException:\n{}\nCode: {},\nSQLState: {}", e.what(), e.getErrorCode(), e.getSQLState());
 #endif
 		}
 
@@ -143,7 +143,7 @@ namespace mysql
 				Exec(query);
 			}
 #if __has_include("logger.h")
-			Logger_Error_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+			Logger_Error_F("SQLException:\n{}\nCode: {},\nSQLState: {}", e.what(), e.getErrorCode(), e.getSQLState());
 #endif
 		}
 	}
@@ -418,7 +418,7 @@ namespace mysql
 		catch (sql::SQLException &e)
 		{
 #if __has_include("logger.h")
-		Logger_Critical_F("SQLException:\n%s\nCode: %i,\nSQLState: %s", e.what(), e.getErrorCode(), e.getSQLState().c_str());
+		Logger_Critical_F("SQLException:\n{}\nCode: {},\nSQLState: {}", e.what(), e.getErrorCode(), e.getSQLState());
 #endif
 		}
 
@@ -434,7 +434,6 @@ namespace mysql
 		if (CurrentTable.empty())
 		{
 			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-			return {};
 		}
 
 		return SelectValues(CurrentTable, name_columns, condition);

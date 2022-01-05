@@ -3,9 +3,9 @@
 
 namespace net
 {
-	bool Client::Connect(const network::IPEndpoint& ip, const USHORT& port)
+	bool Client::Connect(const std::string &ip, const USHORT& port)
 	{
-		SetIP(ip.toString());
+		SetIP(ip);
 		SetPort(port);
 
 		std::this_thread::sleep_for(200ms);

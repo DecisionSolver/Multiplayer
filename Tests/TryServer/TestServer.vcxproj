@@ -19,7 +19,7 @@
     <ProjectGuid>{CE7F1EB5-2CA8-4AFD-AA9F-7C99C9D0E9C9}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>TestServer</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -81,14 +81,14 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_SERVER;ASIO_HAS_BOOST_THROW_EXCEPTION;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;ASIO_STANDALONE;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;ASIO_HAS_BOOST_BIND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\Network\Include;$(SolutionDir)..\..\Network\Submodules\MySQL Connection\Include\MySQL;$(SolutionDir)..\..\Network\Submodules\LZ4\Include;G:\DecisionSolver\submodules;$(SolutionDir)..\..\Network\Submodules\json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\SelfLogger;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\SelfLogger;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules;G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\include;G:\Multiplayer\Network\Submodules\FTP\Server\fineftp-server\src;G:\Multiplayer\Network\Submodules\FTP\Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Submodules\crypto++\include;C:\Program Files (x86)\Windows Kits\10\Include\10.0.17763.0\shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\;$(SolutionDir)Network\Submodules\Boost\Libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Network.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(Configuration)\;$(SolutionDir)Network\Submodules\Boost\Libs;$(SolutionDir)Network\Submodules\MySQL Connection\Lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Network.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -138,7 +138,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\filesystem.cpp" />
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp" />
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\server.cpp" />
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\server_impl.cpp" />
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\user_database.cpp" />
     <ClCompile Include="TestServer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h" />
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\include\fineftp\server.h" />
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\filesystem.h" />
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\ftp_message.h" />
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\ftp_session.h" />
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\ftp_user.h" />
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\server_impl.h" />
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\user_database.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

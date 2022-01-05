@@ -1,7 +1,6 @@
 #pragma once
-#include "pch.h"
 
-#include <asio.hpp>
+#include "pch.h"
 
 #include <Packet.hpp>
 #include <FTPClient.h>
@@ -10,6 +9,8 @@
 #if defined(USE_SSL)
 #include <asio/ssl.hpp>
 #endif
+
+#include <asio.hpp>
 
 //--------------------------------------------------------------------
 class ConnectionManager;

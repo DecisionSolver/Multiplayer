@@ -283,7 +283,7 @@ namespace net
 					catch (boost::filesystem::filesystem_error const &e)
 					{
 #if __has_include("logger.h")
-						Logger_Error_F("%s", e.what());
+						Logger_Error_F("{}", e.what());
 #endif
 					}
 
@@ -292,7 +292,7 @@ namespace net
 						// If File Not Found
 						Answer->CreatePacket(network::Packet::Type::Sync_File, true,
 						{
-							{ "_0", FilePath },
+							{ "_0", FilePath.string() }
 						});
 
 						connection->Send(Answer);
@@ -392,7 +392,7 @@ namespace net
 								catch (boost::filesystem::filesystem_error const &e)
 								{
 #if __has_include("logger.h")
-									Logger_Error_F("%s", e.what());
+									Logger_Error_F("{}", e.what());
 #endif
 								}
 
@@ -410,7 +410,7 @@ namespace net
 								{ "FName", JSData["FName"] },
 								{ "id", JSData["id"] },
 								{ "_0", true },
-								{ "_1", FilePath },
+								{ "_1", FilePath.string() },
 							});
 						}
 					}
@@ -444,7 +444,7 @@ namespace net
 				connection, network::Packet::Type::Get_MetaData_Project) == E_FAIL)
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("Can't Open Project: %s!", JData["_0"].get<json::string_t>().c_str());
+				Logger_Error_F("Can't Open Project: {}!", JData["_0"].get<json::string_t>());
 #endif
 			}
 			packet.clear();
@@ -460,7 +460,7 @@ namespace net
 				connection, network::Packet::Type::Get_MetaData_Project_Ex) == E_FAIL)
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("Can't Open Project: %s!", JData["_0"].get<json::string_t>().c_str());
+				Logger_Error_F("Can't Open Project: {}!", JData["_0"].get<json::string_t>());
 #endif
 			}
 
@@ -565,7 +565,7 @@ namespace net
 						});
 
 #if __has_include("logger.h")
-						Logger_Error_F("Can't Make Commit In Project: %s!", Project->GetCurrentProject().c_str());
+						Logger_Error_F("Can't Make Commit In Project: {}!", Project->GetCurrentProject());
 #endif
 					}
 					else

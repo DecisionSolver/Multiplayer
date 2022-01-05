@@ -65,5 +65,6 @@ namespace fineftp
 			return true;
 		else
 			return false;
+		return false;
 	}
 }

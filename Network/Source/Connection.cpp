@@ -41,7 +41,7 @@ Connection::Connection(ConnectionManager *connectionManager, asio::io_service &I
 	, m_allReadData()
 {
 #if __has_include("logger.h")
-	Logger_Info_F("Client connection with id %zd has been created.\n", m_clientId);
+	Logger_Info_F("Client connection with id {} has been created.\n", m_clientId);
 #endif
 
 	m_socketTCP = std::move(socket);
@@ -64,7 +64,7 @@ Connection::Connection(ConnectionManager *connectionManager, asio::io_service &I
 	, m_allReadData()
 {
 #if __has_include("logger.h")
-	Logger_Info_F("%s Connection with id %zd has been created.\n", connectionManager->GetTypeWork() ==
+	Logger_Info_F("{} Connection with id {} has been created.\n", connectionManager->GetTypeWork() ==
 		ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", m_clientId);
 #endif
 
@@ -84,7 +84,7 @@ Connection::Connection(ConnectionManager *connectionManager, asio::io_service &I
 	, m_allReadData()
 {
 #if __has_include("logger.h")
-	Logger_Info_F("%s Connection with id %zd has been created.\n", connectionManager->GetTypeWork() ==
+	Logger_Info_F("{} Connection with id {} has been created.\n", connectionManager->GetTypeWork() ==
 		ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", m_clientId);
 #endif
 
@@ -103,7 +103,7 @@ Connection::Connection(ConnectionManager *connectionManager, asio::io_service &I
 	, m_allReadData()
 {
 #if __has_include("logger.h")
-	Logger_Info_F("%s Connection with id %zd has been created.\n", connectionManager->GetTypeWork() ==
+	Logger_Info_F("{} Connection with id {} has been created.\n", connectionManager->GetTypeWork() ==
 		ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", m_clientId);
 #endif
 
@@ -117,7 +117,7 @@ Connection::~Connection()
 	Connected = false;
 	// Boost uses RAII, so we don't have anything to do. Let thier destructors take care of business
 #if __has_include("logger.h")
-	Logger_Info_F("%s Connection with id %zd has been destroyed.\n", m_owner->GetTypeWork() ==
+	Logger_Info_F("{} Connection with id {} has been destroyed.\n", m_owner->GetTypeWork() ==
 		ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", m_clientId);
 #endif
 }
@@ -126,7 +126,7 @@ Connection::~Connection()
 void Connection::Start()
 {
 #if __has_include("logger.h")
-	Logger_Info_F("%s (%zd) Awaits Messages.\n", m_owner->GetTypeWork() ==
+	Logger_Info_F("{} ({}) Awaits Messages.\n", m_owner->GetTypeWork() ==
 		ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", m_clientId);
 #endif
 
@@ -139,7 +139,7 @@ extern std::condition_variable cvBlocking;
 void Connection::Stop(bool NeedLock)
 {
 #if __has_include("logger.h")
-	Logger_Info_F("%s (%zd) Stops.\n", m_owner->GetTypeWork() ==
+	Logger_Info_F("{} ({}) Stops.\n", m_owner->GetTypeWork() ==
 		ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", m_clientId);
 #endif
 
@@ -234,7 +234,7 @@ void Connection::GetPacket(network::Packet &packet, network::Packet::Type _Check
 //--------------------------------------------------------------------
 extern std::mutex m_connectionsMutex;
 
-static const std::string const delim = std::string("}{");
+const std::string delim = std::string("}{");
 
 void Connection::DoSend()
 {
@@ -257,12 +257,12 @@ void Connection::DoSend()
 				std::scoped_lock<std::mutex> lock(m_connectionsMutex);
 
 #if __has_include("logger.h")
-				Logger_Error_F("%s An error occured while attemping to send data to %s. Error Code: %s\n",
+				Logger_Error_F("{} An error occured while attemping to send data to {}. Error Code: {}\n",
 					self->m_owner->GetTypeWork() ==
 					ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]",
 					(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
-					("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
-					ErrorCodeToString(errorCode).str().c_str());
+					("client id: " + std::to_string(self->m_clientId)) : "server"),
+					ErrorCodeToString(errorCode).str());
 #endif
 
 				self->getIsError() = true;
@@ -292,11 +292,11 @@ void Connection::DoSend()
 				self->m_sendBuffers[1].push_back('\0');
 
 #if __has_include("logger.h")
-			Logger_Info_F("%s Sending data to %s: %s\n",
+			Logger_Info_F("{} Sending data to {}: {}\n",
 				self->m_owner->GetTypeWork() ==
 				ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]",
 				(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
-					std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
+					std::string("client id: " + std::to_string(self->m_clientId)) : "server"),
 				self->m_sendBuffers[0].size() > 0 ?
 				self->m_sendBuffers[0].data() :
 				self->m_sendBuffers[1].data());
@@ -438,7 +438,7 @@ void Connection::DoReceive()
 			if (errorCode == asio::error::make_error_code(asio::error::eof))
 			{	// This is not really an error. The client is free to hang up whenever they like
 #if __has_include("logger.h")
-				Logger_Info_F("%s Client %zd has disconnected.\n", self->m_owner->GetTypeWork() ==
+				Logger_Info_F("{} Client {} has disconnected.\n", self->m_owner->GetTypeWork() ==
 					ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", self->m_clientId);
 #endif
 				NoMessageLeft = false;
@@ -447,12 +447,12 @@ void Connection::DoReceive()
 			else
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("%s An error occured while attemping to receive data from %s. Error Code: %s\n",
+				Logger_Error_F("{} An error occured while attemping to receive data from {}. Error Code: {}\n",
 					self->m_owner->GetTypeWork() ==
 					ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]",
 					(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
-					("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
-					ErrorCodeToString(errorCode).str().c_str());
+					("client id: " + std::to_string(self->m_clientId)) : "server"),
+					ErrorCodeToString(errorCode).str());
 #endif
 
 				self->getIsError() = true;
@@ -480,20 +480,20 @@ void Connection::DoReceive()
 		self->m_receiveData << self->m_receiveBuffer.data();
 
 #if __has_include("logger.h")
-		Logger_Info_F("%s Received data from %s: %s\n",
+		Logger_Info_F("{} Received data from {}: {}\n",
 			self->m_owner->GetTypeWork() ==
 			ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]",
 			(self->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Server ?
-				std::string("client id: " + std::to_string(self->m_clientId)).c_str() : "server"),
-			std::string(std::istreambuf_iterator<char>(self->m_receiveData), {}).c_str());
+				std::string("client id: " + std::to_string(self->m_clientId)) : "server"),
+			std::string(std::istreambuf_iterator<char>(self->m_receiveData), {}));
 
 		self->end = Time::now();
 		fsec fs = self->end - self->start;
 		ms d = std::chrono::duration_cast<ms>(fs);
 
 		self->ping = (size_t)d.count();
-		Logger_Debug_F("%s It Spent %s Time\n", self->m_owner->GetTypeWork() ==
-			ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", (std::to_string(d.count()) + " ms").c_str());
+		Logger_Debug_F("{} It Spent {} Time\n", self->m_owner->GetTypeWork() ==
+			ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", (std::to_string(d.count()) + " ms"));
 #endif
 
 		size_t size = 0u;

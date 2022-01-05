@@ -85,7 +85,7 @@ File_system::File_system()
 	}
 
 #if __has_include("logger.h")
-	Logger_Info_F("Selected Current Path: %s", WorkDir.string().c_str());
+	Logger_Info_F("Selected Current Path: {}", WorkDir.string());
 #endif
 
 	WorkDirSources = WorkDir.generic_string() + ((WorkDir.generic_string().back() == '/')
@@ -103,7 +103,7 @@ File_system::File_system()
 	}
 	catch (std::exception& e)
 	{
-		Logger_Error_F("An exception has occurred: %s\n", e.what());
+		Logger_Error_F("An exception has occurred: {}\n", e.what());
 	}
 #endif
 }
@@ -132,7 +132,7 @@ void File_system::ScanFiles()
 	auto file = getFilesInFolder(WorkDirSources, true, true);
 
 #if __has_include("logger.h")
-	Logger_Info_F("All Files Found In Resource Folder Is: %lu", file.size());
+	Logger_Info_F("All Files Found In Resource Folder Is: {}", file.size());
 #endif
 
 	int c_AllFilesWasAdded = 0;
@@ -206,7 +206,7 @@ void File_system::ScanFiles()
 		}
 	}
 #if __has_include("logger.h")
-	Logger_Info_F("Count Files Added To Engine Is: %i", c_AllFilesWasAdded);
+	Logger_Info_F("Count Files Added To Engine Is: {}", c_AllFilesWasAdded);
 #endif
 }
 
@@ -1173,7 +1173,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 		if (T == _TypeOfFile::NONE)
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("File: %s Isn't Supported By Engine\n", Fname.c_str());
+			Logger_Error_F("File: {} Isn't Supported By Engine\n", Fname);
 #endif
 			return shared_ptr<File_system::File>(); // Unsupported File!
 		}
@@ -1195,7 +1195,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 			if (!pScene || pScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !pScene->mRootNode || !pScene->HasMeshes())
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("Some Trouble With \"%s\" File!\n", Fname.c_str());
+				Logger_Error_F("Some Trouble With \"{}\" File!\n", Fname);
 #endif
 				return shared_ptr<File_system::File>();
 			}
@@ -1208,7 +1208,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 				else
 				{
 #if __has_include("logger.h")
-					Logger_Error_F("\"%s\" File Doesn't Have Any Materials (Or Textures)!\n", Fname.c_str());
+					Logger_Error_F("\"{}\" File Doesn't Have Any Materials (Or Textures)!\n", Fname);
 #endif
 				}
 				for (auto It: tmpList)
@@ -1263,7 +1263,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 			catch (boost::filesystem::filesystem_error const &e)
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("%s", e.what());
+				Logger_Error_F("{}", e.what());
 #endif
 				return shared_ptr<File_system::File>();
 			}
@@ -1278,7 +1278,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 		if (!exists(_Obj->Path))
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("\"%s\" Doesn't Exist Or Not Found!\n", Fname.c_str());
+			Logger_Error_F("\"{}\" Doesn't Exist Or Not Found!\n", Fname);
 #endif
 			return shared_ptr<File_system::File>();
 		}
@@ -1288,7 +1288,7 @@ shared_ptr<File_system::File> File_system::OnlyAddFile(const path &File)
 	if (!_Obj && _Obj->Path.empty() && _Obj->Size == 0)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("\"%s\" not supported!\n", Fname.c_str());
+		Logger_Error_F("\"{}\" not supported!\n", Fname);
 #endif
 	}
 	else
@@ -1335,9 +1335,7 @@ vector<path> File_system::getFilesInFolder(const path &Folder, bool Recursive, b
 vector<path> File_system::getFilesInFolder(const path &Folder)
 {
 	vector<path> files;
-	path ResPath;
-
-	for (directory_iterator it(ResPath); it != directory_iterator(); ++it)
+	for (directory_iterator it(Folder); it != directory_iterator(); ++it)
 	{
 		auto File = it->path();
 		files.push_back(File.normalize());
@@ -1373,8 +1371,8 @@ string File_system::getDataFromFile(const string &File, const string &start, con
 	catch (std::ifstream::failure e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Catch With Error:!\nMessage: %s\nError Code: %i",
-			e.code().message().c_str(), e.code().value());
+		Logger_Error_F("Catch With Error:!\nMessage: {}\nError Code: {}",
+			e.code().message(), e.code().value());
 #endif
 	}
 	return "";
@@ -1428,8 +1426,8 @@ bool File_system::ReadFileMemory(const LPCSTR &filename, size_t &FileSize, vecto
 	catch (std::ifstream::failure e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Catch With Error:!\nMessage: %s\nError Code: %i",
-			e.code().message().c_str(), e.code().value());
+		Logger_Error_F("Catch With Error:!\nMessage: {}\nError Code: {}",
+			e.code().message(), e.code().value());
 #endif
 	}
 	return true;
@@ -1445,7 +1443,7 @@ boost::property_tree::ptree File_system::LoadSettingsFile()
 		if (!boost::filesystem::exists(p)) return boost::property_tree::ptree();
 
 #if __has_include("logger.h")
-		Logger_Debug_F("Trying To Load Settings From: %s", p.string().c_str());
+		Logger_Debug_F("Trying To Load Settings From: {}", p.string());
 #endif
 
 		vector<BYTE> File; size_t Size = 0;
@@ -1463,7 +1461,7 @@ boost::property_tree::ptree File_system::LoadSettingsFile()
 	catch (const boost::property_tree::ptree_error &e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Error Occured: %s", e.what());
+		Logger_Error_F("Error Occured: {}", e.what());
 #endif
 		return boost::property_tree::ptree();
 	}
@@ -1474,7 +1472,7 @@ void File_system::SaveSettings(const vector<pair<string, string>> &ToFile)
 	path p(GetCurrentPath() + "settings.cfg");
 
 #if __has_include("logger.h")
-	Logger_Debug_F("Trying To Save Settings To: %s", p.string().c_str());
+	Logger_Debug_F("Trying To Save Settings To: {}", p.string());
 #endif
 	try
 	{
@@ -1493,7 +1491,7 @@ void File_system::SaveSettings(const vector<pair<string, string>> &ToFile)
 	catch (const boost::property_tree::ptree_error &e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Error Occured: %s", e.what());
+		Logger_Error_F("Error Occured: {}", e.what());
 #endif
 	}
 }

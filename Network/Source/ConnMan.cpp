@@ -74,7 +74,7 @@ bool ConnectionManager::LoadConfig()
 			if (MySQL_DB->Connect(login, pass, ip, db, table, port) == mysql::Client::Done)
 			{
 #if __has_include("logger.h")
-				Logger_Debug_F("[MYSQL] Successful Connected To %s", ip.c_str());
+				Logger_Debug_F("[MYSQL] Successful Connected To {}", ip);
 #endif
 #if __has_include("logger.h")
 				Logger_Info("[MYSQL] Successful Connect To MySQL DB");
@@ -83,7 +83,7 @@ bool ConnectionManager::LoadConfig()
 			else
 			{
 #if __has_include("logger.h")
-				Logger_Debug_F("[MYSQL] Failure Connected To %s", ip.c_str());
+				Logger_Debug_F("[MYSQL] Failure Connected To {}", ip);
 #endif
 #if __has_include("logger.h")
 				Logger_Info("[MYSQL] Failure Connect To MySQL DB");
@@ -139,7 +139,7 @@ void ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 			if (FTPServer && FTPServer->start(m_threads.size()))
 			{
 #if __has_include("logger.h")
-				Logger_Info_F("FTP Server Has Been Started On IP %s And Port 2121 And 4 Threads", _IP.c_str());
+				Logger_Info_F("FTP Server Has Been Started On IP {} And Port 2121 And 4 Threads", _IP);
 #endif
 			}
 			else
@@ -159,8 +159,8 @@ void ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 				;
 
 #if __has_include("logger.h")
-			Logger_Warn_F("%s %s\nPort: %lu\nProtocol: %sIs Secured By SSL? %s", "Listening IP:",
-				_IP.c_str(), _Port, "FTP\n", UseSSL);
+			Logger_Warn_F("{} {}\nPort: {}\nProtocol: {} Is Secured By SSL? {}", "Listening IP:",
+				_IP, _Port, "FTP\n", UseSSL);
 #endif
 
 			return;
@@ -200,28 +200,28 @@ void ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 					asio::ssl::context_base::file_format::pem, ec);
 				if (ec)
 #if __has_include("logger.h")
-					Logger_Error_F("Unseccessful Process With RSA Private Key! Error Message: %s\nError ID: %i",
-						ec.message().c_str(), ec.value());
+					Logger_Error_F("Unseccessful Process With RSA Private Key! Error Message: {}\nError ID: {}",
+						ec.message(), ec.value());
 #endif
 			}
 			Context_SSL.use_certificate_chain_file(SSL_Cert_Chain/*"keys/rootca.crt"*/, ec);
 			if (ec)
 #if __has_include("logger.h")
-				Logger_Error_F("Unseccessful Process With Chain File! Error Message: %s\nError ID: %i",
-					ec.message().c_str(), ec.value());
+				Logger_Error_F("Unseccessful Process With Chain File! Error Message: {}\nError ID: {}",
+					ec.message(), ec.value());
 #endif
 			Context_SSL.use_private_key_file(SSL_Private_Key/*"keys/rootca.key"*/,
 				asio::ssl::context_base::file_format::pem, ec);
 			if (ec)
 #if __has_include("logger.h")
-				Logger_Error_F("Unseccessful Process With Private Key File! Error Message: %s\nError ID: %i",
-					ec.message().c_str(), ec.value());
+				Logger_Error_F("Unseccessful Process With Private Key File! Error Message: {}\nError ID: {}",
+					ec.message(), ec.value());
 #endif
 			Context_SSL.use_tmp_dh_file(SSL_TMP_DH/*"keys/dh2048.pem"*/, ec);
 			if (ec)
 #if __has_include("logger.h")
-				Logger_Error_F("Unseccessful Process With D-H File! Error Message: %s\nError ID: %i",
-					ec.message().c_str(), ec.value());
+				Logger_Error_F("Unseccessful Process With D-H File! Error Message: {}\nError ID: {}",
+					ec.message(), ec.value());
 #endif
 		}
 #endif
@@ -248,9 +248,9 @@ void ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 		;
 
 #if __has_include("logger.h")
-	Logger_Warn_F("%s %s\nPort: %lu\nProtocol: %sIs Secured By SSL? %s",
+	Logger_Warn_F("{} {}\nPort: {}\nProtocol: {} Is Secured By SSL? {}",
 		_Type == TypeWorking::Server ? "Listening IP:" : "Connected To IP:",
-		_IP.c_str(), _Port,
+		_IP, _Port,
 		_Proto == TypeProtocol::TCP ? "TCP\n" : "UDP\n", UseSSL);
 #endif
 
@@ -311,7 +311,7 @@ bool ConnectionManager::ConnectToServer()
 		return false;
 
 #if __has_include("logger.h")
-	Logger_Info_F("Trying To Connect To IP: %s And Port: %lu Server!", _IP.c_str(), _Port);
+	Logger_Info_F("Trying To Connect To IP: {} And Port: {} Server!", _IP, _Port);
 #endif
 
 	asio::error_code ec;
@@ -367,8 +367,8 @@ bool ConnectionManager::ConnectToServer()
 		Context_SSL.load_verify_file(SSL_Cert_Chain/*"keys/rootca.crt"*/, ec);
 		if (ec)
 #if __has_include("logger.h")
-			Logger_Error_F("[CLIENT] Unseccessful Process With Verify File! Error Message: %s\nError ID: %i",
-				ec.message().c_str(), ec.value());
+			Logger_Error_F("[CLIENT] Unseccessful Process With Verify File! Error Message: {}\nError ID: {}",
+				ec.message(), ec.value());
 #endif
 		if (IsSetupPathsCert_RSA_Private_Key)
 		{
@@ -376,8 +376,8 @@ bool ConnectionManager::ConnectToServer()
 				asio::ssl::context_base::file_format::pem, ec);
 			if (ec)
 #if __has_include("logger.h")
-				Logger_Error_F("[CLIENT] Unseccessful Process With RSA Private Key! Error Message: %s\nError ID: %i",
-					ec.message().c_str(), ec.value());
+				Logger_Error_F("[CLIENT] Unseccessful Process With RSA Private Key! Error Message: {}\nError ID: {}",
+					ec.message(), ec.value());
 #endif
 		}
 
@@ -385,7 +385,7 @@ bool ConnectionManager::ConnectToServer()
 		if (ec)
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("[CLIENT] Unseccessful Handshake! Error Message: %s\nError ID: %i", ec.message().c_str(), ec.value());
+			Logger_Error_F("[CLIENT] Unseccessful Handshake! Error Message: {}\nError ID: {}", ec.message(), ec.value());
 #endif
 			return false;
 		}
@@ -403,8 +403,8 @@ bool ConnectionManager::ConnectToServer()
 	else
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("[CLIENT] Failed Connecting! Error: %s\nAbort Connecting!",
-			Connection::ErrorCodeToString(ec).str().c_str());
+		Logger_Error_F("[CLIENT] Failed Connecting! Error: {}\nAbort Connecting!",
+			Connection::ErrorCodeToString(ec).str());
 #endif
 
 		one_connection->getIsError() = true;
@@ -516,14 +516,14 @@ void ConnectionManager::IoServiceThreadProc()
 	catch (std::system_error &e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("System error caught in io_service socket thread. Exception: %s\nError Code: %d\n",
+		Logger_Error_F("System error caught in io_service socket thread. Exception: {}\nError Code: {}\n",
 			e.what(), e.code().value());
 #endif
 	}
 	catch (std::exception &e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Standard exception caught in io_service socket thread. Exception: %s\n", e.what());
+		Logger_Error_F("Standard exception caught in io_service socket thread. Exception: {}\n", e.what());
 #endif
 	}
 	catch (...)
@@ -535,7 +535,7 @@ void ConnectionManager::IoServiceThreadProc()
 
 	WaitForMySQL.notify_all();
 #if __has_include("logger.h")
-	Logger_Info_F("%s",
+	Logger_Info_F("{}",
 		_Type == TypeWorking::Client ?
 		"Trying Stopping Listening Now!\n" : "The Server Trying Stopping Now!\n");
 #endif
@@ -571,8 +571,8 @@ void ConnectionManager::DoAccept()
 			if (errorCode)
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("An error occured while attemping to accept connections. Error Code: %s\n",
-					Connection::ErrorCodeToString(errorCode).str().c_str());
+				Logger_Error_F("An error occured while attemping to accept connections. Error Code: {}\n",
+					Connection::ErrorCodeToString(errorCode).str());
 #endif
 			}
 
@@ -582,7 +582,7 @@ void ConnectionManager::DoAccept()
 			if (ec)
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("[SERVER] Unseccessful Handshake! Error Message: %s\nError ID: %i", ec.message().c_str(), ec.value());
+				Logger_Error_F("[SERVER] Unseccessful Handshake! Error Message: {}\nError ID: {}", ec.message(), ec.value());
 #endif
 				return;
 				//connectionTCP->get_socketTCP().lowest_layer().close();
@@ -611,7 +611,7 @@ void ConnectionManager::DoAccept()
 				connectionTCP->get_socketTCP()->remote_endpoint().port();
 #endif
 
-			Logger_Info_F("[SERVER] Accept New Client! Where Are You Frommmmm? IP: %s, Port: %u", IP.c_str(), Port);
+			Logger_Info_F("[SERVER] Accept New Client! Where Are You Frommmmm? IP: {}, Port: {}", IP, Port);
 #endif
 
 #if defined(USE_SSL)
@@ -619,7 +619,7 @@ void ConnectionManager::DoAccept()
 			if (ec)
 			{
 #if __has_include("logger.h")
-				Logger_Error_F("[SERVER] Unseccessful Handshake! Error Message: %s\nError ID: %i", ec.message().c_str(), ec.value());
+				Logger_Error_F("[SERVER] Unseccessful Handshake! Error Message: {}\nError ID: {}", ec.message(), ec.value());
 #endif
 				return;
 				//connectionTCP->get_socketTCP().lowest_layer().close();
@@ -758,7 +758,7 @@ bool ConnectionManager::GetTimer(const Connection::SharedPtr &User)
 	auto Diff = (Last - Curr);
 
 #if __has_include("logger.h")
-	Logger_Info_F("[SERVER] Client(%zd) Has Time: %lld\n", User->m_clientId,
+	Logger_Info_F("[SERVER] Client({}) Has Time: {}\n", User->m_clientId,
 		std::chrono::duration_cast<std::chrono::seconds>(Diff).count());
 #endif
 
@@ -802,7 +802,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 					if (_Type == TypeWorking::Client)
 					{
 						Logger_Warn_F("[CLIENT] We're get the network::Packet::Type::Connection and try to check 'OK',"\
-							" from this data: %s", packet.getData().dump().c_str());
+							" from this data: {}", packet.getData().dump());
 						dataJSON = packet.getData();
 						if (!dataJSON.empty() && dataJSON["_1"] == "OK")
 						{
@@ -1120,7 +1120,7 @@ bool ConnectionManager::verify_certificate(bool preverified, asio::ssl::verify_c
 	X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
 	
 #if __has_include("logger.h")
-	Logger_Info_F("Verifying %s", subject_name);
+	Logger_Info_F("Verifying {}", subject_name);
 #endif
 
 	return preverified;

@@ -606,7 +606,7 @@ void win_iocp_socket_service_base::start_connect_op(
 
       using namespace std; // For memset.
       memset(&a, 0, sizeof(a));
-      a.base.sa_family = family;
+      a.base.sa_family = (USHORT)family;
 
       socket_ops::bind(impl.socket_, &a.base,
           family == ASIO_OS_DEF(AF_INET)

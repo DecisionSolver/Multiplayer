@@ -1,11 +1,11 @@
 #pragma once
 
+#include <asio.hpp>
+
 #include <vector>
 #include <string>
 #include <thread>
 #include <atomic>
-
-#include <asio.hpp>
 
 #include <ftp_session.h>
 

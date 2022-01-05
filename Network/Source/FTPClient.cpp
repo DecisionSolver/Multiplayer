@@ -51,7 +51,7 @@ FTPClient::FTPClient()
 	if (res != CURLE_OK)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("curl_global_init() failed: %s\n", curl_easy_strerror(res));
+		Logger_Error_F("curl_global_init() failed: {}\n", curl_easy_strerror(res));
 #endif
 	}
 	// Create And Init CURL
@@ -133,7 +133,7 @@ bool FTPClient::SendFile(const boost::filesystem::path &FilePath)
 	if (res != CURLE_OK && res != CURLE_PARTIAL_FILE)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("SendFile() failed: %s\n", curl_easy_strerror(res));
+		Logger_Error_F("SendFile() failed: {}\n", curl_easy_strerror(res));
 #endif
 		return false;
 	}
@@ -163,7 +163,7 @@ bool FTPClient::ReceiveFile(const boost::filesystem::path &Path, const boost::fi
 	if (CURLE_OK != res)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("ReceiveFile() failed: %s\n", curl_easy_strerror(res));
+		Logger_Error_F("ReceiveFile() failed: {}\n", curl_easy_strerror(res));
 #endif
 		return false;
 	}
@@ -190,7 +190,7 @@ bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
 		if (CURLE_OK != res)
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("Connect() failed: %s\n", curl_easy_strerror(res));
+			Logger_Error_F("Connect() failed: {}\n", curl_easy_strerror(res));
 #endif
 			const_cast<bool &>(Connected) = false;
 

@@ -24,7 +24,8 @@ namespace fineftp
 		virtual odbc::ODBC &GetClientODBC();
 
 		virtual bool Connect(const std::string& user, const std::string& password, const std::string& host,
-			const std::string& DB, const unsigned short& port, const std::string& charset, bool OnlyRead);
+			const std::string& DB, const std::string& Table, const unsigned short& port,
+			const std::string& charset, bool OnlyRead);
 		virtual bool Connect(const std::string& driver, const std::string& path,
 			const std::vector<std::string>& attributes, const std::string& password);
 
@@ -46,13 +47,23 @@ namespace fineftp
 	class MySQLUserDatabase : public UserDatabase
 	{
 	public:
-		bool Connect(const std::string& user, const std::string& password, const std::string& host, 
-			const std::string& DB, const unsigned short& port, const std::string& charset, bool OnlyRead) override;
+		bool Connect(const std::string& user, const std::string& password, const std::string& host,
+			const std::string& DB, const std::string& Table, const unsigned short& port,
+			const std::string& charset, bool OnlyRead) override;
+		bool Connect(const std::string& driver, const std::string& path,
+			const std::vector<std::string>& attributes, const std::string& password) override
+		{
+			UNREFERENCED_PARAMETER(driver);
+			UNREFERENCED_PARAMETER(path);
+			UNREFERENCED_PARAMETER(attributes);
+			UNREFERENCED_PARAMETER(password);
+			return false;
+		}
 
 		bool addNewUser(const std::string& username, const std::string& password,
 			const UserPermission user_permissions, const nlohmann::json& files_permissions) override;
 
-	 std::string updatePermissions(const std::string& username) override;
+		std::string updatePermissions(const std::string& username) override;
 
 		mysql::Client &GetClientMysql() override;
 
@@ -65,6 +76,21 @@ namespace fineftp
 	class ODBCUserDatabase : public UserDatabase
 	{
 	public:
+		bool Connect(const std::string& user, const std::string& password, const std::string& host,
+			const std::string& DB, const std::string& Table, const unsigned short& port,
+			const std::string& charset, bool OnlyRead) override
+		{
+			UNREFERENCED_PARAMETER(user);
+			UNREFERENCED_PARAMETER(password);
+			UNREFERENCED_PARAMETER(host);
+			UNREFERENCED_PARAMETER(DB);
+			UNREFERENCED_PARAMETER(Table);
+			UNREFERENCED_PARAMETER(port);
+			UNREFERENCED_PARAMETER(charset);
+			UNREFERENCED_PARAMETER(OnlyRead);
+			return false;
+		}
+
 		bool Connect(const std::string& driver, const std::string& path,
 			const std::vector<std::string>& attributes, const std::string& password) override;
 

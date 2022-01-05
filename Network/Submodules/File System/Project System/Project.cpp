@@ -135,7 +135,7 @@ HRESULT ProjectFile::Open(const std::string &Name, const std::string &ID_Commit,
 					{
 						if (ThisLevel->Load(Data.back().get<nlohmann::json::string_t>()) == E_FAIL)
 						{
-							Logger_Error_F("Something Is Wrong With Load/Parse Data %s Project! Aborting!", Name.c_str());
+							Logger_Error_F("Something Is Wrong With Load/Parse Data {} Project! Aborting!", Name);
 							return E_FAIL;
 						}
 						else
