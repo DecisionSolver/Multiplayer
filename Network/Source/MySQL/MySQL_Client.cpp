@@ -9,6 +9,9 @@
 ///////////////////////////////////////
 
 sql::ConnectOptionsMap mysql::Client::connection_properties;
+#ifndef UNREFERENCED_PARAMETER
+#define UNREFERENCED_PARAMETER(P) (P)
+#endif
 
 namespace mysql
 {
@@ -57,6 +60,8 @@ namespace mysql
 		{
 #if __has_include("logger.h")
 			Logger_Error_F("SQLException:\n{}\nCode: {},\nSQLState: {}", e.what(), e.getErrorCode(), e.getSQLState());
+#else
+			UNREFERENCED_PARAMETER(e);
 #endif
 			return Client::Status::Error;
 		}
@@ -419,6 +424,8 @@ namespace mysql
 		{
 #if __has_include("logger.h")
 		Logger_Critical_F("SQLException:\n{}\nCode: {},\nSQLState: {}", e.what(), e.getErrorCode(), e.getSQLState());
+#else
+			UNREFERENCED_PARAMETER(e);
 #endif
 		}
 

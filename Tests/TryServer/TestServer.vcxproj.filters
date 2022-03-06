@@ -18,5 +18,46 @@
     <ClCompile Include="TestServer.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\filesystem.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\server.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\server_impl.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\user_database.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\include\fineftp\server.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\filesystem.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\ftp_message.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\ftp_session.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\ftp_user.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\server_impl.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\FTP\Server\fineftp-server\src\user_database.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
