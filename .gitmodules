@@ -7,3 +7,6 @@
 [submodule "Network/Submodules/SelfLogger"]
 	path = Network/Submodules/SelfLogger
 	url = https://github.com/DecisionSolver/SelfLogger
+[submodule "Network/Submodules/SFML"]
+	path = Network/Submodules/SFML
+	url = https://github.com/SFML/SFML
