@@ -713,7 +713,7 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, boo
 		if (itConnection != m_connectionsTCP.end())
 		{
 			if (Need2DiscFromMySQL)
-				MySQL_DB->UpdateValues(std::vector<std::string>{ "_2" }, { { "0" } }, { { " WHERE _N = '" +
+				MySQL_DB->UpdateValues("", std::vector<std::string>{ "_2" }, {{"0"}}, {{" WHERE _N = '" +
 					std::to_string(connection->GetMetaDB_User()) + "'" } });
 
 #if defined(USE_SSL)
@@ -842,7 +842,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							std::string Login = temp["_0"].get<std::string>(),
 								Pass = temp["_1"].get<std::string>();
 
-							auto Obj = MySQL_DB->SelectValues(std::vector<std::string>{ "*" },
+							auto Obj = MySQL_DB->SelectValues("", std::vector<std::string>{ "*" },
 								{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
 
 							// If Successful Then Send Answer About It
@@ -872,7 +872,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							if (pack["data"]["body"]["_0"] == "OK")
 							{
 								connection->SetLogged();
-								MySQL_DB->UpdateValues(std::vector<std::string>{ "_2" }, { { "1" } }, { {
+								MySQL_DB->UpdateValues("", std::vector<std::string>{ "_2" }, {{"1"}}, {{
 									" WHERE _N = '" +
 									std::to_string(connection->GetMetaDB_User()) + "'" } });
 
@@ -941,7 +941,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 										// Check If We Connected In MySQL
 										else if (connection->second->GetLogged())
 										{
-											auto Obj = MySQL_DB->SelectValues(std::vector<std::string>{ "_2" }, { { " WHERE _N = '" +
+											auto Obj = MySQL_DB->SelectValues("", std::vector<std::string>{ "_2" }, {{" WHERE _N = '" +
 													std::to_string(connection->second->GetMetaDB_User()) + "'" } });
 											if (!Obj.empty())
 											{
@@ -987,7 +987,7 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 										// Check If We Connected In MySQL
 										else if (connection->second->GetLogged())
 										{
-											auto Obj = MySQL_DB->SelectValues(std::vector<std::string>{ "_2" }, { { " WHERE _N = '" +
+											auto Obj = MySQL_DB->SelectValues("", std::vector<std::string>{ "_2" }, {{" WHERE _N = '" +
 													std::to_string(connection->second->GetMetaDB_User()) + "'" } });
 											if (!Obj.empty())
 											{

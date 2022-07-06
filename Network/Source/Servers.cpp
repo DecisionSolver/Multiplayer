@@ -606,7 +606,7 @@ namespace net
 		});
 		WaitForMySQL.notify_all();
 		// Set All Users To Offline
-		MySQL_DB->UpdateValues(std::vector<std::string>{ { "_2" } }, { { "0" } }, { { " WHERE _2 = '1'" } });
+		MySQL_DB->UpdateValues("", std::vector<std::string>{ { "_2" } }, {{"0"}}, {{" WHERE _2 = '1'"}});
 	}
 
 	void Server::Send(const std::string &Packet)
@@ -623,7 +623,7 @@ namespace net
 
 		std::string tmp_table = FTPServer->get_ftp_users()->GetClientMysql().GetCurrentTable();
 		FTPServer->get_ftp_users()->GetClientMysql().SetCurrentTable("local");
-		auto AllUsers = FTPServer->get_ftp_users()->GetClientMysql().SelectValues(std::vector<std::string>{ { "*" } });
+		auto AllUsers = FTPServer->get_ftp_users()->GetClientMysql().SelectValues("", std::vector<std::string>{ { "*" } });
 		FTPServer->get_ftp_users()->GetClientMysql().SetCurrentTable(tmp_table);
 
 		std::string local_root = FS->GetFTPPath();

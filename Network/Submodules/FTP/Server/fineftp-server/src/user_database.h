@@ -26,7 +26,7 @@ namespace fineftp
 		virtual bool Connect(const std::string& user, const std::string& password, const std::string& host,
 			const std::string& DB, const std::string& Table, const unsigned short& port,
 			const std::string& charset, bool OnlyRead);
-		virtual bool Connect(const std::string& driver, const std::string& path,
+		virtual bool Connect(const std::string& driver, const std::string& path, const std::string& Table,
 			const std::vector<std::string>& attributes, const std::string& password);
 
 		virtual bool addNewUser(const std::string& username, const std::string& password,
@@ -50,11 +50,12 @@ namespace fineftp
 		bool Connect(const std::string& user, const std::string& password, const std::string& host,
 			const std::string& DB, const std::string& Table, const unsigned short& port,
 			const std::string& charset, bool OnlyRead) override;
-		bool Connect(const std::string& driver, const std::string& path,
+		bool Connect(const std::string& driver, const std::string& path, const std::string& Table,
 			const std::vector<std::string>& attributes, const std::string& password) override
 		{
 			UNREFERENCED_PARAMETER(driver);
 			UNREFERENCED_PARAMETER(path);
+			UNREFERENCED_PARAMETER(Table);
 			UNREFERENCED_PARAMETER(attributes);
 			UNREFERENCED_PARAMETER(password);
 			return false;
@@ -91,7 +92,7 @@ namespace fineftp
 			return false;
 		}
 
-		bool Connect(const std::string& driver, const std::string& path,
+		bool Connect(const std::string& driver, const std::string& path, const std::string& Table,
 			const std::vector<std::string>& attributes, const std::string& password) override;
 
 		bool addNewUser(const std::string& username, const std::string& password,

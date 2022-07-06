@@ -72,3 +72,9 @@ workspace
 Network/.vs
 !tinyxml2d.pdb
 assimp-*.lib
+
+**/FTP/Release
+**/FTP/Debug
+**/FTP/Build
+/Tests/**/Debug
+**/TCP/Debug

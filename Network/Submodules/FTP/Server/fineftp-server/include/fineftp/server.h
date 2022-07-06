@@ -56,7 +56,7 @@ namespace fineftp
 			const unsigned short& DBport = 3306, const std::string& DBcharset = "utf8",
 			bool DBOnlyRead = false);
 		FtpServer(const std::string& address, uint16_t port, const std::string& ftp_working_directory,
-			const std::string& DBdriver, const std::string& DBpath,
+			const std::string& DBdriver, const std::string& DBpath, const std::string& Table,
 			const std::vector<std::string>& DBattributes, const std::string& DBpassword = {});
 
 		/**

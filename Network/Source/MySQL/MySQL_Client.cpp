@@ -29,16 +29,11 @@ namespace mysql
 			connection_properties["hostName"] = host;
 			connection_properties["userName"] = user;
 			connection_properties["password"] = password;
-			if (!DB.empty())
-			{
-				connection_properties["schema"] = DB;
-				wasSelectedDB = true;
-			}
-			else
-			{
-				wasSelectedDB = false;
+
+			if (DB.empty())
 				throw sql::SQLException("Database Was Not Selected!");
-			}
+
+			connection_properties["schema"] = DB;
 			connection_properties["port"] = port;
 			connection_properties["OPT_RECONNECT"] = true;
 			if (!charset.empty())
@@ -47,13 +42,11 @@ namespace mysql
 			driver = get_driver_instance();
 			connection.reset(driver->connect(connection_properties));
 
-			if (OnlyRead)
-				isReadOnly = true;
+			isReadOnly = OnlyRead;
 
-			if (wasSelectedDB)
-				SetCurrentDB(DB);
-
+			SetCurrentDB(DB);
 			SetCurrentTable(Table);
+
 			return Client::Status::Done;
 		}
 		catch (const sql::SQLException &e)
@@ -67,15 +60,13 @@ namespace mysql
 		}
 	}
 	
-	//////////////////////////////////////////////////////////////////////////////////////
-	sql::ResultSet *Client::Query(const std::string &query)								//
+	//////////////////////////////////////////////////////////////////////////////
+	sql::ResultSet *Client::Query(const std::string &query)	const				//
 	{
 		try
 		{
 			if (!connection)
 				throw sql::SQLException("Not Connected!");
-			if (!wasSelectedDB)
-				throw sql::SQLException("Database Was Not Selected!");
 			else
 			{
 				std::string NewQuery = query;
@@ -111,14 +102,12 @@ namespace mysql
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////
-	void Client::Exec(const std::string &query)											//
+	void Client::Exec(const std::string &query)	const   									//
 	{
 		try
 		{
 			if (!connection)
 				throw sql::SQLException("Not Connected!");
-			if (!wasSelectedDB)
-				throw sql::SQLException("Database Was Not Selected!");
 			else if (isReadOnly)
 				throw sql::SQLException("It's Read Only :O !");
 			else
@@ -154,119 +143,61 @@ namespace mysql
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
-	void Client::CreateDatabase(const std::string &name)							  //
+	void Client::CreateDatabase(const std::string &name) const							  //
 	{
 		Exec(("CREATE DATABASE " + name).c_str());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
-	void Client::DeleteDatabase(const std::string &name)							  //
+	void Client::DeleteDatabase(const std::string &name) const						  //
 	{
 		Exec(("DROP DATABASE " + name).c_str());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::CreateTable(const std::string &name_table, const std::vector<std::string> &name_column,									  //
-		const std::vector<std::string> &type, const std::vector<std::string> &value, const std::vector<std::vector<std::string>> &attributes) //
+		const std::vector<std::string> &type, const std::vector<std::string> &value, const std::vector<std::vector<std::string>> &attributes) const //
 	{
 		Exec(query::MakeCreateTableQuery(name_table, name_column, type, value, attributes));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::CreateColumn(const std::string &name_table, const std::string &name_column,			//
-		const std::string &type, const std::string &value, const std::vector<std::string> &attributes)  //
+		const std::string &type, const std::string &value, const std::vector<std::string> &attributes) const  //
 	{
-		Exec(query::MakeCreateColumnQuery(name_table, name_column, type, value, attributes));
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::CreateColumn(const std::string &name_column, const std::string &type,					//
-		const std::string &value, const std::vector<std::string> &attributes)							//
-	{
-		if (CurrentTable.empty())
-		{
-			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-			return;
-		}
-
-		Exec(query::MakeCreateColumnQuery(CurrentTable, name_column, type, value, attributes));
+		Exec(query::MakeCreateColumnQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_column, type, value, attributes));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::ModifyColumn(const std::string &name_table, const std::string &name_column,			//
-		const std::string &type, const std::string &value, const std::vector<std::string> &attributes)  //
+		const std::string &type, const std::string &value, const std::vector<std::string> &attributes) const //
 	{
-		Exec(query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes));
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::ModifyColumn(const std::string &name_column, const std::string &type,					//
-		const std::string & value, const std::vector<std::string>& attributes)							//
-	{
-		if (CurrentTable.empty())
-		{
-			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-			return;
-		}
-		Exec(query::MakeModifyColumnQuery(CurrentTable, name_column, type, value, attributes));
+		Exec(query::MakeModifyColumnQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_column, type, value, attributes));
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::DeleteValues(const std::string &name_table, const std::string &condition)			  //
+	void Client::DeleteValues(const std::string &name_table, const std::string &condition) const		  //
 	{
-		Exec(query::MakeDeleteValuesQuery(name_table, condition));
+		Exec(query::MakeDeleteValuesQuery(!name_table.empty() ? name_table : CurrentTable, condition));
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////
-	void Client::DeleteValues(const std::string &condition)							  //
-	{
-		if (CurrentTable.empty())
-		{
-			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-			return;
-		}
-
-		Exec(query::MakeDeleteValuesQuery(CurrentTable, condition));
-	}
 
 	////////////////////////////////////////////////////////////////////////////////////
-	void Client::DeleteTable(const std::string &name_table)							  //
+	void Client::DeleteTable(const std::string &name_table)	const						  //
 	{
-		Exec(query::MakeDeleteTableQuery(name_table));
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////
-	void Client::DeleteTable()														  //
-	{
-		if (CurrentTable.empty())
-		{
-			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-			return;
-		}
-		
-		Exec(query::MakeDeleteTableQuery(CurrentTable));
+		Exec(query::MakeDeleteTableQuery(!name_table.empty() ? name_table : CurrentTable));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::DeleteColumn(const std::string &name_table, const std::string &name_column)			//
+	void Client::DeleteColumn(const std::string &name_table, const std::string &name_column) const			//
 	{
-		Exec(query::MakeDeleteColumnQuery(name_table, name_column));
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::DeleteColumn(const std::string &name_column)											//
-	{
-		if (CurrentTable.empty())
-		{
-			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-			return;
-		}
-
-		Exec(query::MakeDeleteColumnQuery(CurrentTable, name_column));
+		Exec(query::MakeDeleteColumnQuery(!name_table.empty() ? name_table : CurrentTable, name_column));
 	}
 
 	//////////////////////////////
-	void Client::Destroy()		//
+	void Client::Destroy() const		//
 	{
 		if (connection)
 		{
@@ -277,13 +208,10 @@ namespace mysql
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 	nlohmann::json Client::SelectValues(const std::string &name_table,										//
-		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition)			//
+		const std::vector<std::string> &name_columns, const std::vector<std::string> &condition) const			//
 	{
 		if (!connection)
 			throw sql::SQLException("Not Connected!");
-
-		if (!wasSelectedDB)
-			throw sql::SQLException("Database Was Not Selected!");
 
 		std::string temp;
 		size_t ID = 0;
@@ -303,6 +231,7 @@ namespace mysql
 		else
 			temp = name_columns.back().back();
 
+		std::string table = !name_table.empty() ? name_table : CurrentTable;
 		sql::ResultSet *ResultExec = nullptr;
 		if (!condition.empty())
 		{
@@ -317,10 +246,10 @@ namespace mysql
 			if (NewCond.back() == ';')
 				NewCond.pop_back();
 
-			ResultExec = Query("SELECT " + temp + " FROM " + name_table + " WHERE " + NewCond + ";");
+			ResultExec = Query("SELECT " + temp + " FROM " + table + " WHERE " + NewCond + ";");
 		}
 		else
-			ResultExec = Query("SELECT " + temp + " FROM " + name_table + ";");
+			ResultExec = Query("SELECT " + temp + " FROM " + table + ";");
 
 		json js = {};
 		if (!ResultExec)
@@ -434,54 +363,18 @@ namespace mysql
 		return js;
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////
-	nlohmann::json Client::SelectValues(const std::vector<std::string> &name_columns,						//
-		const std::vector<std::string> &condition)															//
-	{
-		if (CurrentTable.empty())
-		{
-			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-		}
-
-		return SelectValues(CurrentTable, name_columns, condition);
-	}
-
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::UpdateValues(const std::string &name_table, const std::vector<std::string> &name_columns,	  //
-		const std::vector<std::string> &values, const std::vector<std::string> &condition)					  //
+		const std::vector<std::string> &values, const std::vector<std::string> &condition) const			  //
 	{
-		Exec(query::MakeUpdateValuesQuery(name_table, name_columns, values, condition));
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::UpdateValues(const std::vector<std::string> &name_columns,									  //
-		const std::vector<std::string> &values, const std::vector<std::string> &condition)					  //
-	{
-		if (CurrentTable.empty())
-		{
-			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-			return;
-		}
-
-		Exec(query::MakeUpdateValuesQuery(CurrentTable, name_columns, values, condition));
+		Exec(query::MakeUpdateValuesQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_columns, values, condition));
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	void Client::InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,		//
-		const std::vector<std::string> &values)																	//
+		const std::vector<std::string> &values)	const															//
 	{
-		Exec(query::MakeInsertValuesQuery(name_table, name_columns, values));
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void Client::InsertValues(const std::vector<std::string> &name_columns, const std::vector<std::string> &values) //
-	{
-		if (CurrentTable.empty())
-		{
-			throw sql::SQLException("To use this function you need to call the SetCurrentTable function before!");
-			return;
-		}
-
-		Exec(query::MakeInsertValuesQuery(CurrentTable, name_columns, values));
+		Exec(query::MakeInsertValuesQuery(!name_table.empty() ? name_table : CurrentTable, name_columns, values));
 	}
 } // namespace mysql

@@ -130,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;_DEBUG;_CONSOLE;_WINDOWS;ASIO_STANDALONE;__USE_FILE_OFFSET64=1;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;CPPCONN_LIB_BUILD;MYSQLCLIENT_STATIC_BINDING;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -167,7 +167,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_WINDOWS;ASIO_STANDALONE;__USE_FILE_OFFSET64=1;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;CPPCONN_LIB_BUILD;MYSQLCLIENT_STATIC_BINDING;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules\SelfLogger;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules\SelfLogger\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ExceptionHandling>Sync</ExceptionHandling>

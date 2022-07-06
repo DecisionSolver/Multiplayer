@@ -8,7 +8,8 @@ namespace fineftp
 {
 	struct FtpUser
 	{
-		FtpUser(const unsigned long long id, const std::string& password, const UserPermission user_permissions, const nlohmann::json& files_permissions)
+		FtpUser(const unsigned long long id, const std::string& password, 
+			const UserPermission user_permissions, const nlohmann::json& files_permissions)
 			: id_                (id)
 			, password_          (password)
 			, user_permissions_  (user_permissions)

@@ -80,12 +80,13 @@ namespace fineftp
 		return false;
 	}
 
-	bool UserDatabase::Connect(const std::string& driver, const std::string& path,
+	bool UserDatabase::Connect(const std::string& driver, const std::string& path, const std::string& Table,
 		const std::vector<std::string>& attributes, const std::string& password)
 	{
 		// To Get Rid Of Much Warnings
 		UNREFERENCED_PARAMETER(driver);
 		UNREFERENCED_PARAMETER(path);
+		UNREFERENCED_PARAMETER(Table);
 		UNREFERENCED_PARAMETER(attributes);
 		UNREFERENCED_PARAMETER(password);
 		Logger_Error("You have used wrong function on wrong subclass (ODBC variant)");
@@ -119,7 +120,7 @@ namespace fineftp
 		nlohmann::json res;
 		if (database_.find(username) == database_.end())
 		{
-			res = mysqlDB.SelectValues("local", { "_N", "_1", "_4", "_5" }, { "`_0`='" + username + "'" });
+			res = mysqlDB.SelectValues("", { "_N", "Password", "UserPermissions", "FilesPermissions" }, {"`Username`='" + username + "'"});
 			
 			if (res["_0"].empty())
 				return "";
@@ -132,7 +133,7 @@ namespace fineftp
 		}
 		else
 		{
-			res = mysqlDB.SelectValues("local", { "_N", "_0", "_1", "_4", "_5" }, { "`_N`='" +
+			res = mysqlDB.SelectValues("", { "_N", "Username", "Password", "UserPermissions", "FilesPermissions" }, {"`_N`='" +
 			std::to_string(database_[username]->id_) + "'" });
 
 			std::lock_guard<decltype(database_mutex_)> database_lock(database_mutex_);
@@ -165,22 +166,22 @@ namespace fineftp
 	bool MySQLUserDatabase::addNewUser(const std::string& username, const std::string& password,
 		const UserPermission user_permissions, const nlohmann::json& files_permissions)
 	{
-		auto res = mysqlDB.SelectValues("local", { "_N" });
-		new_id_ = res["_0"] + 1ull;
+		auto res = mysqlDB.SelectValues("", { "_N" });
+		new_id_ = (res["_0"].end() - 1).value() + 1ull;
 
 		if (!addUser(username, password, user_permissions, files_permissions))
 			return false;
 
-		mysqlDB.InsertValues("local", { "_0", "_1", "_4", "_5" }, { username, md5_from_buffer(password),
+		mysqlDB.InsertValues("", { "Username", "Password", "UserPermissions", "FilesPermissions" }, {username, md5_from_buffer(password),
 		std::to_string((int)user_permissions), files_permissions.dump() });
 		return true;
 	}
 
-	bool ODBCUserDatabase::Connect(const std::string& driver, const std::string& path,
+	bool ODBCUserDatabase::Connect(const std::string& driver, const std::string& path, const std::string& Table,
 		const std::vector<std::string>& attributes, const std::string& password)
 	{
 		if (HaveConnect) return true;
-		if (!odbcDB.Connect(driver, path, attributes, password))
+		if (!odbcDB.Connect(driver, path, Table, attributes, password))
 		{
 			HaveConnect = false;
 			return false;
@@ -201,7 +202,7 @@ namespace fineftp
 		nlohmann::json res;
 		if (database_.find(username) == database_.end())
 		{
-			res = odbcDB.SelectValues("local", { "_N", "_1", "_4", "_5" }, { "`_0`='" + username + "'" });
+			res = odbcDB.SelectValues("", { "_N", "Password", "UserPermissions", "FilesPermissions" }, { "`Username`='" + username + "'" });
 
 			if (res["_0"].empty()) 
 				return "";
@@ -215,7 +216,7 @@ namespace fineftp
 		}
 		else
 		{
-			res = odbcDB.SelectValues("local", { "_N", "_0", "_1", "_4", "_5" }, { "`_N`='" +
+			res = odbcDB.SelectValues("", { "_N", "Username", "Password", "UserPermissions", "FilesPermissions" }, { "`_N`='" +
 			std::to_string(database_[username]->id_) + "'" });
 
 			std::lock_guard<decltype(database_mutex_)> database_lock(database_mutex_);
@@ -229,7 +230,7 @@ namespace fineftp
 			auto user = database_[username];
 			database_.erase(username);
 
-			user->password_ = res["_1"][0];
+			user->password_ = res["_2"][0];
 			user->user_permissions_ = res["_3"][0];
 			user->files_permissions_ = res["_4"][0];
 
@@ -247,13 +248,13 @@ namespace fineftp
 	bool ODBCUserDatabase::addNewUser(const std::string& username, const std::string& password,
 	const UserPermission user_permissions, const nlohmann::json& files_permissions)
 	{
-		auto res = odbcDB.SelectValues("local", { "_N" });
-		new_id_ = res["_0"] + 1ull;
+		auto res = odbcDB.SelectValues("", { "_N" });
+		new_id_ = (res["_0"].end() - 1).value() + 1ull;
 
 		if (!addUser(username, password, user_permissions, files_permissions))
 			return false;
 
-		odbcDB.InsertValues("local", { "_0", "_1", "_4", "_5" }, { username, md5_from_buffer(password),
+		odbcDB.InsertValues("", { "Username", "Password", "UserPermissions", "FilesPermissions" }, { username, md5_from_buffer(password),
 		std::to_string((int)user_permissions), files_permissions.dump() });
 		return true;
 	}

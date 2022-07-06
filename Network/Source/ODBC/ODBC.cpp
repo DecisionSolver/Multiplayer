@@ -14,7 +14,7 @@
 namespace odbc
 {
 	void ODBC::CreateDataBase(const std::string &driver, const std::string &path, const std::string &attributes,
-		const std::string &password)
+		const std::string &password) const
 	{
 		USES_CONVERSION;
 		if ((SQLConfigDataSourceW(nullptr, ODBC_ADD_DSN, A2W(driver.c_str()),
@@ -22,7 +22,7 @@ namespace odbc
 			Logger_Error_F("Something is wrong with create a database file, error code: {}", GetLastError());
 	}
 
-	bool ODBC::Connect(const std::string& driver, const std::string& path,
+	bool ODBC::Connect(const std::string& driver, const std::string& path, const std::string& Table,
 		const std::vector<std::string>& attributes, const std::string& password)
 	{
 		if (SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &hEnv) == SQL_ERROR)
@@ -47,12 +47,14 @@ namespace odbc
 			SQL_NTS, nullptr, 0, nullptr, SQL_DRIVER_NOPROMPT)))
 			return false;
 
+		SetCurrentTable(Table);
+
 		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt)))
 			return false;
 
 		return true;
 	}
-	bool ODBC::PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e)
+	bool ODBC::PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e) const
 	{
 		SQLSMALLINT iRec = 0;
 		SQLINTEGER  iError = 0;
@@ -73,19 +75,19 @@ namespace odbc
 			if (!strcmp((const char*)wszState, "01000"))
 			{
 #if __has_include("logger.h")
-				Logger_Warn_F("[{0,5}] {} ({})\n", wszState, wszMessage, iError);
+				Logger_Warn_F("[{}] {} ({})\n", wszState, wszMessage, iError);
 #endif
 				return false;
 			}
 
 #if __has_include("logger.h")
-				Logger_Error_F("{0,5}] {} ({})\n", wszState, wszMessage, iError);
+				Logger_Error_F("[{}] {} ({})\n", wszState, wszMessage, iError);
 #endif
 		}
 
 		return false;
 	}
-	int ODBC::GetCntData(const std::string & query)
+	int ODBC::GetCntData(const std::string & query) const
 	{
 		SQLHSTMT Local = nullptr;
 		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &Local)))
@@ -105,7 +107,7 @@ namespace odbc
 
 		return cnt;
 	}
-	nlohmann::json ODBC::Query(const std::string& query, bool Need_SQL_TYPE)
+	nlohmann::json ODBC::Query(const std::string& query, bool Need_SQL_TYPE) const
 	{
 		RETCODE rc = SQLExecDirectA(hStmt, (SQLCHAR*)(query.c_str()), SQL_NTS);
 		json res = {};
@@ -211,9 +213,7 @@ namespace odbc
 				}
 			}
 
-			while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING)
-			{
-			}
+			while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING) {}
 
 			// Do A New SQLExecuteDirect To Get How Much Count Of Data Will Be
 			SQLLEN cnt = 1;
@@ -362,28 +362,32 @@ namespace odbc
 	}
 
 	nlohmann::json ODBC::SelectValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-		const std::vector<std::string>& condition, bool Need_SQL_TYPE)
+		const std::vector<std::string>& condition, bool Need_SQL_TYPE) const
 	{
-		return Query(query::MakeSelectValuesQuery(name_table, name_columns, condition), Need_SQL_TYPE);
+		return Query(query::MakeSelectValuesQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_columns, condition), Need_SQL_TYPE);
 	}
 
 	void ODBC::InsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-		const std::vector<std::string>& values)
+		const std::vector<std::string>& values) const
 	{
-		Query(query::MakeInsertValuesQuery(name_table, name_columns, values));
+		Query(query::MakeInsertValuesQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_columns, values));
 	}
 
 	void ODBC::UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-		const std::vector<std::string>& values, const std::vector<std::string>& condition)
+		const std::vector<std::string>& values, const std::vector<std::string>& condition) const
 	{
-		Query(query::MakeUpdateValuesQuery(name_table, name_columns, values, condition));
+		Query(query::MakeUpdateValuesQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_columns, values, condition));
 	}
 
 	void ODBC::CreateTable(const std::string& name_table, const std::vector<std::string>& name_column,
 		const std::vector<std::string>& type, const std::vector<std::string>& value,
-		const std::vector<std::vector<std::string>>& attributes)
+		const std::vector<std::vector<std::string>>& attributes) const
 	{
-		std::string ret_query = query::MakeCreateTableQuery(name_table, name_column, type, value, attributes);
+		std::string ret_query = query::MakeCreateTableQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_column, type, value, attributes);
 
 		if (ret_query.empty())
 			return;
@@ -394,15 +398,17 @@ namespace odbc
 	}
 
 	void ODBC::CreateColumn(const std::string& name_table, const std::string& name_column, const std::string& type,
-		const std::string& value, const std::vector<std::string>& attributes)
+		const std::string& value, const std::vector<std::string>& attributes) const
 	{
-		Query(query::MakeCreateColumnQuery(name_table, name_column, type, value, attributes));
+		Query(query::MakeCreateColumnQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_column, type, value, attributes));
 	}
 
 	void ODBC::ModifyColumn(const std::string& name_table, const std::string& name_column, const std::string& type,
-		const std::string& value, const std::vector<std::string>& attributes)
+		const std::string& value, const std::vector<std::string>& attributes) const
 	{
-		std::string ret_query = query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes);
+		std::string ret_query = query::MakeModifyColumnQuery(!name_table.empty() ? name_table : CurrentTable, 
+			name_column, type, value, attributes);
 
 		if (ret_query.empty())
 			return;
@@ -414,22 +420,22 @@ namespace odbc
 		Query(ret_query);
 	}
 
-	void ODBC::DeleteTable(const std::string& name_table)
+	void ODBC::DeleteTable(const std::string& name_table) const
 	{
-		Query(query::MakeDeleteTableQuery(name_table));
+		Query(query::MakeDeleteTableQuery(!name_table.empty() ? name_table : CurrentTable));
 	}
 
-	void ODBC::DeleteColumn(const std::string& name_table, const std::string& name_column)
+	void ODBC::DeleteColumn(const std::string& name_table, const std::string& name_column) const
 	{
-		Query(query::MakeDeleteColumnQuery(name_table, name_column));
+		Query(query::MakeDeleteColumnQuery(!name_table.empty() ? name_table : CurrentTable, name_column));
 	}
 
-	void ODBC::DeleteValues(const std::string& name_table, const std::string& condition)
+	void ODBC::DeleteValues(const std::string& name_table, const std::string& condition) const
 	{
-		Query(query::MakeDeleteValuesQuery(name_table, condition));
+		Query(query::MakeDeleteValuesQuery(!name_table.empty() ? name_table : CurrentTable, condition));
 	}
 
-	void ODBC::Exit()
+	void ODBC::Exit() const
 	{
 		if (hStmt)
 			SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
@@ -444,7 +450,7 @@ namespace odbc
 			SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
 	}
 
-	std::pair<bool, std::vector<std::string>> ODBC::GetListTablesDatabase()
+	std::pair<bool, std::vector<std::string>> ODBC::GetListTablesDatabase() const
 	{
 		std::pair<bool, std::vector<std::string>> ret = { false, {} };
 		std::vector<lpGETINFOALL> lpgi;
@@ -610,7 +616,7 @@ namespace odbc
 		return ret;
 	}
 
-	void ODBC::SplitDB(const std::string &NameTable, const std::string &NameNewFile)
+	void ODBC::SplitDB(const std::string &NameTable, const std::string &NameNewFile) const
 	{
 		if (!hEnv || !hDbc || !hStmt)
 		{
@@ -629,10 +635,11 @@ namespace odbc
 		auto SecondFile = std::make_shared<ODBC>();
 		// Create A New DB
 		SecondFile->CreateDataBase(c_str, NameNewFile);
-		SecondFile->Connect(c_str, NameNewFile, {});
+		SecondFile->Connect(c_str, NameNewFile, "", {});
 
+		std::string table = !NameTable.empty() ? NameTable : CurrentTable;
 		// Then Get * From NameTable And Add It To New DB
-		auto CurrDB = SelectValues(NameTable, { "*" }, {}, true);
+		auto CurrDB = SelectValues(table, { "*" }, {}, true);
 
 		std::vector<std::string> NameColumns, TypeColumns, EmptyValue;
 		std::vector<std::vector<std::string>> EmptyAttributes;
@@ -646,10 +653,10 @@ namespace odbc
 			EmptyValue.push_back("");
 			EmptyAttributes.push_back({});
 		}
-		SecondFile->CreateTable(NameTable, NameColumns, TypeColumns, EmptyValue, EmptyAttributes);
+		SecondFile->CreateTable(table, NameColumns, TypeColumns, EmptyValue, EmptyAttributes);
 
 		size_t size_y = 
-			(size_t)Query("SELECT COUNT(*) FROM `" + NameTable + "`").front().back().get<json::number_integer_t>(),
+			(size_t)Query("SELECT COUNT(*) FROM `" + table + "`").front().back().get<json::number_integer_t>(),
 			cur = 1u;
 		
 		while (true)
