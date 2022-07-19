@@ -57,7 +57,7 @@ namespace net
 		if (packet)
 		{
 			json Arr;
-			auto Obj = MySQL_DB->SelectValues("Local", { "*" }, { " WHERE _2 = 1" });
+			auto Obj = MySQL_DB->SelectValues("", { "*" }, { " WHERE _2 = 1" });
 			for (size_t i = 0; i < Obj["_N"].size(); i++)
 			{
 				Arr["_1"].push_back(Obj["_N"].at(i).back().get<json::number_integer_t>());
@@ -539,7 +539,7 @@ namespace net
 		{
 			if (Project && Project->ThisLevel && Project->ThisLevel->IsLoaded())
 			{
-				auto Obj = connection->m_owner->MySQL_DB->SelectValues("Local", { "_3", "_0" }, { "WHERE _N = '" +
+				auto Obj = connection->m_owner->MySQL_DB->SelectValues("", { "_3", "_0" }, { "WHERE _N = '" +
 						std::to_string(connection->GetMetaDB_User()) + "';" });
 
 				if (!Obj.empty() && Obj["_0"].front() == 1)
@@ -620,26 +620,5 @@ namespace net
 	void ServerFTP::Start()
 	{
 		ConnectionManager::StartSystem();
-
-		std::string tmp_table = FTPServer->get_ftp_users()->GetClientMysql().GetCurrentTable();
-		FTPServer->get_ftp_users()->GetClientMysql().SetCurrentTable("local");
-		auto AllUsers = FTPServer->get_ftp_users()->GetClientMysql().SelectValues("", std::vector<std::string>{ { "*" } });
-		FTPServer->get_ftp_users()->GetClientMysql().SetCurrentTable(tmp_table);
-
-		std::string local_root = FS->GetFTPPath();
-		local_root += "Users/";
-
-		for (size_t i = 0; i < AllUsers["_N"].size(); i++)
-		{
-			auto ThisPath = local_root + std::to_string(AllUsers["_N"].at(i).get<json::number_integer_t>());
-			if (!exists(ThisPath))
-				create_directories(ThisPath);
-			if (AllUsers["_3"].at(i).get<json::number_integer_t>() == 1)
-				ConnectionManager::FTPServer->addNewUser(AllUsers["_0"].at(i), AllUsers["_1"].at(i),
-					fineftp::UserPermission::All, fineftp::FilePermission::None);
-			else
-				ConnectionManager::FTPServer->addNewUser(AllUsers["_0"].at(i), AllUsers["_1"].at(i),
-					fineftp::UserPermission::FileWrite, fineftp::FilePermission::None);
-		}
 	}
 }

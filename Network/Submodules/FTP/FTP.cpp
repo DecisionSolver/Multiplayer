@@ -99,8 +99,6 @@ int main()
 {
 	setlocale(LC_ALL, "Russian");
 
-	tests::ODBCTest();
-
 	for (;;)
 	{
 		std::string Cmd;
