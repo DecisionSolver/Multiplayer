@@ -6,8 +6,10 @@
 #include <FTPClient.h>
 #include <boost/array.hpp>
 
+#include "Cookie.h"
+
 #if defined(USE_SSL)
-#include <asio/ssl.hpp>
+	#include <asio/ssl.hpp>
 #endif
 
 #include <asio.hpp>
@@ -47,6 +49,7 @@ public:
 
 	void Send(const std::vector<char> &data);
 	void Send(std::shared_ptr<network::Packet> packet);
+	void Send(const void *Data, size_t Size);
 
 	void SetLogged() { isLogged = true; }
 	void SetConnected(bool IsConnected) { Connected = IsConnected; }
@@ -54,7 +57,13 @@ public:
 	bool GetLogged() { return isLogged; }
 	bool IsConnected() { return Connected; }
 
-	void GetPacket(network::Packet &packet, network::Packet::Type _CheckingByType, const std::string &_CheckingByData = "");
+	void GetPacket(network::Packet &packet, const int &_CheckingByType,
+		const int &_CheckingByStatus = -1,
+		const std::string &_CheckingByData = "");
+
+	void GetPacketFromDelayed(network::Packet &packet, const int &_CheckingByType,
+		const int &_CheckingByStatus = -1,
+		const std::string &_CheckingByData = "");
 
 	std::mutex &getMutex_Error() { return m_error; }
 	std::atomic_bool &getIsError() { return IsError; }
@@ -80,9 +89,9 @@ public:
 	}
 #endif
 
-	std::shared_ptr<FTPClient> getFtpClient() { return ftpClient; }
+	std::shared_ptr<network::FTPClient> getFtpClient() { return ftpClient; }
 
-	void SetEndPoint(asio::ip::udp::endpoint NewEndPoint) { remote_endpoint_ = NewEndPoint; }
+	void SetEndPoint(const asio::ip::udp::endpoint &NewEndPoint) { remote_endpoint_ = NewEndPoint; }
 	asio::ip::udp::endpoint remote_endpoint() { return remote_endpoint_; }
 
 	const std::atomic<size_t> &GetCurrentPing() { return ping; }
@@ -90,13 +99,21 @@ public:
 	ConnectionManager *m_owner = nullptr;
 
 	// It Needs To Hold All Data That Came From Receive (Only There It Needs To Use)
-	std::stringstream m_receiveData;
+	//asio::streambuf m_receiveData;
 
 	std::atomic_bool HasLeftPackets = false;
 	size_t m_clientId = 0;
 	
-	std::map<network::Packet::Type, std::shared_ptr<network::Packet>> packet_queue;
+	std::map<int, std::shared_ptr<network::Packet>> packet_queue;
+
+	// When We Need Just Save Some Packets To The Future Use
+	std::map<int, std::shared_ptr<network::Packet>> packet_queue_delayed;
+
+	// For Test Purpose
+	void DoReceive();
 private:
+	std::shared_ptr<Cookie> cookie = std::make_shared<Cookie>();
+
 	static size_t m_nextClientId;
 
 #if defined(USE_SSL)
@@ -109,7 +126,9 @@ private:
 	asio::ip::udp::endpoint remote_endpoint_;
 
 	std::atomic<bool> m_stopped;
-	boost::array<char, 1024> m_receiveBuffer;
+	enum { max_buffer_lenght = 65536 };
+	boost::array<char, max_buffer_lenght> m_receiveData;
+	std::vector<char> m_receiveBuffer;
 
 	mutable std::mutex m_disconnect, m_error;
 
@@ -124,12 +143,17 @@ private:
 
 	std::vector<char> m_allReadData; // Strictly for test purposes
 
-	void DoReceive();
+	std::condition_variable cvReceive, cvSend;
+	std::mutex muxReceive, muxSend;
+	std::atomic_bool atSend = false, atReceive = false;
+
+	void DisconnectByError(const asio::error_code &errorCode = asio::error_code());
 	void DoSend();
 
+	// Only For Server!
 	int UserID_MetaDB = 0; // Number Line Of This DB User (Easily Work With User In MySQL)
 
-	std::shared_ptr<FTPClient> ftpClient;
+	std::shared_ptr<network::FTPClient> ftpClient;
 
 	std::atomic<size_t> ping = 0u;
 
@@ -141,4 +165,5 @@ private:
 	//
 
 	void ProccessPacket(const std::shared_ptr<Connection> &self);
+	void ProccessChain(std::shared_ptr<network::Packet> packet);
 };

@@ -21,13 +21,10 @@
 #include <memory>
 
 #include <cryptlib.h>
-#include <md5.h>
 #include <files.h>
 #include <hex.h>
 
 using namespace std::chrono_literals;
-// for convenience
-using json = nlohmann::json;
 
 #if __has_include("logger.h")
 #include "logger.h"
@@ -35,3 +32,15 @@ using json = nlohmann::json;
 
 const std::string md5_from_file(const std::string &path);
 const std::string md5_from_buffer(const std::string &data);
+std::string SHA256(std::string data);
+std::string String2HEX(const std::string &input);
+std::string HEX2String(const std::string &input);
+std::string Crypt(const std::string &data);
+
+// example:
+//recursive_iterate(j, [](nlohmann::json::const_iterator it)
+//{
+//	std::cout << *it << std::endl;
+//});
+//
+void recursive_iterate(const nlohmann::json &j, std::function<bool(nlohmann::json::const_iterator)> f);

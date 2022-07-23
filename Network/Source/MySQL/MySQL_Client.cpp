@@ -236,8 +236,7 @@ namespace mysql
 		if (!condition.empty())
 		{
 			std::string NewCond = *condition.data();
-			size_t FPos = std::string::npos;
-			FPos = temp.find("SELECT");
+			size_t FPos = temp.find("SELECT");
 			if (FPos != std::string::npos)
 				temp.erase(FPos, strlen("SELECT"));
 			FPos = NewCond.find("WHERE");
@@ -251,7 +250,7 @@ namespace mysql
 		else
 			ResultExec = Query("SELECT " + temp + " FROM " + table + ";");
 
-		json js = {};
+		nlohmann::json js = {};
 		if (!ResultExec)
 			return js;
 		try
@@ -279,7 +278,7 @@ namespace mysql
 					case sql::DataType::SMALLINT:
 					case sql::DataType::BIGINT:
 						if (cnt == 1 && c_cnt == 1)
-							js = json::object({ {ColumnName, ResultExec->getInt64(ColumnID)} });
+							js = nlohmann::json::object({ {ColumnName, ResultExec->getInt64(ColumnID)} });
 						else
 							js[ColumnName].push_back(ResultExec->getInt64(ColumnID));
 						break;
@@ -287,7 +286,7 @@ namespace mysql
 					case sql::DataType::DECIMAL:
 					case sql::DataType::DOUBLE:
 						if (cnt == 1 && c_cnt == 1)
-							js = json::object({ {ColumnName, ResultExec->getDouble(ColumnID)} });
+							js = nlohmann::json::object({ {ColumnName, ResultExec->getDouble(ColumnID)} });
 						else
 							js[ColumnName].push_back(ResultExec->getDouble(ColumnID));
 						break;
@@ -324,14 +323,14 @@ namespace mysql
 							str.erase(str.end());
 						}
 
-						json _js;
+						nlohmann::json _js;
 						if (!str.empty())
 						{
 							try
 							{
-								_js = json::parse(str);
+								_js = nlohmann::json::parse(str);
 							}
-							catch (json::exception)
+							catch (nlohmann::json::exception)
 							{
 								_js = str;
 							}

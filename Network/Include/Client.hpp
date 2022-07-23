@@ -2,20 +2,24 @@
 #include "pch.h"
 #include "ConnMan.h"
 
-namespace net
+namespace network
 {
 	class Client: public ConnectionManager
 	{
 	public:
-		Client(size_t numThreads = 2): ConnectionManager(ConnectionManager::TypeWorking::Client, TypeProtocol::TCP,
+		Client(size_t numThreads = 2): ConnectionManager(ConnectionManager::TypeWorking::Client, (int)TypeProtocol::TCP,
 			"127.0.0.1", 0, numThreads) {}
 
-		Client(const std::string &IP, TypeProtocol _Proto, USHORT Port, size_t numThreads = 2):
+		Client(const std::string &IP, int _Proto, USHORT Port, size_t numThreads = 2):
 		ConnectionManager(ConnectionManager::TypeWorking::Client, _Proto, IP, Port, numThreads) {}
 
-		~Client() {}
+		~Client() = default;
 		
-		bool Connect(const std::string &ip, const USHORT& port);
+		bool Connect(const std::string &ip, const USHORT &port, const std::string &Login = std::string(),
+			const std::string &Pass = std::string());
 		void Disconnect();
+
+		// Match String Message Reasons With Server To Client
+		static std::map<network::Packet::Status, std::string> PacketReasons;
 	};
 }

@@ -8,7 +8,7 @@
 #endif
 */
 
-size_t FTPClient::getcontentlengthfunc(void *ptr, size_t size, size_t nmemb, void *stream)
+size_t network::FTPClient::getcontentlengthfunc(void *ptr, size_t size, size_t nmemb, void *stream)
 {
 	int r = 0;
 	long len = 0;
@@ -20,7 +20,7 @@ size_t FTPClient::getcontentlengthfunc(void *ptr, size_t size, size_t nmemb, voi
 	return size * nmemb;
 }
 
-size_t FTPClient::write_callback(void *buffer, size_t size, size_t nmemb, void *stream)
+size_t network::FTPClient::write_callback(void *buffer, size_t size, size_t nmemb, void *stream)
 {
 	struct FtpFile *out = (FtpFile *)stream;
 	if (!out->stream && !out->filename.empty()) {
@@ -34,7 +34,7 @@ size_t FTPClient::write_callback(void *buffer, size_t size, size_t nmemb, void *
 	else
 		return size * nmemb;
 }
-size_t FTPClient::read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
+size_t network::FTPClient::read_callback(void *ptr, size_t size, size_t nmemb, void *stream)
 {
 	FILE *ThisFile = (FILE *)stream;
 	if (ferror(ThisFile))
@@ -43,7 +43,7 @@ size_t FTPClient::read_callback(void *ptr, size_t size, size_t nmemb, void *stre
 	return fread(ptr, size, nmemb, ThisFile) * size;
 }
 
-FTPClient::FTPClient()
+network::FTPClient::FTPClient()
 {
 	// Init Winsock
 	CURLcode res = curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -76,14 +76,14 @@ FTPClient::FTPClient()
 #endif
 
 }
-FTPClient::~FTPClient()
+network::FTPClient::~FTPClient()
 {
 	if (curl)
 		curl_easy_cleanup(curl);
 	curl_global_cleanup();
 }
 
-bool FTPClient::SendFile(const boost::filesystem::path &FilePath)
+bool network::FTPClient::SendFile(const boost::filesystem::path &FilePath)
 {
 	if (!Connected)
 	{
@@ -141,7 +141,7 @@ bool FTPClient::SendFile(const boost::filesystem::path &FilePath)
 	return true;
 }
 
-bool FTPClient::ReceiveFile(const boost::filesystem::path &Path, const boost::filesystem::path &Where)
+bool network::FTPClient::ReceiveFile(const boost::filesystem::path &Path, const boost::filesystem::path &Where)
 {
 	if (!Connected)
 	{
@@ -175,7 +175,7 @@ bool FTPClient::ReceiveFile(const boost::filesystem::path &Path, const boost::fi
 	return true;
 }
 
-bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
+bool network::FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
 	const std::string &Pass, const uint16_t &Port)
 {
 	if (curl)
@@ -210,17 +210,17 @@ bool FTPClient::Connect(const std::string &ServerIP, const std::string &Login,
 	return false;
 }
 
-void FTPClient::Disconnect()
+void network::FTPClient::Disconnect()
 {
 	if (curl)
 		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "QUIT");
 }
 
-const uint16_t &FTPClient::getPort()
+const uint16_t &network::FTPClient::getPort()
 {
 	return port_;
 }
-const std::string &FTPClient::getIP()
+const std::string &network::FTPClient::getIP()
 {
 	return IP;
 }

@@ -61,17 +61,15 @@
 *.iobj
 *.ipdb
 
-/Debug
-/Release
-/Build
+**/Debug
+**/Release
+**/Build
+
 /intermediate
-resources
-!.txt
-workspace
 .vs
 Network/.vs
-!tinyxml2d.pdb
-assimp-*.lib
+resources
+workspace
 
 **/FTP/Release
 **/FTP/Debug

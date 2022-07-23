@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="TrySomething.cpp" />
+    <ClCompile Include="..\..\Network\Submodules\Project System\Tools.cpp">
+      <Filter>Project System</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\Project System\Project.cpp">
+      <Filter>Project System</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\Project System\File_system.cpp">
+      <Filter>Project System\File System</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\Project System\FileWatcher\source\FileWatcher.cpp">
+      <Filter>Project System\File System\File Watcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\Project System\FileWatcher\source\FileWatcherWin32.cpp">
+      <Filter>Project System\File System\File Watcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\Project System\GameObjects.cpp">
+      <Filter>Project System\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\Project System\Levels.cpp">
+      <Filter>Project System\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Submodules\Project System\SimpleLogic.cpp">
+      <Filter>Project System\Level</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Project System">
+      <UniqueIdentifier>{488f9e5e-6248-419c-b9e4-72466902c870}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project System\File System">
+      <UniqueIdentifier>{de4a3967-494b-4c5e-99eb-7bba1c17c1f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project System\File System\File Watcher">
+      <UniqueIdentifier>{69e31b98-a87c-451f-956c-7d14b0ae45ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Project System\Level">
+      <UniqueIdentifier>{521d61bc-a0f4-4d3b-977d-809961ffcca9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Network\Submodules\Project System\Tools.h">
+      <Filter>Project System</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\Project System\Project.h">
+      <Filter>Project System</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\Project System\File_system.h">
+      <Filter>Project System\File System</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\Project System\FileWatcher\FileWatcher\FileWatcher.h">
+      <Filter>Project System\File System\File Watcher</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherImpl.h">
+      <Filter>Project System\File System\File Watcher</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherWin32.h">
+      <Filter>Project System\File System\File Watcher</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\Project System\GameObjects.h">
+      <Filter>Project System\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\Project System\Levels.h">
+      <Filter>Project System\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Submodules\Project System\SimpleLogic.h">
+      <Filter>Project System\Level</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

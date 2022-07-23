@@ -9,16 +9,17 @@
 
 #include <sql.h>
 #include <sqlext.h>
+#include <locale>
+#include <codecvt>
 
-#include <atlconv.h>
 namespace odbc
 {
 	void ODBC::CreateDataBase(const std::string &driver, const std::string &path, const std::string &attributes,
 		const std::string &password) const
 	{
-		USES_CONVERSION;
-		if ((SQLConfigDataSourceW(nullptr, ODBC_ADD_DSN, A2W(driver.c_str()),
-			A2W(("CREATE_DB=\"" + path + "\";" + attributes + (password.empty() ? "" : ";PWD=" + password)).c_str()))) != 1)
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+		if (SQLConfigDataSourceW(nullptr, ODBC_ADD_DSN, converter.from_bytes(driver).c_str(),
+			converter.from_bytes(("CREATE_DB=\"" + path + "\";" + attributes + (password.empty() ? "" : ";PWD=" + password))).c_str()))
 			Logger_Error_F("Something is wrong with create a database file, error code: {}", GetLastError());
 	}
 
@@ -110,7 +111,7 @@ namespace odbc
 	nlohmann::json ODBC::Query(const std::string& query, bool Need_SQL_TYPE) const
 	{
 		RETCODE rc = SQLExecDirectA(hStmt, (SQLCHAR*)(query.c_str()), SQL_NTS);
-		json res = {};
+		nlohmann::json res = {};
 		SQLLEN nOldArraySize = 0, nOldRowsetSize = 0;
 
 		switch (rc)
@@ -141,6 +142,7 @@ namespace odbc
 			{
 				auto dwReqdMem = sizeof(GETINFOALL) * (DWORD)sNumResults;	// Explicit promotion required
 				lpGETINFOALL newObj = (lpGETINFOALL)calloc(sNumResults, dwReqdMem);
+				if (!newObj) continue;
 
 				rc = SQLDescribeCol(hStmt,
 					(UWORD)(i + 1),
@@ -233,11 +235,8 @@ namespace odbc
 							lpgi.at(i)->rgbValue,
 							lpgi.at(i)->cbValueMax,
 							&cbValue));
-					while (rc == SQL_STILL_EXECUTING)
-					{
-					}
 
-					if (((rc) == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA_FOUND) &&
+					if ((rc == SQL_SUCCESS || (rc == SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA_FOUND)) &&
 						lpgi.at(i)->rgbValue != nullptr)
 					{
 						LPSTR buf = (LPSTR)lpgi.at(i)->rgbValue;
@@ -245,9 +244,9 @@ namespace odbc
 						if (cbValue == SQL_NULL_DATA)
 						{
 							if (cnt == 1 && sNumResults == 1)
-								res = json();
+								res = nlohmann::json();
 							else
-								res[columnNames[i].first].push_back(json()); // Was "NULL"
+								res[columnNames[i].first].push_back(nlohmann::json()); // Was "NULL"
 							continue;
 						}
 
@@ -261,7 +260,7 @@ namespace odbc
 						case SQL_BIGINT:
 						{
 							if (cnt == 1 && sNumResults == 1)
-								res = json::object({ { columnNames[i].first, atoi(buf) } });
+								res = nlohmann::json::object({ { columnNames[i].first, atoi(buf) } });
 							else
 								res[columnNames[i].first].push_back(atoi(buf));
 							break;
@@ -271,7 +270,7 @@ namespace odbc
 						case SQL_DOUBLE:
 						{
 							if (cnt == 1 && sNumResults == 1)
-								res = json::object({ { columnNames[i].first, atof(buf) } });
+								res = nlohmann::json::object({ { columnNames[i].first, atof(buf) } });
 							else
 								res[columnNames[i].first].push_back(atof(buf));
 							break;
@@ -309,14 +308,14 @@ namespace odbc
 								str.erase(str.end());
 							}
 
-							json _js;
+							nlohmann::json _js;
 							if (!str.empty())
 							{
 								try
 								{
-									_js = json::parse(str);
+									_js = nlohmann::json::parse(str);
 								}
-								catch (json::exception)
+								catch (nlohmann::json::exception)
 								{
 									_js = str;
 								}
@@ -355,8 +354,8 @@ namespace odbc
 		PrintError(hStmt, SQL_HANDLE_STMT, SQLFreeStmt(hStmt, SQL_CLOSE));
 
 		//Reset rowset sizes
-		rc = SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)nOldArraySize, sizeof(nOldArraySize));
-		rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)nOldRowsetSize, sizeof(nOldArraySize));
+		SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)nOldArraySize, sizeof(nOldArraySize));
+		SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)nOldRowsetSize, sizeof(nOldArraySize));
 
 		return res;
 	}
@@ -483,6 +482,7 @@ namespace odbc
 		{
 			dwReqdMem = sizeof(GETINFOALL) * (DWORD)cCols;	// Explicit promotion required
 			lpGETINFOALL newObj = (lpGETINFOALL)calloc(cCols, dwReqdMem);
+			if (!newObj) continue;
 
 			rc = SQLDescribeCol(hStmt,
 				(UWORD)(i + 1),
@@ -559,14 +559,11 @@ namespace odbc
 						lpgi.at(i)->rgbValue,
 						lpgi.at(i)->cbValueMax,
 						&cbValue));
-				while (rc == SQL_STILL_EXECUTING)
-				{
-				}
 
 				if (cbValue < 0)
 					continue;
 
-				if (((rc) == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA_FOUND) &&
+				if ((rc == SQL_SUCCESS || (rc == SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA_FOUND)) &&
 					lpgi.at(i)->rgbValue != nullptr)
 				{
 					std::string cur_itm = (LPSTR)lpgi.at(i)->rgbValue;
@@ -610,8 +607,8 @@ namespace odbc
 		SQLFreeStmt(hStmt, SQL_CLOSE);
 
 		//Reset rowset sizes
-		rc = SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)nOldArraySize, sizeof(nOldArraySize));
-		rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)nOldRowsetSize, sizeof(nOldArraySize));
+		SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)nOldArraySize, sizeof(nOldArraySize));
+		SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)nOldRowsetSize, sizeof(nOldArraySize));
 
 		return ret;
 	}
@@ -656,7 +653,7 @@ namespace odbc
 		SecondFile->CreateTable(table, NameColumns, TypeColumns, EmptyValue, EmptyAttributes);
 
 		size_t size_y = 
-			(size_t)Query("SELECT COUNT(*) FROM `" + table + "`").front().back().get<json::number_integer_t>(),
+			(size_t)Query("SELECT COUNT(*) FROM `" + table + "`").front().back().get<nlohmann::json::number_integer_t>(),
 			cur = 1u;
 		
 		while (true)

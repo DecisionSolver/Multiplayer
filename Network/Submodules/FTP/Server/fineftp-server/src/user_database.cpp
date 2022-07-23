@@ -23,12 +23,16 @@ namespace fineftp
 			database_.emplace(username, std::shared_ptr<FtpUser>(new FtpUser(new_id_++, md5_from_buffer(password), user_permissions,
 				files_permissions)));
 
+#if __has_include("logger.h")
 			Logger_Info_F("Successfully added user \"{}\".", username);
+#endif
 			return true;
 		}
 		else
 		{
+#if __has_include("logger.h")
 			Logger_Error_F("Error adding user with username \"{}\". The user already exists.", username);
+#endif
 			return false;
 		}
 	}
@@ -76,7 +80,9 @@ namespace fineftp
 		UNREFERENCED_PARAMETER(port);
 		UNREFERENCED_PARAMETER(charset);
 		UNREFERENCED_PARAMETER(OnlyRead);
+#if __has_include("logger.h")
 		Logger_Error("You have used wrong function on wrong subclass (MySQL variant)");
+#endif
 		return false;
 	}
 
@@ -89,7 +95,9 @@ namespace fineftp
 		UNREFERENCED_PARAMETER(Table);
 		UNREFERENCED_PARAMETER(attributes);
 		UNREFERENCED_PARAMETER(password);
+#if __has_include("logger.h")
 		Logger_Error("You have used wrong function on wrong subclass (ODBC variant)");
+#endif
 		return false;
 	}
 

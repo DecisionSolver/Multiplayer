@@ -108,8 +108,7 @@ namespace query
 		if (!condition.empty())
 		{
 			std::string NewCond = *condition.data();
-			size_t FPos = std::string::npos;
-			FPos = temp.find("SELECT");
+			size_t FPos = temp.find("SELECT");
 			if (FPos != std::string::npos)
 				temp.erase(FPos, strlen("SELECT"));
 			FPos = NewCond.find("WHERE");
@@ -138,7 +137,7 @@ namespace query
 
 		std::string valueCond, value;
 		for (size_t cnt = 0; cnt < name_columns.size(); cnt++)
-			value += "`" + name_columns.at(cnt) + "`='" + values.at(cnt) + "',";
+			value += "`" + name_columns[cnt] + "`='" + values[cnt] + "',";
 		std::string Set = value;
 		Set.pop_back(); // Removed ','
 
@@ -149,8 +148,7 @@ namespace query
 		if (!condition.empty())
 		{
 			std::string NewCond = valueCond;
-			size_t FPos = std::string::npos;
-			FPos = NewCond.find("WHERE");
+			size_t FPos = NewCond.find("WHERE");
 			if (FPos != std::string::npos)
 				NewCond.erase(FPos, strlen("WHERE"));
 			if (NewCond.back() == ';')
@@ -189,7 +187,7 @@ namespace query
 			temp.insert(0, "(");
 			for (size_t i = 0; i < values.size(); i++)
 			{
-				temp.insert(temp.size(), "'" + values.at(i) + "',");
+				temp.insert(temp.size(), "'" + values[i] + "',");
 			}
 			temp.pop_back(); // Remove ','
 			temp.push_back(')');

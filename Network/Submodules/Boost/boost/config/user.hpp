@@ -131,3 +131,4 @@
 // to ensure the correct libraries are selected at link time.
 // #define BOOST_LIB_BUILDID amd64
 
+#define BOOST_ALL_NO_LIB

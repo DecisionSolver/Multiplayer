@@ -1,299 +1,279 @@
-﻿#pragma once
+﻿/**
+ * ASIO echo TCP synchronous client-server
+ *
+ * Author:   Manny egalli64@gmail.com
+ * Info:     http://thisthread.blogspot.com/2018/03/boost-asio-echo-tcp-synchronous-client.html
+ * Based on: http://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio/example/cpp11/echo/blocking_tcp_echo_client.cpp
+ *			 http://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio/example/cpp11/echo/blocking_tcp_echo_server.cpp
+ */
+#include <cstring>
 #include <iostream>
-#include <fstream>
-#include "Server.hpp"
-#include "LZ4/lz4.h"
-#include "nlohmann/json.hpp"
-
-//New
-#include "Packet.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
-
-using namespace net;
-using namespace network;
-
-#include <string>
-#include <iostream>
-#include <cstdlib>
-#include <iostream>
-#include <boost/bind.hpp>
+#include <thread>
 #include <asio.hpp>
-#include <asio/ssl.hpp>
+#include <mutex>
+#include <boost/array.hpp>
+namespace ba = asio;
+using ba::ip::tcp;
 
-enum { max_length = 1024 };
+enum { max_length = 65565 };
 
-class client
+#define HAS_VOIP_SERVER
+#ifdef HAS_VOIP_SERVER
+	#include <SFML/Audio/SoundBuffer.hpp>
+	#include <SFML/Audio/SoundBufferRecorder.hpp>
+	#include <SFML/Audio/SoundStream.hpp>
+	#include <SFML/Audio/Sound.hpp>
+	#include <SFML/System/Clock.hpp>
+#endif
+
+#include "Client.hpp"
+#include "Packet.hpp"
+#include "Servers.hpp"
+
+std::shared_ptr<network::Client> This_Client = std::make_shared<network::Client>("", (int)ConnectionManager::TypeProtocol::TCP |
+(int)ConnectionManager::TypeProtocol::VOIP, 0);
+
+const int SERVER_MAX_LEN = 2;
+const int CLIENT_MAX_LEN = 1024;
+const int ECHO_PORT = 50014;
+const std::string ECHO_PORT_STR{ std::to_string(ECHO_PORT) };
+const std::string HOSTNAME{ "localhost" };
+
+int samplerate = 192000; // It means struct ID
+enum SampleRates
+{
+	sr_44100 = 44100,
+	sr_48000 = 48000,
+	sr_96000 = 96000,
+	sr_192000 = 192000,
+};
+#ifdef HAS_VOIP_SERVER
+bool isPlayback = false;
+
+class Play : public sf::SoundRecorder, public sf::SoundStream
 {
 public:
-	client(asio::io_service& io_service,
-		asio::ssl::context& context,
-		asio::ip::tcp::resolver::iterator endpoint_iterator)
-		: socket_(io_service, context)
+	Play(asio::io_service &io, std::string host, int countChannels = 1, int SampleRate = SampleRates::sr_44100) :
+		socket(io)
 	{
-		socket_.set_verify_mode(asio::ssl::verify_peer);
-		socket_.set_verify_callback(
-			boost::bind(&client::verify_certificate, this, _1, _2));
+		if (isAvailable())
+			setChannelCount(countChannels);
+		// Set the sound parameters
+		initialize(1, SampleRate);
 
-		asio::async_connect(socket_.lowest_layer(), endpoint_iterator,
-			boost::bind(&client::handle_connect, this,
-				asio::placeholders::error));
+		socket = asio::ip::tcp::socket{ io };
+		tcp::resolver resolver{ io };
+
+		//ba::connect(socket, resolver.resolve(host, ECHO_PORT_STR));
+
+		std::string Login, Pass;
+		std::cout << "Enter Your Login: " << std::endl;
+		std::cin >> Login;
+		std::cout << "Enter Your Password: " << std::endl;
+		std::cin >> Pass;
+
+		This_Client->Connect(host, 25565, Login, Pass);
 	}
-
-	bool verify_certificate(bool preverified,
-		asio::ssl::verify_context& ctx)
+	void work()
 	{
-		// The verify callback can be used to check whether the certificate that is
-		// being presented is valid for the peer. For example, RFC 2818 describes
-		// the steps involved in doing this for HTTPS. Consult the OpenSSL
-		// documentation for more details. Note that the callback is called once
-		// for each certificate in the certificate chain, starting from the root
-		// certificate authority.
+		// Start playback
+		play();
 
-		// In this example we will simply print the certificate's subject name.
-		char subject_name[256];
-		X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
-		X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-		std::cout << "Verifying " << subject_name << "\n";
-
-		return preverified;
-	}
-
-	void handle_connect(const asio::error_code& error)
-	{
-		if (!error)
-		{
-			socket_.async_handshake(asio::ssl::stream_base::client,
-				boost::bind(&client::handle_handshake, this,
-					asio::placeholders::error));
-		}
-		else
-		{
-			std::cout << "Connect failed: " << error.message() << "\n";
-		}
-	}
-
-	void handle_handshake(const asio::error_code& error)
-	{
-		if (!error)
-		{
-			std::cout << "Enter message: ";
-			std::cin.getline(request_, max_length);
-			size_t request_length = strlen(request_);
-
-			asio::async_write(socket_,
-				asio::buffer(request_, request_length),
-				boost::bind(&client::handle_write, this,
-					asio::placeholders::error,
-					asio::placeholders::bytes_transferred));
-		}
-		else
-		{
-			std::cout << "Handshake failed: " << error.message() << "\n";
-		}
-	}
-
-	void handle_write(const asio::error_code& error,
-		size_t bytes_transferred)
-	{
-		if (!error)
-		{
-			asio::async_read(socket_,
-				asio::buffer(reply_, bytes_transferred),
-				boost::bind(&client::handle_read, this,
-					asio::placeholders::error,
-					asio::placeholders::bytes_transferred));
-		}
-		else
-		{
-			std::cout << "Write failed: " << error.message() << "\n";
-		}
-	}
-
-	void handle_read(const asio::error_code& error,
-		size_t bytes_transferred)
-	{
-		if (!error)
-		{
-			std::cout << "Reply: ";
-			std::cout.write(reply_, (std::streamsize)bytes_transferred);
-			std::cout << "\n";
-		}
-		else
-		{
-			std::cout << "Read failed: " << error.message() << "\n";
-		}
+		// Start receiving audio data
+		receiveLoop();
 	}
 
 private:
-	asio::ssl::stream<asio::ip::tcp::socket> socket_;
-	char request_[max_length];
-	char reply_[max_length];
-};
-typedef asio::ssl::stream<asio::ip::tcp::socket> ssl_socket;
+	bool onProcessSamples(const sf::Int16 *samples, std::size_t sampleCount) override
+	{
+		//if (!This_Client->GetConnect() || !This_Client->GetConnect()->IsConnected()) return false;
 
-class session
+
+		// Pack the audio samples into a network packet
+		std::shared_ptr<network::Packet> packet = std::make_shared<network::Packet>();
+		packet->CreatePacket((int)network::Packet::Type::VOIP, false);
+		packet->onReceive(samples, sampleCount * 2);
+
+		This_Client->GetConnect()->Send(packet->GetBinaryData().getData(), packet->GetBinaryData().getDataSize());
+		//asio::write(socket, asio::buffer());
+		//This_Client->Send(packet);
+
+		// Send the audio packet to the server
+		return true;
+	}
+
+	bool onGetData(sf::SoundStream::Chunk& data) override
+	{
+		//if (!This_Client->GetConnect() || !This_Client->GetConnect()->IsConnected()) return false;
+		// No new data has arrived since last update: wait until we get some
+		while (m_offset >= m_samples.size())
+			std::this_thread::sleep_for(100ms);
+
+		//m_offset = 0;
+		//m_tempBuffer.clear();
+
+		// Copy samples into a local buffer to avoid synchronization problems
+		// (don't forget that we run in two separate threads)
+		{
+			std::scoped_lock lock(m_mutex);
+			m_tempBuffer.assign(m_samples.begin() + static_cast<std::vector<sf::Int64>::difference_type>(m_offset), m_samples.end());
+		}
+
+		// Fill audio data to pass to the stream
+		data.samples = m_tempBuffer.data();
+		data.sampleCount = m_tempBuffer.size();
+
+		// Update the playing offset
+		m_offset += data.sampleCount;
+		//m_samples.clear();
+
+		return true;
+	}
+	void onSeek(sf::Time timeOffset) override
+	{
+		m_offset = static_cast<std::size_t>(timeOffset.asMilliseconds()) *
+			sf::SoundStream::getSampleRate() * sf::SoundStream::getChannelCount() / 1000;
+	}
+	void receiveLoop()
+	{
+		while (true)
+		{
+			std::scoped_lock lock(m_mutex);
+			network::Packet packet = network::Packet();
+
+			//boost::array<char, 65565> data;
+			//char *reply = new char[max_length];
+			//size_t reply_length = 
+			if (This_Client->IsSocketBlocking())
+				This_Client->GetConnect()->DoReceive();
+
+			//size_t lenght = asio::read(socket, asio::buffer(data));
+
+			//packet.onReceive(data.data(), lenght);
+			//reply[reply_length] = '\0';
+
+			This_Client->GetConnect()->GetPacket(packet, (int)network::Packet::Type::VOIP);
+
+			if (packet.getDataSize() > 0)
+			{
+				std::size_t sampleCount = packet.getDataSize(true) / 2;
+
+				// Don't forget that the other thread can access the sample array at any time
+				// (so we protect any operation on it with the mutex)
+				{
+					std::size_t oldSize = m_samples.size();
+					m_samples.resize(oldSize + sampleCount);
+					std::memcpy(&(m_samples[oldSize]), static_cast<const char*>(packet.getRAWData(true)), sampleCount);
+				}
+			}
+			std::this_thread::sleep_for(5ms);
+		}
+	}
+
+	std::recursive_mutex  m_mutex;
+	std::vector<sf::Int16> m_samples;
+	std::vector<sf::Int16> m_tempBuffer;
+	std::size_t m_offset = 0;
+	asio::ip::tcp::socket socket;
+};
+#endif
+std::shared_ptr<network::Server> This_Server = std::make_shared<network::Server>("127.0.0.1",
+(int)ConnectionManager::TypeProtocol::TCP | (int)ConnectionManager::TypeProtocol::VOIP);
+
+namespace
 {
-public:
-	session(asio::io_service& io_service,
-		asio::ssl::context& context)
-		: socket_(io_service, context)
+	void session(tcp::socket socket)
 	{
-	}
-
-	ssl_socket::lowest_layer_type& socket()
-	{
-		return socket_.lowest_layer();
-	}
-
-	void start()
-	{
-		socket_.async_handshake(asio::ssl::stream_base::server,
-			boost::bind(&session::handle_handshake, this,
-				asio::placeholders::error));
-	}
-
-	void handle_handshake(const asio::error_code& error)
-	{
-		if (!error)
+		std::cout << "Opening session" << std::endl;
+		try
 		{
-			socket_.async_read_some(asio::buffer(data_, max_length),
-				boost::bind(&session::handle_read, this,
-					asio::placeholders::error,
-					asio::placeholders::bytes_transferred));
+			for (;;)
+			{
+				boost::array<char, (SampleRates::sr_192000 * sizeof(sf::Int16)) * 2> data;
+				asio::error_code error;
+				size_t length = socket.read_some(asio::buffer(data), error);
+
+				if (error == asio::error::eof)
+					break; // Connection closed cleanly by peer.
+				else if (error)
+					throw asio::system_error(error); // Some other error.
+
+				asio::write(socket, asio::buffer(data));
+			}
 		}
-		else
+		catch (std::exception& e)
 		{
-			delete this;
+			std::cerr << "Session interrupted: " << e.what() << std::endl;
 		}
 	}
 
-	void handle_read(const asio::error_code& error,
-		size_t bytes_transferred)
+	void server(ba::io_context& io)
 	{
-		if (!error)
-		{
-			asio::async_write(socket_,
-				asio::buffer(data_, bytes_transferred),
-				boost::bind(&session::handle_write, this,
-					asio::placeholders::error));
-		}
-		else
-		{
-			delete this;
-		}
-	}
+		//tcp::acceptor acceptor{ io, tcp::endpoint(tcp::v4(), ECHO_PORT) };
+		
+		This_Server->Start();
 
-	void handle_write(const asio::error_code& error)
-	{
-		if (!error)
+		std::cout << "Server ready" << std::endl;
+
+		for (;;)
 		{
-			socket_.async_read_some(asio::buffer(data_, max_length),
-				boost::bind(&session::handle_read, this,
-					asio::placeholders::error,
-					asio::placeholders::bytes_transferred));
-		}
-		else
-		{
-			delete this;
+			std::this_thread::sleep_for(std::chrono::microseconds(100));
+			//std::thread(session, acceptor.accept()).detach();
 		}
 	}
 
-private:
-	ssl_socket socket_;
-	enum { max_length = 1024 };
-	char data_[max_length];
-};
-
-class server
-{
-public:
-	server(asio::io_service& io_service, unsigned short port)
-		: io_service_(io_service),
-		acceptor_(io_service,
-			asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)),
-		context_(asio::ssl::context::sslv23)
+	void client(ba::io_context& io, const std::string& host)
 	{
-		context_.set_options(
-			asio::ssl::context::default_workarounds
-			| asio::ssl::context::no_sslv2
-			| asio::ssl::context::single_dh_use);
-		//context_.set_password_callback(boost::bind(&server::get_password, this));
-		context_.use_certificate_chain_file("keys/rootca.crt");
-		context_.use_private_key_file("keys/rootca.key", asio::ssl::context::pem);
-		context_.use_tmp_dh_file("keys/dh2048.pem");
-
-		start_accept();
-	}
-
-	std::string get_password() const
-	{
-		return "test";
-	}
-
-	void start_accept()
-	{
-		session* new_session = new session(io_service_, context_);
-		acceptor_.async_accept(new_session->socket(),
-			boost::bind(&server::handle_accept, this, new_session,
-				asio::placeholders::error));
-	}
-
-	void handle_accept(session* new_session,
-		const asio::error_code& error)
-	{
-		if (!error)
+		try
 		{
-			new_session->start();
+			//tcp::socket socket{ io };
+			//tcp::resolver resolver{ io };
+			//ba::connect(socket, resolver.resolve(host, ECHO_PORT_STR));
+
+			std::shared_ptr<Play> Test = std::make_shared<Play>(io, host);
+			if (!Test->start(44100))
+			{
+				std::cerr << "Failed to start recorder" << std::endl;
+				return;
+			}
+			Test->work();
+
+			while (true)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+
+			/*std::cout << "Enter message: ";
+			char *request = new char[max_length];
+			std::cin >> request;
+			size_t request_length = std::strlen(request);
+			asio::write(socket, asio::buffer(request, request_length));
+			delete[] request;
+
+			char *reply = new char[max_length];
+			size_t reply_length = asio::read(socket, asio::buffer(reply, request_length));
+			reply[reply_length] = '\0';
+
+			std::cout << "Reply is: ";
+			std::cout << reply;
+			std::cout << std::endl;
+			delete[] reply;*/
 		}
-		else
+		catch (std::exception& e)
 		{
-			delete new_session;
+			std::cerr << "Exception: " << e.what() << "\n";
 		}
-
-		start_accept();
 	}
+}
 
-private:
-	asio::io_service& io_service_;
-	asio::ip::tcp::acceptor acceptor_;
-	asio::ssl::context context_;
-};
-
-#include <locale.h>
 int main(int argc, char* argv[])
 {
-	setlocale(LC_ALL, "Russian");
-	try
-	{
-		std::thread(
-			[&]
-		{
-			asio::io_service io_service;
-			server s(io_service, 20675);
-			io_service.run();
-		}).join();
-
-		Sleep(1000);
-
-		asio::io_service io_service;
-
-		asio::ip::tcp::resolver resolver(io_service);
-		asio::ip::tcp::resolver::query query("127.0.0.1", "20675");
-		asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
-
-		asio::ssl::context ctx(asio::ssl::context::sslv23);
-		
-		ctx.load_verify_file("keys/rootca.crt");
-
-		client c(io_service, ctx, iterator);
-
-		io_service.run();
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << "Exception: " << e.what() << "\n";
-	}
-
-	return 0;
+	setlocale(LC_ALL, "rus");
+	ba::io_context io;
+	std::string type;
+	std::cin >> type;
+	if (type == "c")
+		client(io, HOSTNAME);
+	else
+		server(io);
 }

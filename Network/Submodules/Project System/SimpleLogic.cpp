@@ -1,0 +1,62 @@
+#include "SimpleLogic.h"
+
+//ToDo("Need To Do Another One Capsule Physics And Add "Jump" To Logic")
+
+SimpleLogic::SimpleLogic()
+{
+	Points.push_back(std::make_shared<Point>(Vector3{ 0, 0, 0 }, Vector3{ 0, -1, 0 }, WalkToNewPoint));
+	Points.push_back(std::make_shared<Point>(Vector3{ 1, 1, 1 }, Vector3{ 0.f, 0.f, -1.f }, WalkToNewPoint));
+	Points.push_back(std::make_shared<Point>(Vector3{ 2, 2, 2 }, Vector3{ -1.f, 0.f, 0.f }, WalkToNewPoint));
+	Points.push_back(std::make_shared<Point>(Vector3{ 3, 3, 3 }, Vector3{ 0.f, 0.f, -1.f }, WalkToNewPoint));
+}
+
+void SimpleLogic::AddNewPoint(Vector3 Pos, Vector3 Rotate,
+	LogicMode TestState)
+{
+	Points.push_back(std::make_shared<Point>(Pos, Rotate, TestState));
+}
+
+void SimpleLogic::Update(Vector3 &Pos, Vector3 &Rot, float dTime)
+{
+	if (Points.empty() || isPaused)
+		return;
+
+	if (Progress > Points.size()-1)
+		Progress = 0;
+
+	auto _Point = Points.at(Progress);
+	//if (CurrentModes != Follow && (CurrentModes == WalkToNewPoint || CurrentModes == Stay
+	//	&& timer_1->GetElapsedSeconds() <= 0.5f)) // Wait for five (0.5f) seconds and go!
+	//{
+	//	CurrentModes = _Point->GetState();
+	//	Progress++;
+	//}
+
+	if (_Point->GetState() != Stay)
+	{
+		/*
+		Vector3 Scale = DirectX::XMVectorReplicate(dTime);
+		Vector3 LengthPos = DirectX::XMVectorSubtract(_Point->GetPos(), Pos),
+			LengthRot = DirectX::XMVectorSubtract(_Point->GetRotate(), Rot);
+		Pos = DirectX::XMVectorMultiplyAdd(Scale, LengthPos, Pos);
+		Rot = DirectX::XMVectorMultiplyAdd(Scale, LengthRot, Rot);
+
+		Pos = DirectX::XMVectorLerp(Pos, _Point->GetPos(), dTime);
+		Rot = DirectX::XMVectorLerp(Rot, _Point->GetRotate(), dTime);
+		if ((isnan<float>(Pos.x) || isinf<float>(Pos.x)) &&
+			(isnan<float>(Pos.y) || isinf<float>(Pos.y)) &&
+			(isnan<float>(Pos.z) || isinf<float>(Pos.z)))
+			Pos = _Point->GetPos();
+		if ((isnan<float>(Rot.x) || isinf<float>(Rot.x)) &&
+			(isnan<float>(Rot.y) || isinf<float>(Rot.y)) &&
+			(isnan<float>(Rot.z) || isinf<float>(Rot.z)))
+			Rot = _Point->GetRotate();
+
+		if (DirectX::XMVector3NearEqual(_Point->GetPos(), Pos, DirectX::SimpleMath::Vector3(0.001f, 0.001f, 0.001f)) &&
+			DirectX::XMVector3NearEqual(_Point->GetRotate(), Rot, DirectX::SimpleMath::Vector3(0.001f, 0.001f, 0.001f)))
+			Progress++;
+		*/
+	}
+	else
+		Progress++;
+}

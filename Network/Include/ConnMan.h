@@ -31,14 +31,15 @@ public:
 		Server = 0,
 		Client
 	};
-	enum TypeProtocol
+	enum class TypeProtocol: int
 	{
-		TCP = 0,
-		UDP = 1,
-		FTP
+		TCP = (1 << 0),
+		UDP = (1 << 1),
+		FTP = (1 << 2),
+		VOIP = (1 << 3)
 	};
 
-	ConnectionManager(const TypeWorking &_Type, const TypeProtocol &_Proto, const std::string &IP, const USHORT &port,
+	ConnectionManager(const TypeWorking &_Type, const int Protocol, const std::string &IP, const USHORT &port,
 		size_t numThreads = 2);
 	ConnectionManager(const ConnectionManager &) = delete;
 	ConnectionManager(ConnectionManager &&) = delete;
@@ -46,17 +47,19 @@ public:
 	ConnectionManager &operator = (ConnectionManager &&) = delete;
 	~ConnectionManager();
 
-	void StartSystem(const std::function<void(Connection::SharedPtr)> &Func = nullptr);
+	bool StartSystem(const std::function<void(Connection::SharedPtr)> &Func = nullptr);
 	void StopSystem();
 
 	void SetIP(const std::string &NewIP) { _IP = NewIP; }
 	void SetPort(USHORT NewPort) { _Port = NewPort; }
 
-	bool ConnectToServer();
+	// If Server Supports Cookies We Can Send Login And If Server Needs Your Password It Sends Need_To_Login Packet
+	bool ConnectToServer(const std::string &Login, const std::string &Pass);
 	bool IsRunning() const;
 	
 	void Send(const std::shared_ptr<network::Packet> &Packet);
 	void Send(const std::string &Packet);
+	void Send(const void *Data, size_t Size);
 
 	void SetCB_Accept(const std::function<void(Connection::SharedPtr)> &Func);
 	void SetCB_OnPacketHandle(const std::function<void(Connection::SharedPtr)> &Func);
@@ -64,6 +67,8 @@ public:
 	void SetCB_OnError(const std::function<void(asio::error_code)> &Func);
 
 	void OnConnectionClosed(Connection::SharedPtr connection, bool Need2DiscFromMySQL = true);
+	bool OnConnection(Connection::SharedPtr connection, const std::string &Login,
+		const std::string &Pass = std::string());
 
 	std::atomic_bool &isInUpdate() { return isUpdate; };
 
@@ -71,7 +76,7 @@ public:
 	Connection::SharedPtr GetConnect();
 	
 	const TypeWorking GetTypeWork() const { return _Type; }
-	const TypeProtocol GetProtocol() const { return _Proto; }
+	const int GetProtocol() const { return _Proto; }
 
 	asio::io_service &GetIOService() { return m_io_service; }
 
@@ -142,6 +147,82 @@ public:
 		UNREFERENCED_PARAMETER(RSA_Private_Key);
 #endif
 	}
+
+	struct PoolWaiter
+	{
+	public:
+		enum ReturnType{ Type = 1, Status };
+	private:
+		std::mutex m_PacketWaiter;
+		std::atomic_bool WasPacket = false;
+		std::atomic_bool wasActive = false;
+		std::atomic_bool NeedToBreak = false;
+		std::chrono::time_point<std::chrono::steady_clock> Cur, Last;
+
+		// Packet Type To Check
+		//		type, need to break all chain
+		std::map<int, bool> TypeToCheck; // ref: network::Packet::Type
+
+		// Packet Status (Only Works With Type)
+		//		type, need to break all chain
+		std::map<int, bool> StatusToCheck; // ref: network::Packet::Status
+
+		std::pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>> CauseBreak;
+	public:
+		//std::condition_variable cv_PacketWaiter;
+
+		void SetTypeCauseBreak(const int &Type)
+		{
+			//							.first		.second			.first			.second
+			CauseBreak = std::make_pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>(ReturnType::Type,
+				{ (*TypeToCheck.find(Type)), { -1, false } });
+		}
+		void SetStatusCauseBreak(const int &Type, const int &Status)
+		{
+			//							.first		.second			.first			.second
+			CauseBreak = std::make_pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>(ReturnType::Status,
+				{ (*TypeToCheck.find(Type)), (*StatusToCheck.find(Status)) });
+		}
+
+		// Set Type To Check In Needed Packet When It Cames
+		void SetType(const int &Type, bool need2break = false)
+		{
+			TypeToCheck.insert({ Type, need2break });
+		}
+		// Sets When Need To Unblock "Check" Function
+		void NotifyOne()
+		{
+			NeedToBreak.store(true);
+		}
+
+		// Sets When Packet Has Come
+		void SetWasPacket()
+		{
+			WasPacket.store(true);
+		}
+		// Set Status To Check In Needed Packet When It Cames (Only Works With Type!!!)
+		void SetStatus(const int &Status, const int &Type, bool need2break = false)
+		{
+			TypeToCheck.insert({ Type, need2break });
+			StatusToCheck.insert({ Status, need2break });
+		}
+
+		std::map<int, bool> &GetStatus() { return StatusToCheck; }
+		std::map<int, bool> &GetType() { return TypeToCheck; }
+		bool WasActive() { return wasActive.load(); }
+		//			//was break								// type,				// status
+		std::pair<bool, std::pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>>
+			Check(const std::chrono::seconds &TimeOut = 60s);
+	};
+
+	void EnableNotAllowWithoutCookie();
+	void DisableNotAllowWithoutCookie();
+
+	void SetSocketBlocking(bool IsNeed2Block)
+	{
+		SocketBlocking = IsNeed2Block;
+	}
+	bool IsSocketBlocking() { return SocketBlocking; }
 protected:
 	asio::io_service m_io_service;
 	std::shared_ptr<asio::ip::tcp::acceptor> m_acceptor;
@@ -164,9 +245,9 @@ protected:
 	void DoAccept();
 	void Handler(std::function<void(Connection::SharedPtr)> Func);
 
-	bool IsWorking = false;
+	bool IsWorking = false, NotAllowWithoutCookie = false, SocketBlocking = false;
 	TypeWorking _Type;
-	TypeProtocol _Proto;
+	int _Proto = (int)TypeProtocol::TCP;
 
 	std::function<void(Connection::SharedPtr)> Callback_OnClientHandler, Callback_Accept, Callback_OnLoggin;
 	std::function<void(asio::error_code)> Callback_OnError;
@@ -181,4 +262,6 @@ protected:
 	bool GetTimer(const Connection::SharedPtr &User);
 
 	bool LoadConfig();
+	
+	std::shared_ptr<Cookie> cookie_users = std::make_shared<Cookie>();
 };

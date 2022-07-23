@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TestServer.cpp">
+    <ClCompile Include="TestCypher.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>

@@ -21,6 +21,10 @@ using namespace boost::filesystem;
 
 #include <Shellapi.h>
 #include "ODBC/ODBC.h"
+#include "Servers.hpp"
+
+std::shared_ptr<network::ServerFTP> This_Server_FTP;
+std::shared_ptr<network::FTPClient> This_Client;
 
 namespace tests
 {
@@ -103,15 +107,25 @@ int main()
 	{
 		std::string Cmd;
 		std::cin >> Cmd;
-		if (Cmd == "disable")
+		if (Cmd == "s")
 		{
-			CppLogger::DisablePrintAll();
-			Logger_Error("Now It Doesn't Work");
+			if (!This_Server_FTP)
+			{
+				This_Server_FTP = std::make_shared<network::ServerFTP>();
+				This_Server_FTP->Start();
+			}
+			//CppLogger::DisablePrintAll();
+			//Logger_Error("Now It Doesn't Work");
 		}
-		if (Cmd == "enable")
+		if (Cmd == "c")
 		{
-			CppLogger::EnablePrintAll();
-			Logger_Error("Now It Works");
+			if (!This_Client)
+			{
+				This_Client = std::make_shared<network::FTPClient>();
+				This_Client->Connect("127.0.0.1", "PBAX", "OK");
+			}
+			//CppLogger::EnablePrintAll();
+			//Logger_Error("Now It Works");
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}

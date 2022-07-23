@@ -32,8 +32,8 @@ namespace odbc
 		int GetCntData(const std::string &query) const;
 
 	public:
-		ODBC() {}
-		~ODBC() {}
+		ODBC() = default;
+		~ODBC() = default;
 
 		const std::string GetCurrentTable() const { return CurrentTable; }
 		void SetCurrentTable(const std::string& TableName) { CurrentTable = TableName; }
