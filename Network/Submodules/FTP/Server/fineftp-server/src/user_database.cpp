@@ -111,15 +111,6 @@ namespace fineftp
 			HaveConnect = false;
 			return false;
 		}
-/*
-		auto res = mysqlDB.SelectValues(std::vector<std::string>{ "*" });
-
-		for (unsigned int col = 0; col < res["_N"].size(); ++col)
-			addUser(res["Username"][col], res["Password"][col], res["UserPermissions"][col],
-				res["FilesPermissions"][col]);
-
-		HaveConnect = true;
-*/
 		return true;
 	}
 
@@ -157,6 +148,7 @@ namespace fineftp
 				database_.erase(username);
 
 			user->password_          = res["_2"][0];
+			std::transform(user->password_.begin(), user->password_.end(), user->password_.begin(), ::toupper);
 			user->user_permissions_  = res["_3"][0];
 			user->files_permissions_ = res["_4"][0];
 
@@ -195,12 +187,6 @@ namespace fineftp
 			return false;
 		}
 
-/*
-		auto res = odbcDB.SelectValues("user_wright", { "*" });
-
-		for (unsigned int col = 0; col < res["_N"].size(); ++col)
-			addUser(res["Username"][col], res["Password"][col], res["UserPermissions"][col], res["FilesPermissions"][col]);
-*/
 		HaveConnect = true;
 		return true;
 	}
@@ -238,9 +224,10 @@ namespace fineftp
 			auto user = database_[username];
 			database_.erase(username);
 
-			user->password_ = res["_2"][0];
-			user->user_permissions_ = res["_3"][0];
-			user->files_permissions_ = res["_4"][0];
+			user->password_ =			res["_2"][0];
+			std::transform(user->password_.begin(), user->password_.end(), user->password_.begin(), ::toupper);
+			user->user_permissions_ =	res["_3"][0];
+			user->files_permissions_ =	res["_4"][0];
 
 			database_[res["_1"][0]] = user;
 

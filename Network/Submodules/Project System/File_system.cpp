@@ -6,7 +6,7 @@ using namespace std::filesystem;
 const std::string File_system::GetFTPPath()
 {
 	std::string local_root;
-	if (path(GetCurrentPath().c_str()).compare(std::string("workspace")) > 0)
+	if (local_root.rfind(std::string("workspace")) == std::string::npos)
 		local_root = GetCurrentPath() + "Workspace/";
 	else
 		local_root = GetCurrentPath();
@@ -16,7 +16,7 @@ const std::string File_system::GetFTPPath()
 const std::string File_system::SetPathFTP()
 {
 	std::string local_root = GetCurrentPath();
-	if (path(local_root.c_str()).compare(std::string("workspace")) > 0)
+	if (local_root.rfind(std::string("workspace")) == std::string::npos)
 	{
 		if (!exists(local_root + "Workspace"))
 			create_directories(local_root + "Workspace/");
@@ -32,7 +32,7 @@ const std::string File_system::SetPathFTP()
 void File_system::SetupLogs()
 {
 	std::string local_root = GetCurrentPath();
-	if (path(local_root.c_str()).compare(std::string("workspace")) > 0)
+	if (local_root.rfind(std::string("workspace")) == std::string::npos)
 	{
 		if (!exists(local_root + "Workspace"))
 			create_directories(local_root + "Workspace/");
@@ -59,7 +59,7 @@ void File_system::SetupLogs()
 
 void File_system::Update()
 {
-	//fileWatcher.update();
+	fileWatcher.update();
 }
 
 File_system::File_system()
@@ -79,7 +79,7 @@ File_system::File_system()
 	WorkDir = std::filesystem::path(PathBuf);
 
 #if __has_include("logger.h")
-	Logger_Info_F("Selected Current Path: %s", WorkDir.string().c_str());
+	Logger_Info_F("Selected Current Path: {}", WorkDir.string());
 #endif
 
 	WorkDirSources = WorkDir.generic_string() + ((WorkDir.generic_string().back() == '/')
@@ -90,16 +90,14 @@ File_system::File_system()
 
 	ScanFiles();
 	
-	/*
 	try
 	{
 		fileWatcher.addWatch(path(WorkDirSources).string(), &listener);
 	}
 	catch (std::exception& e)
 	{
-		Logger_Error_F("An exception has occurred: %s\n", e.what());
+		Logger_Error_F("An exception has occurred: {}\n", e.what());
 	}
-	*/
 }
 
 void File_system::ScanFiles()
@@ -120,7 +118,7 @@ void File_system::ScanFiles()
 	auto file = getFilesInFolder(WorkDirSources, true, true);
 
 #if __has_include("logger.h")
-	Logger_Info_F("All Files Found In Resource Folder Is: %lu", file.size());
+	Logger_Info_F("All Files Found In Resource Folder Is: {}", file.size());
 #endif
 
 	int c_AllFilesWasAdded = 0;
@@ -194,7 +192,7 @@ void File_system::ScanFiles()
 		}
 	}
 #if __has_include("logger.h")
-	Logger_Info_F("Count Files Added To Engine Is: %i", std::to_string(c_AllFilesWasAdded));
+	Logger_Info_F("Count Files Added To Engine Is: {}", c_AllFilesWasAdded);
 #endif
 }
 
@@ -1031,7 +1029,7 @@ shared_ptr<File_system::File> File_system::AddFile(path File)
 		if (T == _TypeOfFile::NONE)
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("File: %s Isn't Supported By Engine\n", Fname.c_str());
+			Logger_Error_F("File: \"{}\" Isn't Supported By Engine\n", Fname.c_str());
 #endif
 			return shared_ptr<File_system::File>(); // Unsupported File!
 		}
@@ -1054,7 +1052,7 @@ shared_ptr<File_system::File> File_system::AddFile(path File)
 		if (!exists(_Obj->Path))
 		{
 #if __has_include("logger.h")
-			Logger_Error_F("\"%s\" Doesn't Exist Or Not Found!\n", Fname.c_str());
+			Logger_Error_F("\"{}\" Doesn't Exist Or Not Found!\n", Fname.c_str());
 #endif
 			return shared_ptr<File_system::File>();
 		}
@@ -1064,7 +1062,7 @@ shared_ptr<File_system::File> File_system::AddFile(path File)
 	if (!_Obj && _Obj->Path.empty() && _Obj->Size == 0)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("\"%s\" not supported!\n", Fname.c_str());
+		Logger_Error_F("\"{}\" not supported!\n", Fname.c_str());
 #endif
 	}
 	else
@@ -1147,7 +1145,7 @@ string File_system::getDataFromFile(const string &File, const string &start, con
 	catch (const std::ifstream::failure &e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Catch With Error:!\nMessage: %s\nError Code: %i",
+		Logger_Error_F("Catch With Error:!\nMessage: \"{}\"\nError Code: {}",
 			e.code().message().c_str(), e.code().value());
 #endif
 	}
@@ -1203,7 +1201,7 @@ bool File_system::ReadFileMemory(const char *filename, size_t &FileSize,
 	catch (const std::ifstream::failure &e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Catch With Error:!\nMessage: %s\nError Code: %i",
+		Logger_Error_F("Catch With Error:!\nMessage: \"{}\"\nError Code: {}",
 			e.code().message().c_str(), e.code().value());
 #endif
 	}
@@ -1220,7 +1218,7 @@ boost::property_tree::ptree File_system::LoadSettingsFile()
 		if (!exists(p)) return boost::property_tree::ptree();
 
 #if __has_include("logger.h")
-		Logger_Debug_F("Trying To Load Settings From: %s", p.string().c_str());
+		Logger_Debug_F("Trying To Load Settings From: \"{}\"", p.string().c_str());
 #endif
 
 		vector<unsigned char> File; size_t Size = 0;
@@ -1238,7 +1236,7 @@ boost::property_tree::ptree File_system::LoadSettingsFile()
 	catch (const boost::property_tree::ptree_error &e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Error Occured: %s", e.what());
+		Logger_Error_F("Error Occured: {}", e.what());
 #endif
 		return boost::property_tree::ptree();
 	}
@@ -1268,7 +1266,19 @@ void File_system::SaveSettings(const vector<pair<string, string>> &ToFile)
 	catch (const boost::property_tree::ptree_error &e)
 	{
 #if __has_include("logger.h")
-		Logger_Error_F("Error Occured: %s", e.what());
+		Logger_Error_F("Error Occured: {}", e.what());
+#endif
+	}
+}
+
+void File_system::UpdateListener::handleFileAction(FW::WatchID watchid, const FW::String &dir,
+	const FW::String &filename, FW::Action action)
+{
+	path ChangedDir = dir;
+	if (ChangedDir == getPathFromType(_TypeOfFile::SCRIPTS) && action == FW::Action::Modified)
+	{
+#if __has_include("logger.h")
+		Logger_Info("'" + filename + "' Was Changed!");
 #endif
 	}
 }

@@ -130,14 +130,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;WIN32;_DEBUG;_CONSOLE;_WINDOWS;ASIO_STANDALONE;__USE_FILE_OFFSET64=1;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;CPPCONN_LIB_BUILD;MYSQLCLIENT_STATIC_BINDING;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING;ASIO_HAS_IOCP;ASIO_HAS_BOOST_DATE_TIME;%(PreprocessorDefinitions);CRYPTOPP_ENABLE_NAMESPACE_WEAK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger\src;$(SolutionDir)Network\Submodules\SFML\include;$(SolutionDir)Network\Submodules\SFMLextlibs\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\json\include;$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger\src;$(SolutionDir)Network\Submodules\SFML\include;$(SolutionDir)Network\Submodules\SFMLextlibs\headers;$(SolutionDir)Network\Submodules\Project System\FileWatcher;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Network.lib;%(AdditionalDependencies);legacy_stdio_definitions.lib;tinyxml2d.lib;assimp-vc141-mtd.lib;DirectXTK.lib</AdditionalDependencies>
+      <AdditionalDependencies>Network.lib;%(AdditionalDependencies);legacy_stdio_definitions.lib;tinyxml2d.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Network\Submodules\MySQL Connection\Lib\$(Configuration);$(SolutionDir)Build\$(Configuration)\;$(SolutionDir)Network\Submodules\Boost\Libs\;$(SolutionDir)Network\Submodules\tinyXML2\$(ConfigurationName);$(SolutionDir)Network\Submodules\File System\Level\Model\ASSIMP\lib\$(Configuration);$(SolutionDir)Network\Submodules\DXTK\Bin\Desktop_2017\Win32\$(Configuration)</AdditionalLibraryDirectories>
       <ForceFileOutput>MultiplyDefinedSymbolOnly</ForceFileOutput>
     </Link>

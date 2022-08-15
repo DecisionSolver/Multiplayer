@@ -26,7 +26,8 @@ namespace fineftp
 	//How it works:
 	//It parses object_path by going deeper in user's files_permissions
 	//If directory in object_path is presented in subjson it goes in that dir in subjson and substracts next part from object_path
-	//Else (and if it's file) it checks for ".AllFolderFiles" and for file's permissions (if presented) and returns true or false if it corresponds with chosen permissions
+	//Else (and if it's file) it checks for ".AllFolderFiles" and for file's permissions (if presented) and returns true or false
+	//if it corresponds with chosen permissions
 	inline bool hasObjectPermissionsImpl(const std::string& object_path, const FilePermission permissions, nlohmann::json& subjson)
 	{
 		if (subjson.empty() || subjson.find(".AllFolderFiles") == subjson.end())
