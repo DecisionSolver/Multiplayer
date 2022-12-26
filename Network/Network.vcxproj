@@ -49,12 +49,15 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="All.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="All.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="All.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -82,11 +85,10 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\FTP\fineftp-server\include;$(SolutionDir)Network\Submodules\Boost;$(SolutionDir)Network\Submodules\SelfLogger\src;$(SolutionDir)Network\Submodules;%(AdditionalIncludeDirectories);$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\Project System\FileWatcher;$(SolutionDir)Network\Submodules\tinyXML2;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules\FTP\Server\fineftp-server\include;$(SolutionDir)Network\Submodules\FTP\Server\fineftp-server\src;$(SolutionDir)Network\Submodules\FTP\Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Submodules\SFML\include;$(SolutionDir)Network\Submodules\SFMLextlibs\headers;$(SolutionDir)Network\Include\HTTP</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -96,8 +98,6 @@
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>liblz4_static.lib;mysqlcppconn8-2-vs14.lib;jdbc.lib;common.lib;libmysql.lib;Dnsapi.lib;libcrypto.lib;libssl.lib;libcurl-d.lib;cryptlib.lib;%(AdditionalDependencies);flac.lib;freetype.lib;ogg.lib;openal32.lib;vorbis.lib;vorbisenc.lib;vorbisfile.lib;sfml-audio-s-d.lib;sfml-system-s-d.lib;sfml-network-s-d.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Network\Submodules\MySQL Connection\Lib\$(Configuration);$(SolutionDir)Network\Submodules\LZ4\Lib\$(Configuration);$(SolutionDir)Network\Submodules\Boost\Libs;$(SolutionDir)Network\Submodules\libcurl\lib\$(Configuration);$(SolutionDir)Network\Submodules\crypto++\Lib\$(Configuration);%(AdditionalLibraryDirectories);$(SolutionDir)Network\Submodules\SFML\lib\$(Configuration);$(SolutionDir)Network\Submodules\SFML\extlibs\libs-msvc-universal\x86;$(SolutionDir)Network\Submodules\SteamSDK\bin</AdditionalLibraryDirectories>
       <AdditionalOptions>/Ignore:4006 /Ignore:4221 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Xdcmake>
@@ -118,7 +118,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\boost;$(SolutionDir)Network\Submodules\SelfLogger\src;%(AdditionalIncludeDirectories);$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\tinyXML2;$(SolutionDir)Network\Submodules\File System\FileWatcher;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules;$(SolutionDir)Network\Submodules\FTP\Server\fineftp-server\include;$(SolutionDir)Network\Submodules\FTP\Server\fineftp-server\src;$(SolutionDir)Network\Submodules\FTP\Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Submodules\SFML\include;$(SolutionDir)Network\Submodules\SFMLextlibs\headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Submodulesjson\include;$(ProjectDir)Include;$(SolutionDir)SubmodulesLZ4\Include;$(SolutionDir)SubmodulesMySQL Connection\Include;$(SolutionDir)Submodulesboost\asio\include;$(SolutionDir)Submodulesboost;$(SolutionDir)SubmodulesSelfLogger\src;%(AdditionalIncludeDirectories);$(SolutionDir)Submodulescrypto++\include;$(SolutionDir)SubmodulestinyXML2;$(SolutionDir)SubmodulesFile System\FileWatcher;$(SolutionDir)Network\Include;$(SolutionDir)Network\Submodules;$(SolutionDir)SubmodulesFTP\Server\fineftp-server\include;$(SolutionDir)SubmodulesFTP\Server\fineftp-server\src;$(SolutionDir)SubmodulesFTP\Server\thirdparty\asio\asio\include;$(SolutionDir)SubmodulesSFML\include;$(SolutionDir)SubmodulesSFMLextlibs\headers</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -131,7 +131,7 @@
     </Link>
     <Lib>
       <AdditionalDependencies>liblz4_static.lib;mysqlcppconn8-2-vs14.lib;Dnsapi.lib;libmysql.lib;libcrypto.lib;libssl.lib;libcurl.lib;cryptlib.lib;%(AdditionalDependencies);flac.lib;freetype.lib;ogg.lib;openal32.lib;vorbis.lib;vorbisenc.lib;vorbisfile.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Network\Submodules\MySQL Connection\Lib\$(Configuration);$(SolutionDir)Network\Submodules\LZ4\Lib\$(Configuration);$(SolutionDir)Network\Submodules\Boost\Libs;$(SolutionDir)Network\Submodules\libcurl\lib\$(Configuration);$(SolutionDir)Network\Submodules\crypto++\Lib\$(Configuration);%(AdditionalLibraryDirectories);$(SolutionDir)Network\Submodules\SFML\lib\$(Configuration);$(SolutionDir)Network\Submodules\SFML\extlibs\libs-msvc-universal\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)SubmodulesMySQL Connection\Lib\$(Configuration);$(SolutionDir)SubmodulesLZ4\Lib\$(Configuration);$(SolutionDir)SubmodulesBoost\Libs;$(SolutionDir)Submoduleslibcurl\lib\$(Configuration);$(SolutionDir)Submodulescrypto++\Lib\$(Configuration);%(AdditionalLibraryDirectories);$(SolutionDir)SubmodulesSFML\lib\$(Configuration);$(SolutionDir)SubmodulesSFML\extlibs\libs-msvc-universal\x86</AdditionalLibraryDirectories>
     </Lib>
     <Xdcmake>
       <AdditionalDocumentFile>%(AdditionalDocumentFile)</AdditionalDocumentFile>
@@ -151,7 +151,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Network\Submodules\json\include;$(ProjectDir)Include;$(SolutionDir)Network\Submodules\LZ4\Include;$(SolutionDir)Network\Submodules\MySQL Connection\Include;$(SolutionDir)Network\Submodules\boost\asio\include;$(SolutionDir)Network\Submodules\FTP\fineftp-server\include;$(SolutionDir)Network\Submodules\Boost;%(AdditionalIncludeDirectories);$(SolutionDir)Network\Submodules\crypto++\include;$(SolutionDir)Network\Submodules\FTP\Server\fineftp-server\include;$(SolutionDir)Network\Submodules\FTP\Server\fineftp-server\src;$(SolutionDir)Network\Submodules\FTP\Server\thirdparty\asio\asio\include;$(SolutionDir)Network\Submodules\SFML\include;$(SolutionDir)Network\Submodules\SFMLextlibs\headers</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Submodulesjson\include;$(ProjectDir)Include;$(SolutionDir)SubmodulesLZ4\Include;$(SolutionDir)SubmodulesMySQL Connection\Include;$(SolutionDir)Submodulesboost\asio\include;$(SolutionDir)SubmodulesFTP\fineftp-server\include;$(SolutionDir)SubmodulesBoost;%(AdditionalIncludeDirectories);$(SolutionDir)Submodulescrypto++\include;$(SolutionDir)SubmodulesFTP\Server\fineftp-server\include;$(SolutionDir)SubmodulesFTP\Server\fineftp-server\src;$(SolutionDir)SubmodulesFTP\Server\thirdparty\asio\asio\include;$(SolutionDir)SubmodulesSFML\include;$(SolutionDir)SubmodulesSFMLextlibs\headers</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -164,13 +164,15 @@
     </Link>
     <Lib>
       <AdditionalDependencies>liblz4_static.lib;mysqlcppconn8-2-vs14.lib;jdbc.lib;common.lib;libmysql.lib;Dnsapi.lib;libcrypto.lib;libssl.lib;libcurl-d.lib;cryptlib.lib;flac.lib;freetype.lib;ogg.lib;openal32.lib;vorbis.lib;vorbisenc.lib;vorbisfile.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Network\Submodules\MySQL Connection\Lib\Debug;$(SolutionDir)Network\Submodules\LZ4\Lib\Debug;$(SolutionDir)Network\Submodules\Boost\Libs;$(SolutionDir)Network\Submodules\libcurl\lib\Debug;$(SolutionDir)Network\Submodules\crypto++\Lib\Debug;%(AdditionalLibraryDirectories);$(SolutionDir)Network\Submodules\SFML\lib\$(Configuration);$(SolutionDir)Network\Submodules\SFML\extlibs\libs-msvc-universal\x86</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)SubmodulesMySQL Connection\Lib\Debug;$(SolutionDir)SubmodulesLZ4\Lib\Debug;$(SolutionDir)SubmodulesBoost\Libs;$(SolutionDir)Submoduleslibcurl\lib\Debug;$(SolutionDir)Submodulescrypto++\Lib\Debug;%(AdditionalLibraryDirectories);$(SolutionDir)SubmodulesSFML\lib\$(Configuration);$(SolutionDir)SubmodulesSFML\extlibs\libs-msvc-universal\x86</AdditionalLibraryDirectories>
     </Lib>
     <Xdcmake>
       <AdditionalDocumentFile>%(AdditionalDocumentFile)</AdditionalDocumentFile>
     </Xdcmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.cpp" />
+    <ClCompile Include="..\Submodules\Project System\File_system.cpp" />
     <ClCompile Include="Source\Client.cpp" />
     <ClCompile Include="Source\Connection.cpp" />
     <ClCompile Include="Source\ConnMan.cpp" />
@@ -183,21 +185,19 @@
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Servers.cpp" />
     <ClCompile Include="Source\DB_Query.cpp" />
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\filesystem.cpp" />
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp" />
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\server.cpp" />
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\server_impl.cpp" />
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\user_database.cpp" />
-    <ClCompile Include="Submodules\Project System\FileWatcher\SimpleDemo.cpp" />
-    <ClCompile Include="Submodules\Project System\FileWatcher\source\FileWatcher.cpp" />
-    <ClCompile Include="Submodules\Project System\FileWatcher\source\FileWatcherWin32.cpp" />
-    <ClCompile Include="Submodules\Project System\File_system.cpp" />
-    <ClCompile Include="Submodules\Project System\GameObjects.cpp" />
-    <ClCompile Include="Submodules\Project System\Levels.cpp" />
-    <ClCompile Include="Submodules\Project System\Project.cpp" />
-    <ClCompile Include="Submodules\Project System\SimpleLogic.cpp" />
-    <ClCompile Include="Submodules\Project System\Tools.cpp" />
-    <ClCompile Include="Submodules\SelfLogger\src\logger.cpp" />
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\filesystem.cpp" />
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp" />
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\server.cpp" />
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\server_impl.cpp" />
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\user_database.cpp" />
+    <ClCompile Include="..\Submodules\Project System\FileWatcher\source\FileWatcher.cpp" />
+    <ClCompile Include="..\Submodules\Project System\FileWatcher\source\FileWatcherWin32.cpp" />
+    <ClCompile Include="..\Submodules\Project System\GameObjects.cpp" />
+    <ClCompile Include="..\Submodules\Project System\Levels.cpp" />
+    <ClCompile Include="..\Submodules\Project System\Project.cpp" />
+    <ClCompile Include="..\Submodules\Project System\SimpleLogic.cpp" />
+    <ClCompile Include="..\Submodules\Project System\Tools.cpp" />
+    <ClCompile Include="..\Submodules\SelfLogger\src\logger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Client.hpp" />
@@ -215,24 +215,24 @@
     <ClInclude Include="Include\pch.h" />
     <ClInclude Include="Include\Servers.hpp" />
     <ClInclude Include="Include\DB_Query.hpp" />
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h" />
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\include\fineftp\server.h" />
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\filesystem.h" />
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_message.h" />
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_session.h" />
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_user.h" />
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\server_impl.h" />
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\user_database.h" />
-    <ClInclude Include="Submodules\Project System\FileWatcher\FileWatcher\FileWatcher.h" />
-    <ClInclude Include="Submodules\Project System\FileWatcher\FileWatcher\FileWatcherImpl.h" />
-    <ClInclude Include="Submodules\Project System\FileWatcher\FileWatcher\FileWatcherWin32.h" />
-    <ClInclude Include="Submodules\Project System\File_system.h" />
-    <ClInclude Include="Submodules\Project System\GameObjects.h" />
-    <ClInclude Include="Submodules\Project System\Levels.h" />
-    <ClInclude Include="Submodules\Project System\Project.h" />
-    <ClInclude Include="Submodules\Project System\SimpleLogic.h" />
-    <ClInclude Include="Submodules\Project System\Tools.h" />
-    <ClInclude Include="Submodules\SelfLogger\src\logger.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\include\fineftp\server.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\filesystem.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_message.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_session.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\server_impl.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\user_database.h" />
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcher.h" />
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherImpl.h" />
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherWin32.h" />
+    <ClInclude Include="..\Submodules\Project System\File_system.h" />
+    <ClInclude Include="..\Submodules\Project System\GameObjects.h" />
+    <ClInclude Include="..\Submodules\Project System\Levels.h" />
+    <ClInclude Include="..\Submodules\Project System\Project.h" />
+    <ClInclude Include="..\Submodules\Project System\SimpleLogic.h" />
+    <ClInclude Include="..\Submodules\Project System\Tools.h" />
+    <ClInclude Include="..\Submodules\SelfLogger\src\logger.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

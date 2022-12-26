@@ -20,9 +20,9 @@
 #include <condition_variable>
 #include <memory>
 
-#include <cryptlib.h>
-#include <files.h>
-#include <hex.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/files.h>
+#include <cryptopp/hex.h>
 
 using namespace std::chrono_literals;
 

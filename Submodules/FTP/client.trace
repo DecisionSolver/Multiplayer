@@ -1,0 +1,72 @@
+>mysql_real_query
+| enter: handle: 01570948
+| query: Query = 'USE `ds_users`'
+| >mysql_send_query
+| | >mysql_prepare_com_query_parameters
+| | <mysql_prepare_com_query_parameters
+| | >cli_advanced_command
+| | | >vio_is_blocking
+| | | <vio_is_blocking
+| | | >net_clear
+| | | <net_clear
+| | | >vio_is_connected
+| | | | >vio_io_wait
+| | | | <vio_io_wait
+| | | <vio_is_connected
+| | | >vio_is_blocking
+| | | <vio_is_blocking
+| | | >net_write_command
+| | | | enter: length: 14
+| | | | >net_write_buff
+| | | | <net_write_buff
+| | | | >net_write_buff
+| | | | <net_write_buff
+| | | | >net_flush
+| | | | | >net_write_packet
+| | | | | | >__cdecl vio_write
+| | | | | | <__cdecl vio_write
+| | | | | <net_write_packet
+| | | | <net_flush
+| | | <net_write_command
+| | | exit: result: 0
+| | <cli_advanced_command
+| <mysql_send_query
+| >cli_read_query_result
+| | >__cdecl cli_safe_read_with_ok
+| | | >vio_is_blocking
+| | | <vio_is_blocking
+| | | >net_read_raw_loop
+| | | | >__cdecl vio_read_buff
+| | | | | enter: sd: 652  buf: 01582700  size: 4
+| | | | | >__cdecl vio_read
+| | | | | <__cdecl vio_read
+| | | | <__cdecl vio_read_buff
+| | | <net_read_raw_loop
+| | | packet_header: Memory: 01582700  Bytes: (4)
+14 00 00 01 
+| | | >net_read_raw_loop
+| | | | >__cdecl vio_read_buff
+| | | | | enter: sd: 652  buf: 01582700  size: 20
+| | | | <__cdecl vio_read_buff
+| | | <net_read_raw_loop
+| | | net read: Memory: 01582700  Bytes: (20)
+00 00 00 02 40 00 00 00 0B 01 09 08 64 73 5F 75 73 65 72 73 
+| | | >__cdecl cli_safe_read_with_ok_complete
+| | | <__cdecl cli_safe_read_with_ok_complete
+| | <__cdecl cli_safe_read_with_ok
+| | >free_old_query
+| | | >MEM_ROOT::Clear
+| | | | enter: root: 0156EB68
+| | | <MEM_ROOT::Clear
+| | <free_old_query
+| | info: affected_rows: 0  insert_id: 0
+| | info: status: 16386  warning_count: 0
+| | >my_multi_malloc
+| | <my_multi_malloc
+| | >*__cdecl list_add
+| | | enter: root: 00000000  element: 01593AD0
+| | <*__cdecl list_add
+| <cli_read_query_result
+| >mysql_extension_bind_free
+| <mysql_extension_bind_free
+<mysql_real_query

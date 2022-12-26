@@ -78,22 +78,22 @@
     <ClCompile Include="Source\ODBC\ODBC.cpp">
       <Filter>Source Files\ODBC</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\filesystem.cpp">
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\filesystem.cpp">
       <Filter>Source Files\fineftp</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp">
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp">
       <Filter>Source Files\fineftp</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\server.cpp">
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\server.cpp">
       <Filter>Source Files\fineftp</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\server_impl.cpp">
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\server_impl.cpp">
       <Filter>Source Files\fineftp</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\FTP\Server\fineftp-server\src\user_database.cpp">
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\user_database.cpp">
       <Filter>Source Files\fineftp</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\SelfLogger\src\logger.cpp">
+    <ClCompile Include="..\Submodules\SelfLogger\src\logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\DB_Query.cpp">
@@ -108,32 +108,32 @@
     <ClCompile Include="Source\Servers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\Project System\File_system.cpp">
+    <ClCompile Include="..\Submodules\Project System\FileWatcher\source\FileWatcher.cpp">
+      <Filter>Source Files\Project System\File System\File Watcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\FileWatcher\source\FileWatcherWin32.cpp">
+      <Filter>Source Files\Project System\File System\File Watcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\Tools.cpp">
+      <Filter>Source Files\Project System</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\Project.cpp">
+      <Filter>Source Files\Project System</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\GameObjects.cpp">
+      <Filter>Source Files\Project System\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\Levels.cpp">
+      <Filter>Source Files\Project System\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\SimpleLogic.cpp">
+      <Filter>Source Files\Project System\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\File_system.cpp">
       <Filter>Source Files\Project System\File System</Filter>
     </ClCompile>
-    <ClCompile Include="Submodules\Project System\FileWatcher\source\FileWatcher.cpp">
-      <Filter>Source Files\Project System\File System\File Watcher</Filter>
-    </ClCompile>
-    <ClCompile Include="Submodules\Project System\FileWatcher\source\FileWatcherWin32.cpp">
-      <Filter>Source Files\Project System\File System\File Watcher</Filter>
-    </ClCompile>
-    <ClCompile Include="Submodules\Project System\FileWatcher\SimpleDemo.cpp">
-      <Filter>Source Files\Project System\File System\File Watcher</Filter>
-    </ClCompile>
-    <ClCompile Include="Submodules\Project System\Tools.cpp">
-      <Filter>Source Files\Project System</Filter>
-    </ClCompile>
-    <ClCompile Include="Submodules\Project System\Project.cpp">
-      <Filter>Source Files\Project System</Filter>
-    </ClCompile>
-    <ClCompile Include="Submodules\Project System\GameObjects.cpp">
-      <Filter>Source Files\Project System\Level</Filter>
-    </ClCompile>
-    <ClCompile Include="Submodules\Project System\Levels.cpp">
-      <Filter>Source Files\Project System\Level</Filter>
-    </ClCompile>
-    <ClCompile Include="Submodules\Project System\SimpleLogic.cpp">
-      <Filter>Source Files\Project System\Level</Filter>
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.cpp">
+      <Filter>Source Files\fineftp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -170,34 +170,34 @@
     <ClInclude Include="Include\ODBC\ODBC.h">
       <Filter>Include Files\ODBC</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\filesystem.h">
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\filesystem.h">
       <Filter>Source Files\fineftp</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_message.h">
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_message.h">
       <Filter>Source Files\fineftp</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_session.h">
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_session.h">
       <Filter>Source Files\fineftp</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\ftp_user.h">
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.h">
       <Filter>Source Files\fineftp</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\server_impl.h">
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\server_impl.h">
       <Filter>Source Files\fineftp</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\src\user_database.h">
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\user_database.h">
       <Filter>Source Files\fineftp</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h">
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h">
       <Filter>Include Files\fineftp</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\FTP\Server\fineftp-server\include\fineftp\server.h">
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\include\fineftp\server.h">
       <Filter>Include Files\fineftp</Filter>
     </ClInclude>
     <ClInclude Include="Include\Servers.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\SelfLogger\src\logger.h">
+    <ClInclude Include="..\Submodules\SelfLogger\src\logger.h">
       <Filter>Include Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\DB_Query.hpp">
@@ -209,31 +209,31 @@
     <ClInclude Include="Include\http\HTTP.h">
       <Filter>Include Files\HTTP</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\File_system.h">
+    <ClInclude Include="..\Submodules\Project System\File_system.h">
       <Filter>Source Files\Project System\File System</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\FileWatcher\FileWatcher\FileWatcher.h">
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcher.h">
       <Filter>Source Files\Project System\File System\File Watcher</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\FileWatcher\FileWatcher\FileWatcherImpl.h">
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherImpl.h">
       <Filter>Source Files\Project System\File System\File Watcher</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\FileWatcher\FileWatcher\FileWatcherWin32.h">
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherWin32.h">
       <Filter>Source Files\Project System\File System\File Watcher</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\Tools.h">
+    <ClInclude Include="..\Submodules\Project System\Tools.h">
       <Filter>Source Files\Project System</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\Project.h">
+    <ClInclude Include="..\Submodules\Project System\Project.h">
       <Filter>Source Files\Project System</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\GameObjects.h">
+    <ClInclude Include="..\Submodules\Project System\GameObjects.h">
       <Filter>Source Files\Project System\Level</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\Levels.h">
+    <ClInclude Include="..\Submodules\Project System\Levels.h">
       <Filter>Source Files\Project System\Level</Filter>
     </ClInclude>
-    <ClInclude Include="Submodules\Project System\SimpleLogic.h">
+    <ClInclude Include="..\Submodules\Project System\SimpleLogic.h">
       <Filter>Source Files\Project System\Level</Filter>
     </ClInclude>
   </ItemGroup>

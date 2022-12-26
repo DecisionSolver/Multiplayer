@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Исходные файлы">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Исходные файлы\files test thing">
+      <UniqueIdentifier>{673aaf25-6af5-42d7-834e-102bf7fa7a6b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Main.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\DB_Query.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\FTPClient.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\MySQL\MySQL_Client.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\ODBC\ODBC.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\pch.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\Project System\File_system.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\SelfLogger\src\logger.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\FTP\Server\fineftp-server\src\server.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\FTP\Server\fineftp-server\src\server_impl.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\FTP\Server\fineftp-server\src\user_database.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\Project System\Tools.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\Project System\FileWatcher\source\FileWatcher.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\Project System\FileWatcher\source\FileWatcherWin32.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\FTP\Server\fineftp-server\src\filesystem.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\Packet.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\Servers.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\Client.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\Connection.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\ConnMan.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\Cookie.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\Project System\GameObjects.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\Project System\Levels.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\Project System\Project.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\Project System\SimpleLogic.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Submodules\FTP\Server\fineftp-server\src\ftp_user.cpp">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Submodules\Project System\GameObjects.h">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Submodules\Project System\Levels.h">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Submodules\Project System\Project.h">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Submodules\Project System\SimpleLogic.h">
+      <Filter>Исходные файлы\files test thing</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

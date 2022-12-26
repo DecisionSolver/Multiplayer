@@ -4,15 +4,12 @@
 
 #include "MySQL/MySQL_Client.h"
 #include <fineftp/server.h>
-//fineftp::FtpServer server(_IP, 2121, local_root.string(), "Microsoft Access Driver (*.mdb)",
-//"F:\\Programming\\C++\\Project\\ODBC\\ODBC\\test.MDB", std::vector<std::string>({ "READONLY=false" }), "12345");
 
-//--------------------------------------------------------------------
 class ConnectionManager
 {
 protected:
 	std::string _IP;
-	USHORT _Port = 0;
+	USHORT Port = 0;
 
 #if defined(USE_SSL)
 	bool IsSetupPathsCert_All = false, IsSetupPathsCert_Chain = false, IsSetupPathsCert_Private = false,
@@ -36,7 +33,6 @@ public:
 		TCP = (1 << 0),
 		UDP = (1 << 1),
 		FTP = (1 << 2),
-		VOIP = (1 << 3)
 	};
 
 	ConnectionManager(const TypeWorking &_Type, const int Protocol, const std::string &IP, const USHORT &port,
@@ -51,7 +47,7 @@ public:
 	void StopSystem();
 
 	void SetIP(const std::string &NewIP) { _IP = NewIP; }
-	void SetPort(USHORT NewPort) { _Port = NewPort; }
+	void SetPort(USHORT NewPort) { Port = NewPort; }
 
 	// If Server Supports Cookies We Can Send Login And If Server Needs Your Password It Sends Need_To_Login Packet
 	bool ConnectToServer(const std::string &Login, const std::string &Pass);
@@ -61,33 +57,48 @@ public:
 	void Send(const std::string &Packet);
 	void Send(const void *Data, size_t Size);
 
-	void SetCB_Accept(const std::function<void(Connection::SharedPtr)> &Func);
-	void SetCB_OnPacketHandle(const std::function<void(Connection::SharedPtr)> &Func);
-	void SetCB_OnLoggin(const std::function<void(Connection::SharedPtr)> &Func);
-	void SetCB_OnError(const std::function<void(asio::error_code)> &Func);
+	void Set_OnAccept(const std::function<void(Connection::SharedPtr)> &Func);
+	void Set_OnPacketHandle(const std::function<void(Connection::SharedPtr)> &Func);
+	void Set_OnLoggin(const std::function<void(Connection::SharedPtr)> &Func);
+	void Set_OnError(const std::function<void(asio::error_code)> &Func);
 
 	void OnConnectionClosed(Connection::SharedPtr connection, bool Need2DiscFromMySQL = true);
 	bool OnConnection(Connection::SharedPtr connection, const std::string &Login,
 		const std::string &Pass = std::string());
 
-	std::atomic_bool &isInUpdate() { return isUpdate; };
+	std::atomic_bool &isInUpdate()
+	{
+		return isUpdate;
+	};
 
 	// Only CLIENT!
 	Connection::SharedPtr GetConnect();
 	
-	const TypeWorking GetTypeWork() const { return _Type; }
-	const int GetProtocol() const { return _Proto; }
+	const TypeWorking GetTypeWork() const
+	{
+		return _Type;
+	}
+	const int GetProtocol() const
+	{
+		return _Proto;
+	}
 
-	asio::io_service &GetIOService() { return m_io_service; }
+	asio::io_service &GetIOService()
+	{
+		return m_io_service;
+	}
 
 	std::condition_variable &IsWait();
-	std::condition_variable &IsWaitMySQL() { return WaitForMySQL; }
+	std::condition_variable &IsWaitMySQL()
+	{
+		return WaitForMySQL;
+	}
 	
 	//asio::ip::udp::socket &GetSocketUDP() { return *m_SocketUDP; }
 	static std::map<asio::ip::udp::endpoint, Connection::SharedPtr> m_connectionsUDP;
 	static std::map<asio::ip::tcp::endpoint, Connection::SharedPtr> m_connectionsTCP;
 	
-	std::shared_ptr<mysql::MYSQLCLIENT> MySQL_DB = std::make_shared<mysql::MYSQLCLIENT>();
+	std::shared_ptr<mysql::Client> MySQL_DB = std::make_shared<mysql::Client>();
 
 	// Key
 	void Set_Cert_RSA_Private(const std::string &Path)
@@ -111,7 +122,10 @@ public:
 	void Set_Private_Key(const std::string &Path)
 	{
 #if defined(USE_SSL)
-		if (_Type == TypeWorking::Client) return;
+		if (_Type == TypeWorking::Client)
+		{
+			return;
+		}
 		const_cast<std::string &>(SSL_Private_Key) = Path;
 		IsSetupPathsCert_Private = true;
 #else
@@ -121,7 +135,10 @@ public:
 	void Set_TMP_DH(const std::string &Path)
 	{
 #if defined(USE_SSL)
-		if (_Type == TypeWorking::Client) return;
+		if (_Type == TypeWorking::Client)
+		{
+			return;
+		}
 		const_cast<std::string &>(SSL_TMP_DH) = Path;
 		IsSetupPathsCert_DH = true;
 #else
@@ -134,7 +151,10 @@ public:
 		const std::string &RSA_Private_Key)
 	{
 #if defined(USE_SSL)
-		if (_Type == TypeWorking::Client) return;
+		if (_Type == TypeWorking::Client)
+		{
+			return;
+		}
 		Set_Cert_RSA_Private(RSA_Private_Key);
 		Set_Cert_Chain(Cert_Chain);
 		Set_Private_Key(Cerf_Private_Key);
@@ -148,7 +168,7 @@ public:
 #endif
 	}
 
-	struct PoolWaiter
+	struct PoolWaiterPackets
 	{
 	public:
 		enum ReturnType{ Type = 1, Status };
@@ -207,9 +227,18 @@ public:
 			StatusToCheck.insert({ Status, need2break });
 		}
 
-		std::map<int, bool> &GetStatus() { return StatusToCheck; }
-		std::map<int, bool> &GetType() { return TypeToCheck; }
-		bool WasActive() { return wasActive.load(); }
+		std::map<int, bool> &GetStatus()
+		{
+			return StatusToCheck;
+		}
+		std::map<int, bool> &GetType()
+		{
+			return TypeToCheck;
+		}
+		bool WasActive()
+		{
+			return wasActive.load();
+		}
 		//			//was break								// type,				// status
 		std::pair<bool, std::pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>>
 			Check(const std::chrono::seconds &TimeOut = 60s);
@@ -222,7 +251,15 @@ public:
 	{
 		SocketBlocking = IsNeed2Block;
 	}
-	bool IsSocketBlocking() { return SocketBlocking; }
+	bool IsSocketBlocking()
+	{
+		return SocketBlocking;
+	}
+
+	std::shared_ptr<fineftp::FtpServer> GetFTPServer()
+	{
+		return FTPServer;
+	}
 protected:
 	asio::io_service m_io_service;
 	std::shared_ptr<asio::ip::tcp::acceptor> m_acceptor;

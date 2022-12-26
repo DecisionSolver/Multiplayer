@@ -5,23 +5,10 @@
 #define MacroStr2(x) MacroStr(x)
 #define ToDo(desc) __pragma(message(__FILE__ "(" MacroStr2(__LINE__) "): " #desc))
 
-//////////////////////////////////////////
-// #pragma			    				//
-//////////////////////////////////////////
-										//
-#pragma warning(disable: 4996)			//
-										//
-//////////////////////////////////////////
-// Headers			    				//
-//////////////////////////////////////////
-										//
-#include "mysql_connection.h"			//
-#include "mysql_driver.h"				//
-#include "mysql_error.h"				//
-#include "cppconn/statement.h"			//
-#include "nlohmann/json.hpp"			//
-										//
-//////////////////////////////////////////
-
+#include "mysql connector/include/jdbc/mysql_connection.h"
+#include "mysql connector/include/jdbc/mysql_driver.h"
+#include "mysql connector/include/jdbc/mysql_error.h"
+#include "mysql connector/include/jdbc/cppconn/statement.h"
+#include "nlohmann/json.hpp"
 
 #endif // MYSQL_CONFIG_H

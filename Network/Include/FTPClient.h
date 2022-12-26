@@ -6,41 +6,41 @@
 
 namespace network
 {
-	class FTPClient
+	class ClientFTP
 	{
 	public:
-		FTPClient();
-		~FTPClient();
+		ClientFTP();
+		~ClientFTP();
 
 		bool Connect(const std::string &ServerIP, const std::string &Login, const std::string &Pass, const uint16_t &Port = 0);
 		void Disconnect();
 
-		bool SendFile(const boost::filesystem::path &FilePath);
-		bool ReceiveFile(const boost::filesystem::path &Path, const boost::filesystem::path &Where);
+		bool SendFile(const std::filesystem::path &FilePath);
+		bool ReceiveFile(const std::filesystem::path &FilenameFromFTP_Folder, const std::filesystem::path &Where_FullPath);
 
 		const uint16_t &getPort();
 		const std::string &getIP();
 
 		bool IsConnected() { return Connected; }
 	private:
-		const uint16_t port_ = 2121;
-		const std::string IP, UserName;
+		std::string Stored_IP, Stored_Username, Stored_Password;
+		uint16_t Stored_Port = 0;
 		CURL *curl = nullptr;
 
-		struct WriteThis
+		struct WriteData
 		{
-			std::stringstream readptr;
-			size_t sizeleft = 0u;
+			std::stringstream Read_Buffer;
+			size_t Size_Left = 0u;
 		};
 		struct FtpFile
 		{
-			std::string filename;
+			std::string file_path;
 			FILE *stream = nullptr;
 		};
-		static size_t write_callback(void *buffer, size_t size, size_t nmemb, void *stream);
-		static size_t getcontentlengthfunc(void *ptr, size_t size, size_t nmemb, void *stream);
-		static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *stream);
+		static size_t Write(void *Buffer, size_t Size, size_t nmemb, void *stream);
+		static size_t getContentLength(void *Buffer, size_t Size, size_t nmemb, void *stream);
+		static size_t Read(void *Buffer, size_t Size, size_t nmemb, void *stream);
 
-		const bool Connected = false;
+		bool Connected = false;
 	};
 }

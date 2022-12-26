@@ -2,7 +2,7 @@
 #include "Packet.hpp"
 #include <fstream>
 #include <iostream>
-#include "LZ4/lz4.h"
+//#include "LZ4/lz4.h"
 
 namespace network
 {
@@ -150,8 +150,8 @@ namespace network
 				const char *_Data = js["data"]["body"].dump().c_str();
 
 				char* outData = new char[_H.OrigSize * 2];
-				uint32_t outSize = LZ4_decompress_safe(_Data, outData, /*_H.OrigSize*/Size, _H.OrigSize * 2);
-				outData[outSize] = '\0';
+				//uint32_t outSize = LZ4_decompress_safe(_Data, outData, /*_H.OrigSize*/Size, _H.OrigSize * 2);
+				//outData[outSize] = '\0';
 
 				js["data"]["body"] = outData;
 			}

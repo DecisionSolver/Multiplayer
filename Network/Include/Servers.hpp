@@ -16,8 +16,6 @@ namespace network
 		void Start();
 		void Send(const std::string &Packet);
 		void Send(const std::shared_ptr<network::Packet> &Packet);
-
-		bool IsWorking() const { return IsRunning(); }
 	private:
 		void OnPacketHandler(Connection::SharedPtr connection);
 	};
@@ -29,7 +27,5 @@ namespace network
 			ConnectionManager(ConnectionManager::TypeWorking::Server, _Proto, IP, Port, numThreads) {}
 		~ServerFTP() = default;
 		void Start();
-
-		bool IsWorking() const { return IsRunning(); }
 	};
 }

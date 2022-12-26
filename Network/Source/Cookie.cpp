@@ -2,7 +2,7 @@
 #include "SFML/System/Time.hpp"
 #include "SFML/System/Clock.hpp"
 
-#include "crypto++/include/gzip.h"
+#include "cryptopp/gzip.h"
 
 bool Cookie::isEnable = true;
 
@@ -18,7 +18,9 @@ std::string Cookie::Make(const std::string &uniq_cookie, const std::string &Name
 
 	auto it = Cookies.find(uniq_cookie);
 	if (it == Cookies.end()) // Wasn't Found
+	{
 		Cookies.insert({ uniq_cookie, std::make_shared<Cookie::Struct>(Name, Value, Domain) });
+	}
 
 	auto Crypted = nlohmann::json::to_ubjson({ Name, { Value, Domain } });
 
@@ -30,7 +32,10 @@ std::string Cookie::Make(const std::string &uniq_cookie, const std::string &Name
 
 nlohmann::json Cookie::ReadCookie(const std::string &Cookie)
 {
-	if (!isEnable) return nlohmann::json();
+	if (!isEnable)
+	{
+		return nlohmann::json();
+	}
 	return nlohmann::json::from_ubjson(HEX2String(Cookie));
 }
 
@@ -57,7 +62,11 @@ void Cookie::ProccessTime()
 
 std::string Cookie::AddCookie(const std::string &uniq_cookie, const std::shared_ptr<Cookie::Struct> &OneCookie)
 {
-	if (uniq_cookie.empty() || !OneCookie) return "";
+	if (uniq_cookie.empty() || !OneCookie)
+	{
+		return "";
+	}
+
 	Cookies.insert({ uniq_cookie, OneCookie });
 
 	nlohmann::json BuildCookie;
@@ -78,8 +87,12 @@ bool Cookie::FindCookie(const std::string &uniq_cookie)
 
 	auto it = Cookies.find(uniq_cookie);
 	if (it == Cookies.end()) // Wasn't Found
+	{
 		return false;
+	}
 	else
+	{
 		return true;
+	}
 	return false;
 }

@@ -10,3 +10,6 @@
 [submodule "Network/Submodules/SFML"]
 	path = Network/Submodules/SFML
 	url = https://github.com/SFML/SFML
+[submodule "Tests/API/gtest"]
+	path = Tests/API/gtest
+	url = https://github.com/google/googletest

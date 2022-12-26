@@ -89,7 +89,7 @@ public:
 	}
 #endif
 
-	std::shared_ptr<network::FTPClient> getFtpClient() { return ftpClient; }
+	std::shared_ptr<network::ClientFTP> getFtpClient() { return ftpClient; }
 
 	void SetEndPoint(const asio::ip::udp::endpoint &NewEndPoint) { remote_endpoint_ = NewEndPoint; }
 	asio::ip::udp::endpoint remote_endpoint() { return remote_endpoint_; }
@@ -153,7 +153,7 @@ private:
 	// Only For Server!
 	int UserID_MetaDB = 0; // Number Line Of This DB User (Easily Work With User In MySQL)
 
-	std::shared_ptr<network::FTPClient> ftpClient;
+	std::shared_ptr<network::ClientFTP> ftpClient;
 
 	std::atomic<size_t> ping = 0u;
 

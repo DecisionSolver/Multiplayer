@@ -9,10 +9,8 @@ extern std::unique_ptr<ProjectFile> Project;
 #include "Project System/File_system.h"
 extern std::shared_ptr<File_system> FS;
 
-//
 std::pair<bool, std::vector<std::string>> _Projects;
 std::shared_ptr<network::Packet> Get_AllProjects;
-//
 
 std::atomic_bool IsBlockByCommiting = false;
 #include "server_impl.h"
@@ -33,8 +31,8 @@ namespace network
 			connection->GetPacket(packet, (int)network::Packet::Type::VOIP);
 			if (packet)
 			{
-				std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
-				(*Answer) = packet;
+				std::shared_ptr<network::Packet> Answer;
+				Answer.reset(&packet);
 #if !defined(USE_SSL)
 				if (_Proto & (int)(TypeProtocol::TCP))
 				{
@@ -306,8 +304,9 @@ namespace network
 				// If File Is Exist
 				if (Obj && Obj->Size > 0)
 				{
-					ToDo("Determine where's the user path in FTP")
-					std::filesystem::path FilePath = FS->GetFTPPath() + "Users/" + std::to_string(connection->GetMetaDB_User()) + "/" +
+					ToDo("Determine where's the user path in FTP");
+
+					std::filesystem::path FilePath = FS->GetCurrentPath() + "Users/" + std::to_string(connection->GetMetaDB_User()) + "/" +
 						Obj->FName.string();
 
 					bool IfCopyDone = false;
@@ -343,7 +342,7 @@ namespace network
 					// Note: We Need To Send ONLY Relative Path To FTP User's Folder
 					//		And Then FTP Check User Wright By Itself When Will FTP Client Try File
 				
-					auto AllUsersFilesFTP = FS->getFilesInFolder(FS->GetFTPPath() + "Users/", true, true);
+					auto AllUsersFilesFTP = FS->getFilesInFolder(FS->GetCurrentPath() + "Users/", true, true);
 					for (const auto &File: AllUsersFilesFTP)
 					{
 						auto LowercaseFname = File.filename().string();
@@ -352,7 +351,7 @@ namespace network
 						boost::to_lower(LowercaseAnotherFname);
 						if (LowercaseFname == LowercaseAnotherFname)
 						{
-							std::string ret = std::filesystem::relative(File, FS->GetFTPPath()).string();
+							std::string ret = std::filesystem::relative(File, FS->GetCurrentPath()).string();
 							// If File Not Found
 							Answer->CreatePacket((int)network::Packet::Type::Sync_File, true,
 							{
@@ -386,7 +385,7 @@ namespace network
 				{
 					auto PacketData = packet.getData();
 					// Check File In Resources Of Engine
-					std::filesystem::path FilePath = FS->GetFTPPath() + "Users/" +
+					std::filesystem::path FilePath = FS->GetCurrentPath() + "Users/" +
 						std::to_string(connection->GetMetaDB_User()) + "/" +
 						PacketData["FName"].get<nlohmann::json::string_t>();
 

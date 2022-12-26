@@ -10,9 +10,9 @@ namespace network
 
 		std::this_thread::sleep_for(200ms);
 		if (ConnectToServer(Login, Pass))
+		{
 			return true;
-		else
-			return false;
+		}
 		return false;
 	}
 

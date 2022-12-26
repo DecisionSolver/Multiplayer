@@ -10,8 +10,8 @@ namespace network
 		Client(size_t numThreads = 2): ConnectionManager(ConnectionManager::TypeWorking::Client, (int)TypeProtocol::TCP,
 			"127.0.0.1", 0, numThreads) {}
 
-		Client(const std::string &IP, int _Proto, USHORT Port, size_t numThreads = 2):
-		ConnectionManager(ConnectionManager::TypeWorking::Client, _Proto, IP, Port, numThreads) {}
+		Client(const std::string &IP, int TypeProtocol, USHORT Port, size_t numThreads = 2):
+		ConnectionManager(ConnectionManager::TypeWorking::Client, TypeProtocol, IP, Port, numThreads) {}
 
 		~Client() = default;
 		

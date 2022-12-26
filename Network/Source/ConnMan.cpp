@@ -17,7 +17,7 @@ std::condition_variable cvBlocking, cv_PacketWaiter;
 std::mutex muxBlocking, m_PacketWaiter;
 std::atomic_bool NoMessageLeft = true, HasConnectionPacket = false;
 
-std::vector<std::shared_ptr<ConnectionManager::PoolWaiter>> PacketChain;
+std::vector<std::shared_ptr<ConnectionManager::PoolWaiterPackets>> PacketChain;
 
 //------------------------------------------------------------------------------
 ConnectionManager::ConnectionManager(const TypeWorking &_Type, const int Protocol,
@@ -25,7 +25,7 @@ ConnectionManager::ConnectionManager(const TypeWorking &_Type, const int Protoco
 	m_io_service()
 	, m_threads(numThreads)
 	, _IP(IP)
-	, _Port(port)
+	, Port(port)
 	, _Type(_Type)
 #if defined(USE_SSL)
 	, Context_SSL(asio::ssl::context::sslv23)
@@ -37,19 +37,27 @@ ConnectionManager::ConnectionManager(const TypeWorking &_Type, const int Protoco
 			Protocol ^ ((int)(TypeProtocol::VOIP) | (int)(TypeProtocol::UDP))) ||
 			(Protocol ^ ((int)(TypeProtocol::TCP) | (int)(TypeProtocol::VOIP)) &&
 				Protocol ^ ((int)(TypeProtocol::UDP) | (int)(TypeProtocol::VOIP))))
+		{
 			_Proto = (Protocol | (int)(TypeProtocol::TCP));
+		}
 		else
+		{
 			_Proto = (Protocol | (int)(TypeProtocol::UDP));
+		}
 	}
 	else
+	{
 		_Proto = Protocol;
+	}
 }
 
 //------------------------------------------------------------------------------
 ConnectionManager::~ConnectionManager()
 {
 	if (IsWorking)
+	{
 		StopSystem();
+	}
 }
 
 bool ConnectionManager::LoadConfig()
@@ -57,16 +65,16 @@ bool ConnectionManager::LoadConfig()
 	if (_Type == TypeWorking::Server)
 	{
 		if (!FS)
+		{
 			FS = std::make_shared<File_system>();
+		}
 
 		auto Data = FS->LoadSettingsFile();
-
-		// MySQL
 
 		if (_Proto & (int)(TypeProtocol::FTP))
 		{
 			_IP = Data.get<std::string>("Server FTP.ip", "127.0.0.1");
-			_Port = Data.get<USHORT>("Server FTP.port", 21);
+			Port = Data.get<USHORT>("Server FTP.port", 21);
 			std::string ip = Data.get<std::string>("Server MySQL FTP.ip", "127.0.0.1");
 			//USHORT port = Data.get<USHORT>("Server MySQL FTP.port", 3306);
 			std::string db = Data.get<std::string>("Server MySQL FTP.db", "");
@@ -74,7 +82,8 @@ bool ConnectionManager::LoadConfig()
 			std::string pass = Data.get<std::string>("Server MySQL FTP.pass", "");
 			std::string table = Data.get<std::string>("Server MySQL FTP.table", "");
 
-			FTPServer = std::make_shared<fineftp::FtpServer>(_IP, _Port, FS->SetPathFTP(),
+			FTPServer = std::make_shared<fineftp::FtpServer>(_IP, Port,
+				std::filesystem::path(FS->getWorkDirSource()).parent_path().string(),
 				login, pass, ip, db, table);
 		}
 		else
@@ -108,26 +117,32 @@ bool ConnectionManager::LoadConfig()
 			}
 
 			_IP = Data.get<std::string>("Server.ip", "127.0.0.1");
-			_Port = Data.get<USHORT>("Server.port", 25565);
+			Port = Data.get<USHORT>("Server.port", 25565);
 			
 			if (_Proto & (int)(TypeProtocol::TCP))
 			{
 				m_acceptor = std::make_shared<asio::ip::tcp::acceptor>(
 					asio::ip::tcp::acceptor(asio::ip::tcp::acceptor(m_io_service,
-					asio::ip::tcp::endpoint(asio::ip::address::from_string(_IP), _Port))));
+					asio::ip::tcp::endpoint(asio::ip::address::from_string(_IP), Port))));
 				m_acceptor->set_option(asio::ip::tcp::socket::reuse_address(true));
 			}
 
 			std::string Proto = Data.get<std::string>("Server.protocol", "tcp");
 			boost::to_lower(Proto);
 			if (Proto != "tcp" && Proto != "udp" && Proto.find("voip") == std::string::npos)
+			{
 				_Proto = (int)(TypeProtocol::TCP);
+			}
 			else if (Proto.find("voip") != std::string::npos)
-				_Proto =(Proto.find("tcp") != std::string::npos
+			{
+				_Proto = (Proto.find("tcp") != std::string::npos
 					? (int)(TypeProtocol::TCP) : (int)(TypeProtocol::UDP)) |
-				(int)(TypeProtocol::VOIP);
+					(int)(TypeProtocol::VOIP);
+			}
 			else
+			{
 				_Proto = (Proto == "tcp" ? (int)(TypeProtocol::TCP) : (int)(TypeProtocol::UDP));
+			}
 
 			cookie_users->SetEnable((bool)Data.get<int>("Server.use_cookie", 1));
 
@@ -148,7 +163,7 @@ bool ConnectionManager::LoadConfig()
 }
 
 //------------------------------------------------------------------------------
-bool ConnectionManager::StartSystem(const std::function<void(Connection::SharedPtr)> &Func)
+bool ConnectionManager::StartSystem(const std::function<void(Connection::SharedPtr)> &CallbackFunction)
 {
 	if (_Type == TypeWorking::Server)
 	{
@@ -179,8 +194,8 @@ bool ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 				;
 
 #if __has_include("logger.h")
-			Logger_Warn_F("{} {}\nPort: {}\nProtocol: {} Is Secured By SSL? {}", "Listening IP:",
-				_IP, _Port, "FTP\n", UseSSL);
+			Logger_Warn_F("{} {}\nPort: {}\nProtocol: {}Secured By SSL: {}", "Listening IP:",
+				_IP, Port, "FTP\n", UseSSL);
 #endif
 
 			return true;
@@ -197,7 +212,7 @@ bool ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 		if (!IsSetupPathsCert_All || !(IsSetupPathsCert_Chain && IsSetupPathsCert_Private && IsSetupPathsCert_DH))
 		{
 #if __has_include("logger.h")
-			Logger_Error("Paths to certificates was not set up yet, before 'Start' function you need to call all the following:"\
+			Logger_Error("Paths to certificates were not set up yet, before 'Start' function you need to call all the following:"\
 				"Set_Cert_Chain, Set_Private_Key, Set_TMP_DH\nOr only one: Set_All_Paths!");
 #endif
 			return false;
@@ -251,14 +266,20 @@ bool ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 	if (_Type == TypeWorking::Client && one_connection)
 	{
 		if (one_connection->getIsError())
+		{
 			return false;
+		}
 
 		if (one_connection->get_socketTCP()->is_open())
+		{
 			one_connection->Start();
+		}
 	}
 
 	if (m_io_service.stopped())
+	{
 		m_io_service.reset();
+	}
 
 	const char *UseSSL =
 #if defined(USE_SSL)
@@ -271,7 +292,7 @@ bool ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 #if __has_include("logger.h")
 	Logger_Warn_F("{} {}\nPort: {}\nProtocol: {}{} Is Secured By SSL? {}",
 		_Type == TypeWorking::Server ? "Listening IP:" : "Connected To IP:",
-		_IP, _Port,
+		_IP, Port,
 		_Proto & (int)(TypeProtocol::TCP) ? "TCP\n" : "UDP\n",
 		_Proto & (int)(TypeProtocol::VOIP) ? "VOIP On\n" : "", UseSSL);
 #endif
@@ -286,11 +307,13 @@ bool ConnectionManager::StartSystem(const std::function<void(Connection::SharedP
 		for (auto &thread: m_threads)
 		{
 			if (!thread.joinable())
+			{
 				thread = std::thread(&ConnectionManager::IoServiceThreadProc, this);
+			}
 		}
 	}
 
-	Handler(Func ? Func : nullptr);
+	Handler(CallbackFunction ? CallbackFunction : nullptr);
 
 	return true;
 }
@@ -303,10 +326,14 @@ void ConnectionManager::StopSystem()
 	{
 #if !defined(USE_SSL)
 		if (_Proto & (int)(TypeProtocol::TCP))
+		{
 			m_connectionsTCP.clear();
+		}
 #endif
 		if (_Proto & (int)(TypeProtocol::UDP))
+		{
 			m_connectionsUDP.clear();
+		}
 
 		if (MySQL_DB)
 		{
@@ -318,7 +345,9 @@ void ConnectionManager::StopSystem()
 		one_connection->GetLogged()))
 	{
 		if (!one_connection->getIsError())
+		{
 			one_connection->Stop();
+		}
 		one_connection.reset();
 
 		for (size_t i = 0; i < PacketChain.size(); i++)
@@ -327,7 +356,7 @@ void ConnectionManager::StopSystem()
 		}
 		PacketChain.clear();
 	}
-	if (_Type == TypeWorking::Server)
+	if (_Type == TypeWorking::Server && MySQL_DB)
 	{
 		// Clear All The Cookies
 		MySQL_DB->UpdateValues("", std::vector<std::string>{ { "_6" } }, {{"NULL"}});
@@ -341,7 +370,9 @@ void ConnectionManager::StopSystem()
 	for (auto &thread: m_threads)
 	{
 		if (thread.joinable())
+		{
 			thread.join();
+		}
 	}
 }
 
@@ -351,10 +382,12 @@ bool ConnectionManager::ConnectToServer(const std::string &Login, const std::str
 {
 	if (_Type == TypeWorking::Server || (one_connection && (one_connection->IsConnected()
 		|| one_connection->GetLogged())))
+	{
 		return false;
+	}
 
 #if __has_include("logger.h")
-	Logger_Info_F("Trying To Connect To IP: {} And Port: {} Server!", _IP, _Port);
+	Logger_Info_F("Trying To Connect To IP: {} And Port: {} Server!", _IP, Port);
 #endif
 
 	asio::error_code ec;
@@ -364,28 +397,8 @@ bool ConnectionManager::ConnectToServer(const std::string &Login, const std::str
 	AnswerPacket->CreatePacket((int)network::Packet::Type::Connection, true,
 		{ { "_1", network::Packet::Status::OK }, { "_0", md5_from_buffer(Login) } });
 
-	// Get Info About Client's IP And Send It To Server
-	/*{
-		HTTP DetailOfClient = HTTP();
-		nlohmann::json dt = nlohmann::json::parse(
-			DetailOfClient.GET("http://ip-api.com/json")),
-			toSend;
-
-		if (dt.find("country_code") != dt.end())
-			toSend += { dt["country_code"] };
-		if (dt.find("ip") != dt.end())
-			toSend += { dt["ip"] };
-
-		if (dt.find("countryCode") != dt.end())
-			toSend += { dt["countryCode"] };
-		if (dt.find("query") != dt.end())
-			toSend += { dt["query"] };
-
-		AnswerPacket->getData()["header"]["cookie"] = StringHEX(SHA256(toSend.dump()));
-	}*/
-
 	asio::ip::tcp::resolver resolver(m_io_service);
-	auto resolver_data = resolver.resolve(_IP, std::to_string(_Port));
+	auto resolver_data = resolver.resolve(_IP, std::to_string(Port));
 
 	// Create the connection from a connected socket
 	if (_Proto & (int)(TypeProtocol::TCP))
@@ -406,7 +419,7 @@ bool ConnectionManager::ConnectToServer(const std::string &Login, const std::str
 	}
 	else if (_Proto & (int)(TypeProtocol::UDP))
 	{
-		auto EndPoint = asio::ip::udp::endpoint(asio::ip::address::from_string(_IP), _Port);
+		auto EndPoint = asio::ip::udp::endpoint(asio::ip::address::from_string(_IP), Port);
 		one_connection = std::make_shared<Connection>(this, m_io_service, EndPoint);
 		one_connection->get_socketUDP()->open(asio::ip::udp::v4(), ec);
 		one_connection->SetEndPoint(EndPoint);
@@ -414,7 +427,9 @@ bool ConnectionManager::ConnectToServer(const std::string &Login, const std::str
 		//if (!(_Proto & (int)(TypeProtocol::VOIP)))
 		one_connection->get_socketUDP()->send_to(asio::buffer(AnswerPacket->getData().dump()), EndPoint);
 		if (one_connection->m_owner && one_connection->m_owner->IsSocketBlocking())
+		{
 			one_connection->DoReceive();
+		}
 	}
 
 	StartSystem();
@@ -433,7 +448,7 @@ bool ConnectionManager::ConnectToServer(const std::string &Login, const std::str
 		if (!IsSetupPathsCert_Chain)
 		{
 #if __has_include("logger.h")
-			Logger_Error("[CLIENT] Paths to certificates was not set up yet, before 'Start' "\
+			Logger_Error("[CLIENT] Paths to certificates were not set up yet, before 'Start' "\
 				"or at least 'ConnectoToServer' function you need to call "\
 				"Set_Cert_Chain!");
 #endif
@@ -480,7 +495,7 @@ bool ConnectionManager::ConnectToServer(const std::string &Login, const std::str
 
 		int type = (int)network::Packet::Type::Connection >> (int)network::Packet::Type::Login;
 
-		PacketChain.push_back(std::make_shared<PoolWaiter>());
+		PacketChain.push_back(std::make_shared<PoolWaiterPackets>());
 		PacketChain.back()->SetType(type);
 		PacketChain.back()->SetStatus((int)network::Packet::Status::OK, type);
 		PacketChain.back()->SetStatus((int)network::Packet::Status::Need_To_LogIn << (int)network::Packet::Status::OK, type);
@@ -489,23 +504,27 @@ bool ConnectionManager::ConnectToServer(const std::string &Login, const std::str
 		{
 			one_connection->Send(AnswerPacket);
 			if (one_connection->m_owner && one_connection->m_owner->IsSocketBlocking())
+			{
 				one_connection->DoReceive();
+			}
 		}
 
 		auto Check = PacketChain.at(0)->Check();
 		if (Check.first) // .at() checks the size of a massive (BE_care_FUL!!)
 		{
-			PacketChain.push_back(std::make_shared<PoolWaiter>());
+			PacketChain.push_back(std::make_shared<PoolWaiterPackets>());
 			PacketChain.back()->SetStatus((int)network::Packet::Status::Need_To_LogIn << (int)network::Packet::Status::OK,
 				(int)network::Packet::Type::Login);
 
 			// If Will This Packet Would Receive Then All Chain Will Break And Check Returns true
 			PacketChain.back()->SetStatus((int)network::Packet::Status::OK, (int)network::Packet::Type::Login, true);
 
-			if (Check.second.first == ConnectionManager::PoolWaiter::ReturnType::Status &&
+			if (Check.second.first == ConnectionManager::PoolWaiterPackets::ReturnType::Status &&
 				Check.second.second.first.first == (int)network::Packet::Status::OK &&
 				Check.second.second.second.first == type)
+			{
 				return true;
+			}
 
 			std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
 			Answer->CreatePacket((int)network::Packet::Type::Login, true,
@@ -524,10 +543,14 @@ bool ConnectionManager::ConnectToServer(const std::string &Login, const std::str
 				return true;
 			}
 			else
+			{
 				return false;
+			}
 		}
 		else
+		{
 			return false;
+		}
 	}
 	else
 	{
@@ -558,7 +581,9 @@ void ConnectionManager::Send(const std::string &Packet)
 		{
 			one_connection->Send({ Packet.begin(), Packet.end() });
 			if (one_connection->m_owner && one_connection->m_owner->IsSocketBlocking())
+			{
 				one_connection->DoReceive();
+			}
 		}
 	}
 	else
@@ -573,7 +598,9 @@ void ConnectionManager::Send(const std::string &Packet)
 			{
 				connection.second->Send({ Packet.begin(), Packet.end() });
 				if (connection.second->m_owner && connection.second->m_owner->IsSocketBlocking())
+				{
 					connection.second->DoReceive();
+				}
 			}
 		}
 		if (_Proto & (int)(TypeProtocol::UDP))
@@ -582,7 +609,9 @@ void ConnectionManager::Send(const std::string &Packet)
 			{
 				connection.second->Send({ Packet.begin(), Packet.end() });
 				if (connection.second->m_owner && connection.second->m_owner->IsSocketBlocking())
+				{
 					connection.second->DoReceive();
+				}
 			}
 		}
 	}
@@ -595,7 +624,9 @@ void ConnectionManager::Send(const void *Data, size_t Size)
 		{
 			one_connection->Send(Data, Size);
 			if (one_connection->m_owner && one_connection->m_owner->IsSocketBlocking())
+			{
 				one_connection->DoReceive();
+			}
 		}
 	}
 	else
@@ -610,7 +641,9 @@ void ConnectionManager::Send(const void *Data, size_t Size)
 			{
 				connection.second->Send(Data, Size);
 				if (connection.second->m_owner && connection.second->m_owner->IsSocketBlocking())
+				{
 					connection.second->DoReceive();
+				}
 			}
 		}
 		if (_Proto & (int)(TypeProtocol::UDP))
@@ -619,7 +652,9 @@ void ConnectionManager::Send(const void *Data, size_t Size)
 			{
 				connection.second->Send(Data, Size);
 				if (connection.second->m_owner && connection.second->m_owner->IsSocketBlocking())
+				{
 					connection.second->DoReceive();
+				}
 			}
 		}
 	}
@@ -632,7 +667,9 @@ void ConnectionManager::Send(const std::shared_ptr<network::Packet> &Packet)
 		{
 			one_connection->Send(Packet);
 			if (one_connection->m_owner && one_connection->m_owner->IsSocketBlocking())
+			{
 				one_connection->DoReceive();
+			}
 		}
 	}
 	else
@@ -647,7 +684,9 @@ void ConnectionManager::Send(const std::shared_ptr<network::Packet> &Packet)
 			{
 				connection.second->Send(Packet);
 				if (connection.second->m_owner && connection.second->m_owner->IsSocketBlocking())
+				{
 					connection.second->DoReceive();
+				}
 			}
 		}
 		if (_Proto & (int)(TypeProtocol::UDP))
@@ -656,25 +695,27 @@ void ConnectionManager::Send(const std::shared_ptr<network::Packet> &Packet)
 			{
 				connection.second->Send(Packet);
 				if (connection.second->m_owner && connection.second->m_owner->IsSocketBlocking())
+				{
 					connection.second->DoReceive();
+				}
 			}
 		}
 	}
 }
 
-void ConnectionManager::SetCB_Accept(const std::function<void(Connection::SharedPtr)> &Func)
+void ConnectionManager::Set_OnAccept(const std::function<void(Connection::SharedPtr)> &Func)
 {
 	Callback_Accept = Func;
 }
-void ConnectionManager::SetCB_OnPacketHandle(const std::function<void(Connection::SharedPtr)> &Func)
+void ConnectionManager::Set_OnPacketHandle(const std::function<void(Connection::SharedPtr)> &Func)
 {
 	Callback_OnClientHandler = Func;
 }
-void ConnectionManager::SetCB_OnLoggin(const std::function<void(Connection::SharedPtr)> &Func)
+void ConnectionManager::Set_OnLoggin(const std::function<void(Connection::SharedPtr)> &Func)
 {
 	Callback_OnLoggin = Func;
 }
-void ConnectionManager::SetCB_OnError(const std::function<void(asio::error_code)> &Func)
+void ConnectionManager::Set_OnError(const std::function<void(asio::error_code)> &Func)
 {
 	Callback_OnError = Func;
 }
@@ -684,8 +725,6 @@ void ConnectionManager::IoServiceThreadProc()
 {
 	try
 	{
-		// Run the asynchronous callbacks from the socket on this thread
-		// Until the io_service is stopped from another thread
 		m_io_service.run();
 		DWORD last_error = ::GetLastError();
 		asio::error_code ec(last_error, asio::error::get_system_category());
@@ -730,7 +769,10 @@ Connection::SharedPtr OneConnForServerUDP;
 //------------------------------------------------------------------------------
 void ConnectionManager::DoAccept()
 {
-	if (_Type == TypeWorking::Client) return;
+	if (_Type == TypeWorking::Client)
+	{
+		return;
+	}
 
 	if (_Proto & (int)(TypeProtocol::TCP))
 	{
@@ -797,7 +839,9 @@ void ConnectionManager::DoAccept()
 #endif
 			{
 				if (!SocketBlocking)
+				{
 					std::scoped_lock<std::mutex> lock(m_connectionsMutex);
+				}
 
 				// Create the connection from the connected socket
 #if defined(USE_SSL)
@@ -809,30 +853,44 @@ void ConnectionManager::DoAccept()
 #endif
 				{
 					if (ThisConn.second == connectionTCP)
+					{
 						return true;
+					}
 					return false;
 				});
 #if defined(USE_SSL)
 				if (itConnection == m_connectionsTCP.end())
+				{
 					m_connectionsTCP[connectionTCP->get_socketTCP().lowest_layer().remote_endpoint()] = connectionTCP;
+				}
 				else
+				{
 					m_connectionsTCP.erase(itConnection);
+				}
 #else
 				if (itConnection == m_connectionsTCP.end())
+				{
 					m_connectionsTCP[connectionTCP->get_socketTCP()->remote_endpoint()] = connectionTCP;
+				}
 				else
+				{
 					m_connectionsTCP.erase(itConnection);
+				}
 #endif
 			}
 
 			if (Callback_Accept)
+			{
 				Callback_Accept(connectionTCP);
+			}
 
 			connectionTCP->Start();
 			Curr = std::chrono::high_resolution_clock::now();
 
 			if (!SocketBlocking)
+			{
 				DoAccept();
+			}
 		};
 
 		if (!SocketBlocking)
@@ -857,9 +915,13 @@ void ConnectionManager::DoAccept()
 				{
 					asio::error_code ec;
 					if (!self->newConnTCP)
+					{
 						self->newConnTCP = std::make_shared<asio::ip::tcp::socket>(self->m_acceptor->accept(ec));
+					}
 					else
+					{
 						*self->newConnTCP = self->m_acceptor->accept(ec);
+					}
 					Lambd(ec);
 				}
 			}).detach();
@@ -867,11 +929,13 @@ void ConnectionManager::DoAccept()
 	}
 	else
 	{
-		auto EndPoint = asio::ip::udp::endpoint(asio::ip::address::from_string(_IP), _Port);
+		auto EndPoint = asio::ip::udp::endpoint(asio::ip::address::from_string(_IP), Port);
 		OneConnForServerUDP = std::make_shared<Connection>(this, m_io_service, EndPoint);
 		Curr = Last = std::chrono::high_resolution_clock::now();
 		if (Callback_Accept)
+		{
 			Callback_Accept(OneConnForServerUDP);
+		}
 
 		OneConnForServerUDP->Start();
 		Curr = std::chrono::high_resolution_clock::now();
@@ -894,8 +958,9 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, boo
 
 		if (connection->getIsError() &&
 			!connection->get_error_queue().empty())
+		{
 			connection->get_error_queue().pop_front();
-
+		}
 		for (size_t i = 0; i < PacketChain.size(); i++)
 		{
 			PacketChain[i]->NotifyOne();
@@ -903,7 +968,9 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, boo
 		PacketChain.clear();
 
 		if (connection)
+		{
 			connection.reset();
+		}
 		return;
 	}
 
@@ -916,7 +983,9 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, boo
 			[&](const std::pair<asio::ip::tcp::endpoint, Connection::SharedPtr> &ThisConn)
 		{
 			if (ThisConn.second == connection)
+			{
 				return true;
+			}
 			return false;
 		});
 
@@ -924,9 +993,10 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, boo
 		if (itConnection != m_connectionsTCP.end())
 		{
 			if (Need2DiscFromMySQL)
-				MySQL_DB->UpdateValues("", std::vector<std::string>{ "_2" }, {{"0"}}, {{" WHERE _N = '" +
+			{
+				MySQL_DB->UpdateValues("", std::vector<std::string>{ "_2" }, { { "0" } }, { { " WHERE _N = '" +
 					std::to_string(connection->GetMetaDB_User()) + "'" } });
-
+			}
 #if defined(USE_SSL)
 			ToDo("Very Insecure!");
 			connection->get_socketTCP().shutdown();
@@ -939,15 +1009,22 @@ void ConnectionManager::OnConnectionClosed(Connection::SharedPtr connection, boo
 		}
 	}
 	else
+	{
 		one_connection.reset();
+	}
 }
 
 Connection::SharedPtr ConnectionManager::GetConnect()
 {
-	if (_Type == ConnectionManager::TypeWorking::Server) return nullptr;
+	if (_Type == ConnectionManager::TypeWorking::Server)
+	{
+		return nullptr;
+	}
 
 	if (one_connection)
+	{
 		return one_connection;
+	}
 
 	return Connection::SharedPtr();
 }
@@ -955,19 +1032,26 @@ Connection::SharedPtr ConnectionManager::GetConnect()
 std::condition_variable &ConnectionManager::IsWait()
 {
 	if (_Type == TypeWorking::Client && one_connection)
+	{
 		return one_connection->successConn;
+	}
 }
 
 bool ConnectionManager::OnConnection(Connection::SharedPtr connection, const std::string &Login,
 	const std::string &Pass)
 {
-	if (_Type == ConnectionManager::TypeWorking::Client) return false;
+	if (_Type == ConnectionManager::TypeWorking::Client)
+	{
+		return false;
+	}
 
 	// If Successful Then Send Answer About It
 	std::shared_ptr<network::Packet> Answer = std::make_shared<network::Packet>();
 
-	if (Login.empty()) return false;
-
+	if (Login.empty())
+	{
+		return false;
+	}
 	bool NeedToUpdateCookie = true;
 
 	if (cookie_users->IsEnable() && NotAllowWithoutCookie)
@@ -989,22 +1073,30 @@ bool ConnectionManager::OnConnection(Connection::SharedPtr connection, const std
 				{ { "_0", network::Packet::Status::NotAllowWithoutCookie } });
 			connection->Send(Answer);
 			if (connection->m_owner && connection->m_owner->IsSocketBlocking())
+			{
 				connection->DoReceive();
+			}
 			OnConnectionClosed(connection, false);
 			return false;
 		}
 		// If Cookie Has Only Locally (Needs To Pull It To DB Latelly)
 		else if (Obj.empty() || !cookie_users->FindCookie(Obj["_6"].front().get<nlohmann::json::string_t>()))
+		{
 			NeedToUpdateCookie = false;
+		}
 	}
 	
 	nlohmann::json Obj;
 	if (!Pass.empty())
+	{
 		Obj = MySQL_DB->SelectValues("", std::vector<std::string>{ "*" },
-		{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
+			{ " WHERE _0 = '" + Login + "' AND _1 = '" + Pass + "'" });
+	}
 	else
+	{
 		Obj = MySQL_DB->SelectValues("", std::vector<std::string>{ "*" },
-		{ " WHERE _0 = '" + Login + "'" });
+			{ " WHERE _0 = '" + Login + "'" });
+	}
 
 	nlohmann::json pack = Answer->CreatePacket((int)network::Packet::Type::Login)->getData();
 	if (!Obj.empty())
@@ -1014,15 +1106,21 @@ bool ConnectionManager::OnConnection(Connection::SharedPtr connection, const std
 		connection->SetMetaDB_User((int)Obj["_N"].front().get<nlohmann::json::number_integer_t>());
 
 		if (Obj["_2"].front().get<nlohmann::json::number_integer_t>() == 1)
+		{
 			pack["_0"] = network::Packet::Status::Already_Online;
+		}
 	}
 	else
+	{
 		pack["_0"] = network::Packet::Status::Not_Found;
+	}
 	Answer->FillIn(pack);
 
 	connection->Send(Answer);
 	if (connection->m_owner && connection->m_owner->IsSocketBlocking())
+	{
 		connection->DoReceive();
+	}
 
 	if (pack["_0"] == network::Packet::Status::Not_Found ||
 		pack["_0"] == network::Packet::Status::Already_Online)
@@ -1059,7 +1157,10 @@ bool ConnectionManager::OnConnection(Connection::SharedPtr connection, const std
 bool ConnectionManager::GetTimer(const Connection::SharedPtr &User)
 {
 	if (User->GetLogged() ||
-		(User->m_owner && User->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client)) return false;
+		(User->m_owner && User->m_owner->GetTypeWork() == ConnectionManager::TypeWorking::Client))
+	{
+		return false;
+	}
 
 	Last = std::chrono::high_resolution_clock::now();
 	auto Diff = (Last - Curr);
@@ -1071,7 +1172,9 @@ bool ConnectionManager::GetTimer(const Connection::SharedPtr &User)
 
 	// Hardcoded TIME!
 	if (Diff > (1min + 20s))
+	{
 		return true;
+	}
 
 	return false;
 }
@@ -1082,13 +1185,18 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 	if (!m_io_service.stopped() && !isUpdate)
 	{
 		if (Func)
+		{
 			Callback_OnClientHandler = Func;
+		}
 
 		std::thread([&]
 		{
 			auto Lambd = [&](Connection::SharedPtr connection)
 			{
-				if (!connection) return false;
+				if (!connection)
+				{
+					return false;
+				}
 
 				network::Packet packet = network::Packet();
 				if (_Type == TypeWorking::Server)
@@ -1105,7 +1213,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 				connection->GetPacket(packet, (int)network::Packet::Type::Connection);
 				if (!packet)
+				{
 					connection->GetPacket(packet, (int)network::Packet::Type::Connection >> (int)network::Packet::Type::Login);
+				}
 				if (packet)
 				{
 					if (_Type == TypeWorking::Client && !connection->IsConnected())
@@ -1155,13 +1265,17 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 											{ { "_1", (int)network::Packet::Status::NotAllowWithoutCookie } });
 										connection->Send(AnswerPacket);
 										if (connection->m_owner && connection->m_owner->IsSocketBlocking())
+										{
 											connection->DoReceive();
+										}
 										OnConnectionClosed(connection, false);
 										return false;
 									}
 								}
 								else
+								{
 									TypeOfStatus = (int)network::Packet::Status::Need_To_LogIn << (int)network::Packet::Status::OK;
+								}
 							}
 						}
 
@@ -1171,15 +1285,21 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 							{ { "_0", (int)network::Packet::Status::OK }, { "_1", TypeOfStatus } });
 						connection->Send(AnswerPacket);
 						if (connection->m_owner && connection->m_owner->IsSocketBlocking())
+						{
 							connection->DoReceive();
+						}
 
 						if (TypeOfStatus == (int)network::Packet::Status::OK)
 						{
 							connection->SetLogged();
 							if (!OnConnection(connection, Data["_0"].get<nlohmann::json::string_t>()))
+							{
 								return false;
+							}
 							else
+							{
 								return true;
+							}
 						}
 
 						packet.clear();
@@ -1194,7 +1314,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						connection->SetLogged();
 						
 						if (Callback_OnLoggin)
+						{
 							Callback_OnLoggin(connection);
+						}
 
 						packet.clear();
 					}
@@ -1213,7 +1335,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						
 						connection->Send(Answer);
 						if (connection->m_owner && connection->m_owner->IsSocketBlocking())
+						{
 							connection->DoReceive();
+						}
 
 						packet.clear();
 					}
@@ -1243,7 +1367,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 				}
 
 				if (Callback_OnClientHandler && connection && connection->IsConnected())
+				{
 					Callback_OnClientHandler(connection);
+				}
 
 				return true;
 			};
@@ -1258,17 +1384,25 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 						std::this_thread::sleep_for(500ms);
 
 						if (_Proto & (int)(TypeProtocol::TCP) && m_connectionsTCP.empty() ||
-							_Proto & (int)(TypeProtocol::UDP) && m_connectionsUDP.empty()) continue;
+							_Proto & (int)(TypeProtocol::UDP) && m_connectionsUDP.empty())
+						{
+							continue;
+						}
 
 						if (!IsSocketBlocking())
+						{
 							std::scoped_lock<std::mutex> MainLock(m_connectionsMutex);
+						}
 						if (_Proto & (int)(TypeProtocol::TCP))
 						{
 							std::map<asio::ip::tcp::endpoint, Connection::SharedPtr>::iterator connection =
 								m_connectionsTCP.begin();
 							while (connection != m_connectionsTCP.end())
 							{
-								if (!connection->second) continue;
+								if (!connection->second)
+								{
+									continue;
+								}
 
 								if (!connection->second->GetStopped() && (!connection->second->getIsError() &&
 									connection->second->get_error_queue().empty()))
@@ -1289,7 +1423,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 											connection->second->Send(AnswerPacket);
 											if (connection->second->m_owner && connection->second->m_owner->IsSocketBlocking())
+											{
 												connection->second->DoReceive();
+											}
 											OnConnectionClosed(connection->second);
 
 											connection = m_connectionsTCP.begin();
@@ -1309,7 +1445,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 													connection = m_connectionsTCP.begin();
 													if (connection == m_connectionsTCP.end())
+													{
 														connection = m_connectionsTCP.begin();
+													}
 													continue;
 												}
 											}
@@ -1324,7 +1462,10 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 									m_connectionsUDP.begin();
 								while (connection != m_connectionsUDP.end())
 								{
-									if (!connection->second) continue;
+									if (!connection->second)
+									{
+										continue;
+									}
 
 									if (!connection->second->GetStopped() && (!connection->second->getIsError() &&
 										connection->second->get_error_queue().empty()))
@@ -1354,7 +1495,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 													connection = m_connectionsUDP.begin();
 													if (connection == m_connectionsUDP.end())
+													{
 														connection = m_connectionsUDP.begin();
+													}
 													continue;
 												}
 											}
@@ -1394,7 +1537,10 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								m_connectionsTCP.begin();
 							while (connection != m_connectionsTCP.end())
 							{
-								if (!connection->second) continue;
+								if (!connection->second)
+								{
+									continue;
+								}
 
 								if (!connection->second->GetStopped() && (!connection->second->getIsError() &&
 									connection->second->get_error_queue().empty()))
@@ -1403,7 +1549,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 									{
 										connection = m_connectionsTCP.begin();
 										if (connection == m_connectionsTCP.end())
+										{
 											connection = m_connectionsTCP.begin();
+										}
 										continue;
 									}
 								}
@@ -1414,7 +1562,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 
 									connection = m_connectionsTCP.begin();
 									if (connection == m_connectionsTCP.end())
+									{
 										connection = m_connectionsTCP.begin();
+									}
 									continue;
 								}
 								connection++;
@@ -1429,7 +1579,10 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 								m_connectionsUDP.begin();
 							while (connection != m_connectionsUDP.end())
 							{
-								if (!connection->second) continue;
+								if (!connection->second)
+								{
+									continue;
+								}
 
 								if (!connection->second->GetStopped())
 								{
@@ -1437,7 +1590,9 @@ void ConnectionManager::Handler(std::function<void(Connection::SharedPtr)> Func)
 									{
 										connection = m_connectionsUDP.begin();
 										if (connection == m_connectionsUDP.end())
+										{
 											connection = m_connectionsUDP.begin();
+										}
 										continue;
 									}
 								}
@@ -1500,9 +1655,13 @@ void ConnectionManager::SendPacket(bool ExceptionClient, const Connection::Share
 			if (ExceptionClient && (connection && connection == Next.second)) continue;
 			Next.second->Send(Packet);
 			if (connection->m_owner && connection->m_owner->IsSocketBlocking())
+			{
 				connection->DoReceive();
+			}
 			if (Next.second->m_owner && Next.second->m_owner->IsSocketBlocking())
+			{
 				Next.second->DoReceive();
+			}
 		}
 	}
 #endif 
@@ -1511,16 +1670,21 @@ void ConnectionManager::SendPacket(bool ExceptionClient, const Connection::Share
 		for (const auto &Next: m_connectionsUDP)
 		{
 			// Not To ME!!!
-			if (ExceptionClient && (connection && connection == Next.second)) continue;
+			if (ExceptionClient && (connection && connection == Next.second))
+			{
+				continue;
+			}
 			Next.second->Send(Packet);
 			if (Next.second->m_owner && Next.second->m_owner->IsSocketBlocking())
+			{
 				Next.second->DoReceive();
+			}
 		}
 	}
 }
 
-std::pair<bool, std::pair<ConnectionManager::PoolWaiter::ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>>
-ConnectionManager::PoolWaiter::Check(const std::chrono::seconds &TimeOut)
+std::pair<bool, std::pair<ConnectionManager::PoolWaiterPackets::ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>>
+ConnectionManager::PoolWaiterPackets::Check(const std::chrono::seconds &TimeOut)
 {
 	std::unique_lock<std::mutex> ul(m_PacketWaiter);
 	
@@ -1537,7 +1701,9 @@ ConnectionManager::PoolWaiter::Check(const std::chrono::seconds &TimeOut)
 		std::this_thread::sleep_for(100ms);
 
 		if (NeedToBreak.load())
+		{
 			break;
+		}
 	}
 	// If It Wasn't Triggered By Time-Out
 	if (WasPacket.load() && !wasActive.load())
@@ -1546,7 +1712,9 @@ ConnectionManager::PoolWaiter::Check(const std::chrono::seconds &TimeOut)
 		return { true, CauseBreak };
 	}
 	else
+	{
 		return { false, CauseBreak };
+	}
 	return { false, CauseBreak };
 }
 
@@ -1556,7 +1724,9 @@ void ConnectionManager::EnableNotAllowWithoutCookie()
 	// Define Some New Servers When Will Need Set This Condition!
 	if (_Type != TypeWorking::Server &&
 		(!(_Proto & (int)(TypeProtocol::VOIP)) && !cookie_users->IsEnable()))
+	{
 		return;
+	}
 
 	NotAllowWithoutCookie = true;
 }
@@ -1566,7 +1736,9 @@ void ConnectionManager::DisableNotAllowWithoutCookie()
 	// Define Some New Servers When Will Need Set This Condition!
 	if (_Type != TypeWorking::Server &&
 		(!(_Proto & (int)(TypeProtocol::VOIP)) && !cookie_users->IsEnable()))
+	{
 		return;
+	}
 
 	NotAllowWithoutCookie = false;
 }

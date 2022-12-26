@@ -162,7 +162,7 @@ namespace network
 		network::Packet *operator =(network::Packet &pack)
 		{
 			BinaryData = pack.GetBinaryData();
-			readPos = pack.GetBinaryData().getReadPosition();
+			//readPos = pack.GetBinaryData().getReadPosition();
 
 			JSON_Data = pack.JSON_Data;
 			_H = pack._H;

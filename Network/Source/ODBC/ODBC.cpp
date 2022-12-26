@@ -12,267 +12,214 @@
 #include <locale>
 #include <codecvt>
 
+std::string odbc::ODBC::DefaultDriverString = "Microsoft Access Driver (*.mdb)";
+
+bool FindAnyNumberInString(const std::string &String)
+{
+	if (String.empty())
+	{
+		return false;
+	}
+
+	std::string::const_iterator it = String.begin();
+	while (it != String.end() && std::isdigit(*it))
+	{
+		++it;
+	}
+
+	return it == String.end();
+}
+
 namespace odbc
 {
 	void ODBC::CreateDataBase(const std::string &driver, const std::string &path, const std::string &attributes,
-		const std::string &password) const
+		const std::string &password)
 	{
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-		if (SQLConfigDataSourceW(nullptr, ODBC_ADD_DSN, converter.from_bytes(driver).c_str(),
+		using convert_type = std::codecvt_utf8<wchar_t>;
+		std::wstring_convert<convert_type, wchar_t> converter;
+
+		if (!SQLConfigDataSourceW(nullptr, ODBC_ADD_DSN, converter.from_bytes(driver).c_str(),
 			converter.from_bytes(("CREATE_DB=\"" + path + "\";" + attributes + (password.empty() ? "" : ";PWD=" + password))).c_str()))
+		{
+#if __has_include("logger.h")
 			Logger_Error_F("Something is wrong with create a database file, error code: {}", GetLastError());
+#endif
+			DWORD error;
+			WORD count;
+			wchar_t MessageBuffer[1024];
+			SQLInstallerErrorW(1, &error, MessageBuffer, sizeof(MessageBuffer), &count);
+
+			std::wstringstream buf;
+			buf << "Message: \"" << MessageBuffer << "\", Code: " << count;
+
+			std::string ConvertedString = converter.to_bytes(buf.str());
+			throw std::exception(ConvertedString.c_str());
+		}
 	}
 
-	bool ODBC::Connect(const std::string& driver, const std::string& path, const std::string& Table,
-		const std::vector<std::string>& attributes, const std::string& password)
+	bool ODBC::Connect(const std::string &driver, const std::string &path, const std::string &Table,
+		const std::vector<std::string> &attributes, const std::string &password)
 	{
-		if (SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &hEnv) == SQL_ERROR)
+		if (SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &SQLHandleEnvironment) == SQL_ERROR)
 		{
+#if __has_include("logger.h")
 			Logger_Error("Unable to allocate an environment handle\n");
+#endif
+			throw std::exception(("Something is wrong with Allocate Handle For SQL Environment, error code: " +
+				std::to_string(GetLastError())).c_str());
+		}
+
+		if (PrintError(SQLHandleEnvironment, SQL_HANDLE_ENV, SQLSetEnvAttr(SQLHandleEnvironment, SQL_ATTR_ODBC_VERSION,
+			(SQLPOINTER)SQL_OV_ODBC3, 0)))
+		{
+			return false;
+		}
+		if (PrintError(SQLHandleEnvironment, SQL_HANDLE_ENV, SQLAllocHandle(SQL_HANDLE_DBC, SQLHandleEnvironment,
+			&SQLHandleDatabaseConnection)))
+		{
 			return false;
 		}
 
-		if (PrintError(hEnv, SQL_HANDLE_ENV, SQLSetEnvAttr(hEnv, SQL_ATTR_ODBC_VERSION,
-			(SQLPOINTER)SQL_OV_ODBC3, 0)))
-			return false;
-
-		if (PrintError(hEnv, SQL_HANDLE_ENV, SQLAllocHandle(SQL_HANDLE_DBC, hEnv, &hDbc)))
-			return false;
-
-		std::string allattributes = "";
+		std::string allattributes;
 		for (auto attribute : attributes)
+		{
 			allattributes += attribute + ";";
+		}
 
-		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLDriverConnectA(hDbc, nullptr,
-			(SQLCHAR*)(("Driver={" + driver + "};Dbq=" + path + ";" + allattributes + "PWD=" + password + ";").c_str()),
+		if (PrintError(SQLHandleDatabaseConnection, SQL_HANDLE_DBC, SQLDriverConnectA(SQLHandleDatabaseConnection, nullptr,
+			(SQLCHAR *)(("Driver={" + driver + "};Dbq=" + path + ";" + allattributes + "PWD=" + password + ";").c_str()),
 			SQL_NTS, nullptr, 0, nullptr, SQL_DRIVER_NOPROMPT)))
+		{
 			return false;
+		}
+		if (PrintError(SQLHandleDatabaseConnection, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT,
+			SQLHandleDatabaseConnection, &SQLHandleStatement)))
+		{
+			return false;
+		}
 
 		SetCurrentTable(Table);
-
-		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt)))
-			return false;
-
+		
 		return true;
 	}
-	bool ODBC::PrintError(SQLHANDLE hHandle, SQLSMALLINT hType, SQLRETURN e) const
+	bool ODBC::PrintError(SQLHANDLE Handle, SQLSMALLINT Type, SQLRETURN ErrorCode)
 	{
-		SQLSMALLINT iRec = 0;
-		SQLINTEGER  iError = 0;
-		SQLCHAR     wszMessage[1000], wszState[SQL_SQLSTATE_SIZE + 1];
-
-		if (e == SQL_INVALID_HANDLE)
+		try
 		{
-#if __has_include("logger.h")
-			Logger_Critical("Invalid handle!\n");
-#endif 
-			return true;
-		}
+			SQLSMALLINT iRec = 0;
+			SQLINTEGER  iError = 0;
+			SQLCHAR     wszMessage[1000], wszState[SQL_SQLSTATE_SIZE + 1];
 
-		while (SQLGetDiagRecA(hType, hHandle, ++iRec, wszState, &iError, wszMessage, (SQLSMALLINT)(sizeof(wszMessage) /
-			sizeof(CHAR)), 0) == SQL_SUCCESS)
-		{
-			// Hide data truncated..
-			if (!strcmp((const char*)wszState, "01000"))
+			if (ErrorCode == SQL_INVALID_HANDLE)
 			{
-#if __has_include("logger.h")
-				Logger_Warn_F("[{}] {} ({})\n", wszState, wszMessage, iError);
-#endif
-				return false;
+				throw std::exception("Invalid handle!");
 			}
 
-#if __has_include("logger.h")
-				Logger_Error_F("[{}] {} ({})\n", wszState, wszMessage, iError);
-#endif
+			while (SQLGetDiagRecA(Type, Handle, ++iRec, wszState, &iError, wszMessage, (SQLSMALLINT)(sizeof(wszMessage) /
+				sizeof(CHAR)), 0) == SQL_SUCCESS)
+			{
+				std::stringstream MessageException;
+				MessageException << "[" << wszState << "] " << wszMessage << " (" << iError << ")";
+				throw std::exception(MessageException.str().c_str());
+			}
 		}
-
+		catch (const std::exception &exception)
+		{
+#if __has_include("logger.h")
+			Logger_Error(exception.what());
+#endif
+			if (std::string(exception.what()) == "Invalid handle!")
+			{
+				return true;
+			}
+		}
 		return false;
 	}
-	int ODBC::GetCntData(const std::string & query) const
+	int ODBC::GetCountRows(const std::string &query)
 	{
-		SQLHSTMT Local = nullptr;
-		if (PrintError(hDbc, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &Local)))
+		SQLHSTMT LocalDatabaseConnection = nullptr;
+		if (PrintError(SQLHandleDatabaseConnection, SQL_HANDLE_DBC, SQLAllocHandle(SQL_HANDLE_STMT, SQLHandleDatabaseConnection,
+			&LocalDatabaseConnection)))
+		{
 			return 0;
-		RETCODE rc = SQLExecDirectA(Local, (SQLCHAR*)(query.c_str()), SQL_NTS);
-
-
-		SQLLEN cnt = 0;
-		while ((rc = SQLFetch(Local)) != SQL_NO_DATA)
-		{
-			cnt++;
 		}
-		
-		PrintError(Local, SQL_HANDLE_STMT, SQLFreeStmt(Local, SQL_CLOSE));
-		
-		SQLFreeHandle(SQL_HANDLE_STMT, Local);
+		SQLExecDirectA(LocalDatabaseConnection, (SQLCHAR *)(query.c_str()), SQL_NTS);
 
-		return cnt;
+		SQLLEN countRows = 0;
+		while (SQLFetch(LocalDatabaseConnection) != SQL_NO_DATA)
+		{
+			countRows++;
+		}
+
+		PrintError(LocalDatabaseConnection, SQL_HANDLE_STMT, SQLFreeStmt(LocalDatabaseConnection, SQL_CLOSE));
+
+		SQLFreeHandle(SQL_HANDLE_STMT, LocalDatabaseConnection);
+
+		return countRows;
 	}
-	nlohmann::json ODBC::Query(const std::string& query, bool Need_SQL_TYPE) const
+	nlohmann::json ODBC::Query(const std::string &query, bool NeedDescribeColumnType)
 	{
-		RETCODE rc = SQLExecDirectA(hStmt, (SQLCHAR*)(query.c_str()), SQL_NTS);
-		nlohmann::json res = {};
-		SQLLEN nOldArraySize = 0, nOldRowsetSize = 0;
+		RETCODE ErrorCode = SQLExecDirectA(SQLHandleStatement, (SQLCHAR *)(query.c_str()), SQL_NTS);
+		nlohmann::json ReturnJSON = {};
+		SQLLEN OldArraySize = 0, OldRowsetSize = 0;
 
-		switch (rc)
+		switch (ErrorCode)
 		{
-		case SQL_SUCCESS_WITH_INFO:
-		{
-			PrintError(hStmt, SQL_HANDLE_STMT, rc);
-			// fall through
-		}
-
-		case SQL_SUCCESS:
-		{
-			rc = SQLGetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, &nOldArraySize, sizeof(nOldArraySize), NULL);
-			rc = SQLGetStmtAttr(hStmt, SQL_ROWSET_SIZE, &nOldRowsetSize, sizeof(nOldArraySize), NULL);
-			rc = SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)1, 0);
-			rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)1, 0);
-
-			SQLSMALLINT sNumResults = 0;
-			PrintError(hStmt, SQL_HANDLE_STMT, SQLNumResultCols(hStmt, &sNumResults));
-			std::vector<lpGETINFOALL> lpgi;
-			std::vector<std::pair<std::string, std::string>> columnNames = {};
-
-			rc = SQLNumResultCols(hStmt, &sNumResults);
-			if ((rc) != SQL_SUCCESS && (rc) != SQL_SUCCESS_WITH_INFO)
-				break;
-
-			for (SQLSMALLINT i = 0; i < sNumResults; i++)
+			case SQL_SUCCESS_WITH_INFO:
 			{
-				auto dwReqdMem = sizeof(GETINFOALL) * (DWORD)sNumResults;	// Explicit promotion required
-				lpGETINFOALL newObj = (lpGETINFOALL)calloc(sNumResults, dwReqdMem);
-				if (!newObj) continue;
-
-				rc = SQLDescribeCol(hStmt,
-					(UWORD)(i + 1),
-					(LPTSTR)newObj->szCol,
-					0, NULL,
-					&newObj->fSqlType,
-					&newObj->cbValueMax,
-					NULL, NULL);
-
-				if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO)
-					break;
-
-				UINT cbChar = sizeof(TCHAR);
-				switch (newObj->fSqlType)
-				{
-				case SQL_BINARY:
-				case SQL_VARBINARY:
-				case SQL_LONGVARBINARY:
-					// Binary types must allow for twice as much room for the char display
-					if (newObj->cbValueMax == 0)
-						//Handle MAX 
-						newObj->cbValueMax = 8000;
-					else {
-						newObj->cbValueMax *= (2 * cbChar) + cbChar;
-						newObj->fSqlType = SQL_BINARY;
-					}
-					break;
-				case SQL_CHAR:
-				case SQL_VARCHAR:
-				case SQL_LONGVARCHAR:
-				case SQL_WCHAR:
-				case SQL_WVARCHAR:
-				case SQL_WLONGVARCHAR:
-				{
-					newObj->fSqlType = SQL_CHAR;
-					// Worst case, each Unicode char maps to a double-byte char
-					// Prevent overflow if value is half a gig or larger
-					if (newObj->cbValueMax < 0x7fffffff)
-					{
-						newObj->cbValueMax *= 2;
-						newObj->cbValueMax += cbChar;
-					}
-					else
-						newObj->cbValueMax = 0xffffffff;
-				}
-				break;
-				default:
-					// For other types, use a default buffer size
-					newObj->cbValueMax = 100;
-
-				} //switch(fSqlType)
-
-				newObj->cbValueMax = (newObj->cbValueMax < (UWORD)(-1) ? newObj->cbValueMax : (UWORD)(-1));
-				newObj->rgbValue = (PTR)alloca(newObj->cbValueMax);
-								
-				char buf[8192], type[255];
-				PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i + 1, SQL_COLUMN_NAME, buf,
-					sizeof(buf), nullptr, nullptr));
-				PrintError(hStmt, SQL_HANDLE_STMT, SQLColAttributeA(hStmt, i + 1, SQL_COLUMN_TYPE_NAME,
-					type, sizeof(type), NULL, NULL));
-				columnNames.push_back({ buf, type });
-
-				lpgi.push_back(newObj);
+				PrintError(SQLHandleStatement, SQL_HANDLE_STMT, ErrorCode);
 			}
-			if (Need_SQL_TYPE)
+			case SQL_SUCCESS:
 			{
-				for (size_t i = 0; i < columnNames.size(); i++)
+				ErrorCode = SQLGetStmtAttr(SQLHandleStatement, SQL_ATTR_ROW_ARRAY_SIZE, &OldArraySize, sizeof(OldArraySize), NULL);
+				ErrorCode = SQLGetStmtAttr(SQLHandleStatement, SQL_ROWSET_SIZE, &OldRowsetSize, sizeof(OldArraySize), NULL);
+				ErrorCode = SQLSetStmtAttr(SQLHandleStatement, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)1, 0);
+				ErrorCode = SQLSetStmtAttr(SQLHandleStatement, SQL_ROWSET_SIZE, (PTR)1, 0);
+
+				SQLSMALLINT countColumns = 0;
+				PrintError(SQLHandleStatement, SQL_HANDLE_STMT, SQLNumResultCols(SQLHandleStatement, &countColumns));
+				std::vector<std::shared_ptr<ColunmStructure>> ResultSet;
+				std::vector<std::pair<std::string, std::string>> columnNames = {};
+
+				ErrorCode = SQLNumResultCols(SQLHandleStatement, &countColumns);
+				if ((ErrorCode) != SQL_SUCCESS && (ErrorCode) != SQL_SUCCESS_WITH_INFO)
 				{
-					res[columnNames[i].first].push_back({ {"sql_type", columnNames[i].second} });
+					break;
 				}
-			}
-
-			while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING) {}
-
-			// Do A New SQLExecuteDirect To Get How Much Count Of Data Will Be
-			SQLLEN cnt = 1;
-			if (query.find("SELECT") != std::string::npos)
-				cnt = GetCntData(query);
-			rc = SQL_SUCCESS;
-
-			while ((rc) == SQL_SUCCESS || (rc) == SQL_SUCCESS_WITH_INFO)
-			{
-				for (size_t i = 0; i < lpgi.size(); i++)
+				for (SQLSMALLINT i = 0; i < countColumns; i++)
 				{
-					SQLLEN cbValue;
-					PrintError(hStmt,
-						SQL_HANDLE_STMT, rc = SQLGetData(hStmt,
+					std::shared_ptr<ColunmStructure> Column = std::make_shared<ColunmStructure>();
+
+					ErrorCode = SQLDescribeCol(SQLHandleStatement,
 						(UWORD)(i + 1),
-							SQL_C_CHAR,
-							lpgi.at(i)->rgbValue,
-							lpgi.at(i)->cbValueMax,
-							&cbValue));
+						(LPTSTR)Column->ColumnName,
+						0, NULL,
+						&Column->SqlType,
+						&Column->MemorySize,
+						NULL, NULL);
 
-					if ((rc == SQL_SUCCESS || (rc == SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA_FOUND)) &&
-						lpgi.at(i)->rgbValue != nullptr)
+					if (ErrorCode != SQL_SUCCESS && ErrorCode != SQL_SUCCESS_WITH_INFO)
 					{
-						LPSTR buf = (LPSTR)lpgi.at(i)->rgbValue;
-
-						if (cbValue == SQL_NULL_DATA)
+						break;
+					}
+					UINT sizeofWChar = sizeof(TCHAR);
+					switch (Column->SqlType)
+					{
+						case SQL_BINARY:
+						case SQL_VARBINARY:
+						case SQL_LONGVARBINARY:
 						{
-							if (cnt == 1 && sNumResults == 1)
-								res = nlohmann::json();
+							// Binary types must allow for twice as much room for the char display
+							if (Column->MemorySize == 0)
+							{
+								//Handle MAX 
+								Column->MemorySize = 8000;
+							}
 							else
-								res[columnNames[i].first].push_back(nlohmann::json()); // Was "NULL"
-							continue;
-						}
-
-						switch (lpgi.at(i)->fSqlType)
-						{
-						case SQL_BIT:
-						case SQL_INTEGER:
-						case SQL_NUMERIC:
-						case SQL_TINYINT:
-						case SQL_SMALLINT:
-						case SQL_BIGINT:
-						{
-							if (cnt == 1 && sNumResults == 1)
-								res = nlohmann::json::object({ { columnNames[i].first, atoi(buf) } });
-							else
-								res[columnNames[i].first].push_back(atoi(buf));
-							break;
-						}
-						case SQL_REAL:
-						case SQL_DECIMAL:
-						case SQL_DOUBLE:
-						{
-							if (cnt == 1 && sNumResults == 1)
-								res = nlohmann::json::object({ { columnNames[i].first, atof(buf) } });
-							else
-								res[columnNames[i].first].push_back(atof(buf));
+							{
+								Column->MemorySize *= (2 * sizeofWChar) + sizeofWChar;
+								Column->SqlType = SQL_BINARY;
+							}
 							break;
 						}
 						case SQL_CHAR:
@@ -282,379 +229,632 @@ namespace odbc
 						case SQL_WVARCHAR:
 						case SQL_WLONGVARCHAR:
 						{
-							std::string str = buf;
-
-							std::string::size_type size;
-							try
+							Column->SqlType = SQL_CHAR;
+							// Worst case, each Unicode char maps to a double-byte char
+							// Prevent overflow if value is half a gig or larger
+							if (Column->MemorySize < 0x7fffffff)
 							{
-								// It Needs Only For Indicate If It's Number Or Not!
-								std::stoi(str, &size);
-
-								// If In This String Has Something Else With Numbers (Can consider it not number, it's string!)
-								if (size != str.length())
-									size = std::string::npos;
+								Column->MemorySize *= 2;
+								Column->MemorySize += sizeofWChar;
 							}
-							// No numbers in that string
-							catch (const std::exception&)
-							{
-								size = std::string::npos;
-							}
-
-							// To Avoid If It Is Not String At All (Like Number) Because JSON Parse "STRING"
-							// From Only Numbers Like NUMBER type!
-							if (size != std::string::npos)
-							{
-								str.erase(str.begin());
-								str.erase(str.end());
-							}
-
-							nlohmann::json _js;
-							if (!str.empty())
-							{
-								try
-								{
-									_js = nlohmann::json::parse(str);
-								}
-								catch (nlohmann::json::exception)
-								{
-									_js = str;
-								}
-							}
-							if (cnt == 1 && sNumResults == 1)
-								res = _js;
 							else
-								res[columnNames[i].first].push_back(str.empty() ? "" : _js);
+							{
+								Column->MemorySize = 0xffffffff;
+							}
 						}
+						break;
+						default:
+						{
+							// For other types, use a default buffer size
+							Column->MemorySize = 100;
 						}
+
+					}
+					Column->MemorySize = (Column->MemorySize < (UWORD)(-1) ? Column->MemorySize : (UWORD)(-1));
+					Column->Pointer = (PTR)alloca(Column->MemorySize);
+
+					char ColumnName[8192], ColumnType[255];
+					PrintError(SQLHandleStatement, SQL_HANDLE_STMT, SQLColAttributeA(SQLHandleStatement, i + 1, SQL_COLUMN_NAME, ColumnName,
+						sizeof(ColumnName), nullptr, nullptr));
+					PrintError(SQLHandleStatement, SQL_HANDLE_STMT, SQLColAttributeA(SQLHandleStatement, i + 1, SQL_COLUMN_TYPE_NAME,
+						ColumnType, sizeof(ColumnType), NULL, NULL));
+					columnNames.push_back({ ColumnName, ColumnType });
+
+					ResultSet.emplace_back(Column);
+				}
+				if (NeedDescribeColumnType)
+				{
+					for (size_t i = 0; i < columnNames.size(); i++)
+					{
+						ReturnJSON[columnNames[i].first].push_back({ { "sql_type", columnNames[i].second } });
 					}
 				}
 
-				if ((rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) && rc != SQL_NO_DATA_FOUND)
-					break;
-				while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING) {}
-			}
-			break;
-		}
-		case SQL_ERROR:
-		{
-			PrintError(hStmt, SQL_HANDLE_STMT, rc);
-			break;
-		}
+				while ((ErrorCode = SQLFetch(SQLHandleStatement)) == SQL_STILL_EXECUTING);
 
-		// In Somecase it may consider like success!
-		case SQL_NO_DATA_FOUND:
-			break;
+				// Do A New SQLExecuteDirect To Get How Much Count Of Data Will Be
+				SQLLEN countRows = 1;
+				if (query.find("SELECT") != std::string::npos)
+				{
+					countRows = GetCountRows(query);
+				}
+				ErrorCode = SQL_SUCCESS;
 
-		default:
-#if __has_include("logger.h")
-			Logger_Error_F("Unexpected return code {}!\n", rc);
-#endif
-		}
+				while ((ErrorCode) == SQL_SUCCESS || (ErrorCode) == SQL_SUCCESS_WITH_INFO)
+				{
+					for (size_t i = 0; i < ResultSet.size(); i++)
+					{
+						SQLLEN cbValue;
+						PrintError(SQLHandleStatement,
+							SQL_HANDLE_STMT, ErrorCode = SQLGetData(SQLHandleStatement,
+								(UWORD)(i + 1),
+								SQL_C_CHAR,
+								ResultSet.at(i)->Pointer,
+								ResultSet.at(i)->MemorySize,
+								&cbValue));
 
-		PrintError(hStmt, SQL_HANDLE_STMT, SQLFreeStmt(hStmt, SQL_CLOSE));
+						if ((ErrorCode == SQL_SUCCESS || (ErrorCode == SQL_SUCCESS_WITH_INFO && ErrorCode != SQL_NO_DATA_FOUND)) &&
+							ResultSet.at(i)->Pointer != nullptr)
+						{
+							LPSTR PointerData = (LPSTR)ResultSet[i]->Pointer;
 
-		//Reset rowset sizes
-		SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)nOldArraySize, sizeof(nOldArraySize));
-		SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)nOldRowsetSize, sizeof(nOldArraySize));
+							if (cbValue == SQL_NULL_DATA)
+							{
+								if (countRows == 1 && countColumns == 1)
+								{
+									ReturnJSON = nlohmann::json();
+								}
+								else
+								{
+									ReturnJSON[columnNames[i].first].push_back(nlohmann::json()); // Was "NULL"
+								}
+								continue;
+							}
 
-		return res;
-	}
+							switch (ResultSet.at(i)->SqlType)
+							{
+								case SQL_BIT:
+								case SQL_INTEGER:
+								case SQL_NUMERIC:
+								case SQL_TINYINT:
+								case SQL_SMALLINT:
+								case SQL_BIGINT:
+								{
+									if (countRows == 1 && countColumns == 1)
+									{
+										ReturnJSON = nlohmann::json::object({ { columnNames[i].first, atoi(PointerData) } });
+									}
+									else
+									{
+										ReturnJSON[columnNames[i].first].push_back(atoi(PointerData));
+									}
 
-	nlohmann::json ODBC::SelectValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-		const std::vector<std::string>& condition, bool Need_SQL_TYPE) const
-	{
-		return Query(query::MakeSelectValuesQuery(!name_table.empty() ? name_table : CurrentTable, 
-			name_columns, condition), Need_SQL_TYPE);
-	}
+									break;
+								}
+								case SQL_REAL:
+								case SQL_DECIMAL:
+								case SQL_DOUBLE:
+								{
+									if (countRows == 1 && countColumns == 1)
+									{
+										ReturnJSON = nlohmann::json::object({ { columnNames[i].first, atof(PointerData) } });
+									}
+									else
+									{
+										ReturnJSON[columnNames[i].first].push_back(atof(PointerData));
+									}
 
-	void ODBC::InsertValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-		const std::vector<std::string>& values) const
-	{
-		Query(query::MakeInsertValuesQuery(!name_table.empty() ? name_table : CurrentTable, 
-			name_columns, values));
-	}
+									break;
+								}
+								case SQL_CHAR:
+								case SQL_VARCHAR:
+								case SQL_LONGVARCHAR:
+								case SQL_WCHAR:
+								case SQL_WVARCHAR:
+								case SQL_WLONGVARCHAR:
+								{
+									nlohmann::json ParsedJSON;
+									std::string StringFromPointerData = PointerData;
+									
+									if (!StringFromPointerData.empty())
+									{
+										if (StringFromPointerData.front() == '\"')
+										{
+											StringFromPointerData.erase(StringFromPointerData.begin());
+										}
+										if (StringFromPointerData.back() == '\"')
+										{
+											StringFromPointerData.erase(StringFromPointerData.end());
+										}
 
-	void ODBC::UpdateValues(const std::string& name_table, const std::vector<std::string>& name_columns,
-		const std::vector<std::string>& values, const std::vector<std::string>& condition) const
-	{
-		Query(query::MakeUpdateValuesQuery(!name_table.empty() ? name_table : CurrentTable, 
-			name_columns, values, condition));
-	}
+										ParsedJSON = nlohmann::json::parse(StringFromPointerData, nullptr, false);
 
-	void ODBC::CreateTable(const std::string& name_table, const std::vector<std::string>& name_column,
-		const std::vector<std::string>& type, const std::vector<std::string>& value,
-		const std::vector<std::vector<std::string>>& attributes) const
-	{
-		std::string ret_query = query::MakeCreateTableQuery(!name_table.empty() ? name_table : CurrentTable, 
-			name_column, type, value, attributes);
+										if (ParsedJSON.is_discarded())
+										{
+											ParsedJSON = StringFromPointerData;
+										}
+									}
+									if (countRows == 1 && countColumns == 1)
+									{
+										ReturnJSON = ParsedJSON;
+									}
+									else
+									{
+										ReturnJSON[columnNames[i].first].push_back(StringFromPointerData.empty() ? "" : ParsedJSON);
+									}
 
-		if (ret_query.empty())
-			return;
+									break;
+								}
+							}
+						}
+					}
 
-		ret_query.erase(ret_query.find("DEFAULT CHARSET UTF8"), 20);
-
-		Query(ret_query);
-	}
-
-	void ODBC::CreateColumn(const std::string& name_table, const std::string& name_column, const std::string& type,
-		const std::string& value, const std::vector<std::string>& attributes) const
-	{
-		Query(query::MakeCreateColumnQuery(!name_table.empty() ? name_table : CurrentTable, 
-			name_column, type, value, attributes));
-	}
-
-	void ODBC::ModifyColumn(const std::string& name_table, const std::string& name_column, const std::string& type,
-		const std::string& value, const std::vector<std::string>& attributes) const
-	{
-		std::string ret_query = query::MakeModifyColumnQuery(!name_table.empty() ? name_table : CurrentTable, 
-			name_column, type, value, attributes);
-
-		if (ret_query.empty())
-			return;
-
-		size_t pos = ret_query.find("MODIFY");
-		ret_query.erase(pos, 6);
-		ret_query.insert(pos, "ALTER");
-
-		Query(ret_query);
-	}
-
-	void ODBC::DeleteTable(const std::string& name_table) const
-	{
-		Query(query::MakeDeleteTableQuery(!name_table.empty() ? name_table : CurrentTable));
-	}
-
-	void ODBC::DeleteColumn(const std::string& name_table, const std::string& name_column) const
-	{
-		Query(query::MakeDeleteColumnQuery(!name_table.empty() ? name_table : CurrentTable, name_column));
-	}
-
-	void ODBC::DeleteValues(const std::string& name_table, const std::string& condition) const
-	{
-		Query(query::MakeDeleteValuesQuery(!name_table.empty() ? name_table : CurrentTable, condition));
-	}
-
-	void ODBC::Exit() const
-	{
-		if (hStmt)
-			SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
-
-		if (hDbc)
-		{
-			SQLDisconnect(hDbc);
-			SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-		}
-
-		if (hEnv)
-			SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
-	}
-
-	std::pair<bool, std::vector<std::string>> ODBC::GetListTablesDatabase() const
-	{
-		std::pair<bool, std::vector<std::string>> ret = { false, {} };
-		std::vector<lpGETINFOALL> lpgi;
-		DWORD dwReqdMem;
-		SQLSMALLINT cCols;
-		SQLRETURN rc = SQL_SUCCESS;
-		// Invoke function
-		SQLLEN nOldArraySize = 0, nOldRowsetSize = 0;
-
-		rc = SQLGetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, &nOldArraySize, sizeof(nOldArraySize), NULL);
-		rc = SQLGetStmtAttr(hStmt, SQL_ROWSET_SIZE, &nOldRowsetSize, sizeof(nOldArraySize), NULL);
-		rc = SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)1, 0);
-		rc = SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)1, 0);
-
-		rc = SQLTables(hStmt,
-			SQL_NULL_HANDLE,											// szTableQualifier
-			0,            				// cbTableQualifier
-			SQL_NULL_HANDLE,                   				// szTableOwner
-			SQL_NULL_HANDLE,            				// cbTableOwner
-			0,                   				// szTableName
-			SQL_NULL_HANDLE,          					// cbTableName
-			0,                   				// szTableType
-			SQL_NULL_HANDLE);          					// cbTableType
-
-		rc = SQLNumResultCols(hStmt, &cCols);
-		if ((rc) != SQL_SUCCESS && (rc) != SQL_SUCCESS_WITH_INFO)
-			return ret;
-
-		for (SQLSMALLINT i = 0; i < cCols; i++)
-		{
-			dwReqdMem = sizeof(GETINFOALL) * (DWORD)cCols;	// Explicit promotion required
-			lpGETINFOALL newObj = (lpGETINFOALL)calloc(cCols, dwReqdMem);
-			if (!newObj) continue;
-
-			rc = SQLDescribeCol(hStmt,
-				(UWORD)(i + 1),
-				(LPTSTR)newObj->szCol,
-				0, NULL,
-				&newObj->fSqlType,
-				&newObj->cbValueMax,
-				NULL, NULL);
-
-			if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO)
-				return ret;
-
-			UINT cbChar = sizeof(TCHAR);
-			switch (newObj->fSqlType)
-			{
-			case SQL_BINARY:
-			case SQL_VARBINARY:
-			case SQL_LONGVARBINARY:
-				// Binary types must allow for twice as much room for the char display
-				if (newObj->cbValueMax == 0)
-					//Handle MAX 
-					newObj->cbValueMax = 8000;
-				else {
-					newObj->cbValueMax *= (2 * cbChar) + cbChar;
-					newObj->fSqlType = SQL_BINARY;
+					if ((ErrorCode != SQL_SUCCESS && ErrorCode != SQL_SUCCESS_WITH_INFO) && ErrorCode != SQL_NO_DATA_FOUND)
+					{
+						break;
+					}
+					while ((ErrorCode = SQLFetch(SQLHandleStatement)) == SQL_STILL_EXECUTING);
 				}
 				break;
-			case SQL_CHAR:
-			case SQL_VARCHAR:
-			case SQL_LONGVARCHAR:
-			case SQL_WCHAR:
-			case SQL_WVARCHAR:
-			case SQL_WLONGVARCHAR:
-			{
-				newObj->fSqlType = SQL_CHAR;
-				// Worst case, each Unicode char maps to a double-byte char
-				// Prevent overflow if value is half a gig or larger
-				if (newObj->cbValueMax < 0x7fffffff)
-				{
-					newObj->cbValueMax *= 2;
-					newObj->cbValueMax += cbChar;
-				}
-				else
-					newObj->cbValueMax = 0xffffffff;
 			}
-			break;
+			case SQL_ERROR:
+			{
+				PrintError(SQLHandleStatement, SQL_HANDLE_STMT, ErrorCode);
+				break;
+			}
+
+			// In Somecase it may consider like success!
+			case SQL_NO_DATA_FOUND:
+			{
+				break;
+			}
+
 			default:
-				// For other types, use a default buffer size
-				newObj->cbValueMax = 100;
-
-			} //switch(fSqlType)
-
-			newObj->cbValueMax = (newObj->cbValueMax < (UWORD)(-1) ? newObj->cbValueMax : (UWORD)(-1));
-			newObj->rgbValue = (PTR)alloca(newObj->cbValueMax);
-
-			lpgi.push_back(newObj);
+			{
+#if __has_include("logger.h")
+				Logger_Error_F("Unexpected return code {}!\n", ErrorCode);
+#endif
+				break;
+			}
 		}
 
-		while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING)
+		PrintError(SQLHandleStatement, SQL_HANDLE_STMT, SQLFreeStmt(SQLHandleStatement, SQL_CLOSE));
+
+		//Reset rowset sizes
+		SQLSetStmtAttr(SQLHandleStatement, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)OldArraySize, sizeof(OldArraySize));
+		SQLSetStmtAttr(SQLHandleStatement, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)OldRowsetSize, sizeof(OldArraySize));
+
+		return ReturnJSON;
+	}
+
+	nlohmann::json ODBC::SelectValues(const std::string &name_table, const std::vector<std::string> &name_columns,
+		const std::vector<std::string> &condition, bool NeedDescribeColumnType)
+	{
+		if (name_table.empty())
 		{
+			throw std::exception("Not Enough Parameters!");
+			return nlohmann::json();
+		}
+		return Query(query::MakeSelectValuesQuery(name_table, name_columns, condition), NeedDescribeColumnType);
+	}
+
+	nlohmann::json ODBC::SelectValuesInCurrentTable(const std::vector<std::string> &name_columns,
+		const std::vector<std::string> &condition, bool NeedDescribeColumnType)
+	{
+		return Query(query::MakeSelectValuesQuery(CurrentTable,	name_columns, condition), NeedDescribeColumnType);
+	}
+
+	void ODBC::InsertValues(const std::string &name_table, const std::vector<std::string> &name_columns,
+		const std::vector<std::string> &values)
+	{
+		if (name_table.empty())
+		{
+			throw std::exception("Not Enough Parameters!");
+		}
+		Query(query::MakeInsertValuesQuery(name_table, name_columns, values));
+	}
+
+	void ODBC::InsertValuesInCurrentTable(const std::vector<std::string> &name_columns,
+		const std::vector<std::string> &values)
+	{
+		Query(query::MakeInsertValuesQuery(CurrentTable, name_columns, values));
+	}
+
+	void ODBC::UpdateValues(const std::string &name_table, const std::vector<std::string> &name_columns,
+		const std::vector<std::string> &values, const std::vector<std::string> &condition)
+	{
+		if (name_table.empty())
+		{
+			throw std::exception("Not Enough Parameters!");
 		}
 
-		rc = SQL_SUCCESS;
+		Query(query::MakeUpdateValuesQuery(name_table, name_columns, values, condition));
+	}
 
-		while ((rc) == SQL_SUCCESS || (rc) == SQL_SUCCESS_WITH_INFO)
+	void ODBC::UpdateValuesInCurrentTable(const std::vector<std::string> &name_columns,
+		const std::vector<std::string> &values, const std::vector<std::string> &condition)
+	{
+		Query(query::MakeUpdateValuesQuery(CurrentTable, name_columns, values, condition));
+	}
+
+	void ODBC::CreateAndSetCurrentTable(const std::string &name_table, const std::vector<std::string> &name_column,
+		const std::vector<std::string> &type, const std::vector<std::string> &value,
+		const std::vector<std::vector<std::string>> &attributes)
+	{
+		if (name_table.empty())
 		{
-			for (size_t i = 1; i < lpgi.size(); i++)
+			throw std::exception("Not Enough Parameters!");
+		}
+
+		std::string result_query = query::MakeCreateTableQuery(name_table, name_column, type, value, attributes);
+
+		if (result_query.empty())
+		{
+			throw std::exception("Query Was Build With Errors!");
+		}
+
+		if (result_query.find("DEFAULT CHARSET UTF8") != std::string::npos)
+		{
+			result_query.erase(result_query.find("DEFAULT CHARSET UTF8"), 20);
+		}
+
+		Query(result_query);
+
+		CurrentTable = name_table;
+	}
+	void ODBC::CreateTable(const std::string &name_table, const std::vector<std::string> &name_column,
+		const std::vector<std::string> &type, const std::vector<std::string> &value,
+		const std::vector<std::vector<std::string>> &attributes)
+	{
+		if (name_table.empty())
+		{
+			throw std::exception("Not Enough Parameters!");
+		}
+
+		std::string TmpCurrentTable = CurrentTable;
+
+		CreateAndSetCurrentTable(name_table, name_column, type, value, attributes);
+
+		CurrentTable = TmpCurrentTable;
+	}
+
+	void ODBC::CreateColumn(const std::string &name_table, const std::string &name_column, const std::string &type,
+		const std::string &value, const std::vector<std::string> &attributes)
+	{
+		if (name_table.empty())
+		{
+			throw std::exception("Not Enough Parameters!");
+		}
+
+		Query(query::MakeCreateColumnQuery(name_table, name_column, type, value, attributes));
+	}
+
+	void ODBC::CreateColumnInCurrentTable(const std::string &name_column, const std::string &type,
+		const std::string &value, const std::vector<std::string> &attributes)
+	{
+		Query(query::MakeCreateColumnQuery(CurrentTable, name_column, type, value, attributes));
+	}
+
+	void ODBC::ModifyColumn(const std::string &name_table, const std::string &name_column, const std::string &type,
+		const std::string &value, const std::vector<std::string> &attributes)
+	{
+		if (name_table.empty())
+		{
+			throw std::exception("Not Enough Parameters!");
+		}
+
+		std::string QueryResult = query::MakeModifyColumnQuery(name_table, name_column, type, value, attributes);
+
+		if (QueryResult.empty())
+		{
+			throw std::exception("Query Was Build With Errors!");
+		}
+
+		size_t FindedPosition = QueryResult.find("MODIFY");
+		if (FindedPosition != std::string::npos)
+		{
+			QueryResult.erase(FindedPosition, 6);
+			QueryResult.insert(FindedPosition, "ALTER");
+		}
+
+		Query(QueryResult);
+	}
+
+	void ODBC::ModifyColumnInCurrentTable(const std::string &name_column, const std::string &type,
+		const std::string &value, const std::vector<std::string> &attributes)
+	{
+		ModifyColumn(CurrentTable, name_column, type, value, attributes);
+	}
+
+	void ODBC::DeleteTable(const std::string &name_table)
+	{
+		if (name_table.empty())
+		{
+			throw std::exception("Not Enough Parameters!");
+		}
+
+		Query(query::MakeDeleteTableQuery(name_table));
+	}
+
+	void ODBC::DeleteCurrentTable()
+	{
+		Query(query::MakeDeleteTableQuery(CurrentTable));
+	}
+
+	void ODBC::DeleteColumn(const std::string &name_table, const std::string &name_column)
+	{
+		if (name_table.empty())
+		{
+			throw std::exception("Not Enough Parameters!");
+		}
+
+		Query(query::MakeDeleteColumnQuery(name_table, name_column));
+	}
+
+	void ODBC::DeleteColumnInCurrentTable(const std::string &name_column)
+	{
+		Query(query::MakeDeleteColumnQuery(CurrentTable, name_column));
+	}
+
+	void ODBC::DeleteValues(const std::string &name_table, const std::string &condition)
+	{
+		if (name_table.empty())
+		{
+			throw std::exception("Not Enough Parameters!");
+		}
+
+		Query(query::MakeDeleteValuesQuery(name_table, condition));
+	}
+
+	void ODBC::DeleteValuesInCurrentTable(const std::string &condition)
+	{
+		Query(query::MakeDeleteValuesQuery(CurrentTable, condition));
+	}
+
+	void ODBC::Destroy()
+	{
+		if (SQLHandleStatement)
+		{
+			SQLFreeHandle(SQL_HANDLE_STMT, SQLHandleStatement);
+		}
+
+		if (SQLHandleDatabaseConnection)
+		{
+			SQLDisconnect(SQLHandleDatabaseConnection);
+			SQLFreeHandle(SQL_HANDLE_DBC, SQLHandleDatabaseConnection);
+		}
+
+		if (SQLHandleEnvironment)
+		{
+			SQLFreeHandle(SQL_HANDLE_ENV, SQLHandleEnvironment);
+		}
+	}
+
+	std::pair<bool, std::vector<std::string>> ODBC::GetListTablesDatabase()
+	{
+		std::pair<bool, std::vector<std::string>> ReturnData = { false, {} };
+		std::vector<std::shared_ptr<ColunmStructure>> ResultSet;
+		SQLSMALLINT SizeColumns;
+		SQLRETURN ErrorCode = SQL_SUCCESS;
+		// Invoke function
+		SQLLEN OldArraySize = 0, OldRowsetSize = 0;
+
+		ErrorCode = SQLGetStmtAttr(SQLHandleStatement, SQL_ATTR_ROW_ARRAY_SIZE, &OldArraySize, sizeof(OldArraySize), NULL);
+		ErrorCode = SQLGetStmtAttr(SQLHandleStatement, SQL_ROWSET_SIZE, &OldRowsetSize, sizeof(OldArraySize), NULL);
+		ErrorCode = SQLSetStmtAttr(SQLHandleStatement, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)1, 0);
+		ErrorCode = SQLSetStmtAttr(SQLHandleStatement, SQL_ROWSET_SIZE, (PTR)1, 0);
+
+		ErrorCode = SQLTables(SQLHandleStatement,
+			SQL_NULL_HANDLE, // szTableQualifier
+			0,				// cbTableQualifier
+			SQL_NULL_HANDLE, // szTableOwner
+			SQL_NULL_HANDLE, // cbTableOwner
+			0,				// szTableName
+			SQL_NULL_HANDLE, // cbTableName
+			0,				// szTableType
+			SQL_NULL_HANDLE); // cbTableType
+
+		ErrorCode = SQLNumResultCols(SQLHandleStatement, &SizeColumns);
+		if ((ErrorCode) != SQL_SUCCESS && (ErrorCode) != SQL_SUCCESS_WITH_INFO)
+		{
+			return ReturnData;
+		}
+
+		for (SQLSMALLINT i = 0; i < SizeColumns; i++)
+		{
+			std::shared_ptr<ColunmStructure> Column = std::make_shared<ColunmStructure>();
+
+			ErrorCode = SQLDescribeCol(SQLHandleStatement,
+				(UWORD)(i + 1),
+				(LPTSTR)Column->ColumnName,
+				0, NULL,
+				&Column->SqlType,
+				&Column->MemorySize,
+				NULL, NULL);
+
+			if (ErrorCode != SQL_SUCCESS && ErrorCode != SQL_SUCCESS_WITH_INFO)
+			{
+				return ReturnData;
+			}
+
+			UINT sizeofChar = sizeof(TCHAR);
+			switch (Column->SqlType)
+			{
+				case SQL_BINARY:
+				case SQL_VARBINARY:
+				case SQL_LONGVARBINARY:
+				{
+					// Binary types must allow for twice as much room for the char display
+					if (Column->MemorySize == 0)
+					{
+						//Handle MAX 
+						Column->MemorySize = 8000;
+					}
+					else
+					{
+						Column->MemorySize *= (2 * sizeofChar) + sizeofChar;
+						Column->SqlType = SQL_BINARY;
+					}
+				
+					break;
+				}
+				case SQL_CHAR:
+				case SQL_VARCHAR:
+				case SQL_LONGVARCHAR:
+				case SQL_WCHAR:
+				case SQL_WVARCHAR:
+				case SQL_WLONGVARCHAR:
+				{
+					Column->SqlType = SQL_CHAR;
+					// Worst case, each Unicode char maps to a double-byte char
+					// Prevent overflow if value is half a gig or larger
+					if (Column->MemorySize < 0x7fffffff)
+					{
+						Column->MemorySize *= 2;
+						Column->MemorySize += sizeofChar;
+					}
+					else
+					{
+						Column->MemorySize = 0xffffffff;
+					}
+
+					break;
+				}
+				default:
+				{
+					// For other types, use a default buffer size
+					Column->MemorySize = 100;
+				}
+			}
+
+			Column->MemorySize = (Column->MemorySize < (UWORD)(-1) ? Column->MemorySize : (UWORD)(-1));
+			Column->Pointer = (PTR)alloca(Column->MemorySize);
+
+			ResultSet.emplace_back(Column);
+		}
+
+		while ((ErrorCode = SQLFetch(SQLHandleStatement)) == SQL_STILL_EXECUTING);
+
+		ErrorCode = SQL_SUCCESS;
+
+		while ((ErrorCode) == SQL_SUCCESS || (ErrorCode) == SQL_SUCCESS_WITH_INFO)
+		{
+			for (size_t i = 1; i < ResultSet.size(); i++)
 			{
 				SQLLEN cbValue;
-				PrintError(hStmt,
-					SQL_HANDLE_STMT, rc = SQLGetData(hStmt,
-					(UWORD)(i + 1),
+				PrintError(SQLHandleStatement,
+					SQL_HANDLE_STMT, ErrorCode = SQLGetData(SQLHandleStatement,
+						(UWORD)(i + 1),
 						SQL_C_CHAR,
-						lpgi.at(i)->rgbValue,
-						lpgi.at(i)->cbValueMax,
+						ResultSet.at(i)->Pointer,
+						ResultSet.at(i)->MemorySize,
 						&cbValue));
 
 				if (cbValue < 0)
-					continue;
-
-				if ((rc == SQL_SUCCESS || (rc == SQL_SUCCESS_WITH_INFO && rc != SQL_NO_DATA_FOUND)) &&
-					lpgi.at(i)->rgbValue != nullptr)
 				{
-					std::string cur_itm = (LPSTR)lpgi.at(i)->rgbValue;
-					ret.second.push_back(cur_itm);
-					if (cur_itm == "SYSTEM TABLE" || cur_itm == "TABLE")
+					continue;
+				}
+
+				if ((ErrorCode == SQL_SUCCESS || (ErrorCode == SQL_SUCCESS_WITH_INFO && ErrorCode != SQL_NO_DATA_FOUND)) &&
+					ResultSet.at(i)->Pointer != nullptr)
+				{
+					std::string TypeColumn = (LPSTR)ResultSet.at(i)->Pointer;
+					ReturnData.second.push_back(TypeColumn);
+					if (TypeColumn == "SYSTEM TABLE" || TypeColumn == "TABLE")
 					{
-						if (cur_itm != "TABLE")
+						if (TypeColumn != "TABLE")
 						{
 							for (size_t _ = 0; _ < 2; _++)
 							{
-								if (!ret.second.empty())
-									ret.second.pop_back();
+								if (!ReturnData.second.empty())
+								{
+									ReturnData.second.pop_back();
+								}
 							}
 						}
 						else
 						{
-							auto ptr = ret.second.begin();
-							while (ptr < ret.second.end())
+							auto Iter = ReturnData.second.begin();
+							while (Iter < ReturnData.second.end())
 							{
-								if (*ptr == "TABLE")
+								if (*Iter == "TABLE")
 								{
-									ptr = ret.second.erase(ptr);
-									ret.first = true;
+									Iter = ReturnData.second.erase(Iter);
+									ReturnData.first = true;
 								}
 								else
-									ptr++;
+								{
+									Iter++;
+								}
 							}
 						}
 					}
 				}
 			}
 
-			if ((rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) && rc != SQL_NO_DATA_FOUND)
-				break;
-
-			while ((rc = SQLFetch(hStmt)) == SQL_STILL_EXECUTING)
+			if ((ErrorCode != SQL_SUCCESS && ErrorCode != SQL_SUCCESS_WITH_INFO) && ErrorCode != SQL_NO_DATA_FOUND)
 			{
+				break;
 			}
+
+			while ((ErrorCode = SQLFetch(SQLHandleStatement)) == SQL_STILL_EXECUTING);
 		}
 
-		SQLFreeStmt(hStmt, SQL_CLOSE);
+		SQLFreeStmt(SQLHandleStatement, SQL_CLOSE);
 
 		//Reset rowset sizes
-		SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)nOldArraySize, sizeof(nOldArraySize));
-		SQLSetStmtAttr(hStmt, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)nOldRowsetSize, sizeof(nOldArraySize));
+		SQLSetStmtAttr(SQLHandleStatement, SQL_ATTR_ROW_ARRAY_SIZE, (PTR)(LONG_PTR)OldArraySize, sizeof(OldArraySize));
+		SQLSetStmtAttr(SQLHandleStatement, SQL_ROWSET_SIZE, (PTR)(LONG_PTR)OldRowsetSize, sizeof(OldArraySize));
 
-		return ret;
+		return ReturnData;
 	}
 
-	void ODBC::SplitDB(const std::string &NameTable, const std::string &NameNewFile) const
+	void ODBC::SplitDB(const std::string &NameTable, const std::string &NameNewFile)
 	{
-		if (!hEnv || !hDbc || !hStmt)
+		if (!SQLHandleEnvironment || !SQLHandleDatabaseConnection || !SQLHandleStatement)
 		{
-			Logger_Error("This Function Requires To Be Connected To Needed DB To Continue! Aborting!");
+#if __has_include("logger.h")
+			Logger_Error("This Function Requires To Be Connected To DB! Aborting!");
+#endif
 			return;
 		}
 
 		if (NameTable.empty() || NameNewFile.empty())
 		{
-			Logger_Error("This Function Requires To Have Not Empty Params To Work! Aborting!");
+#if __has_include("logger.h")
+			Logger_Error("This Function Requires Params To Work! Aborting!");
+#endif
 			return;
 		}
 
-		std::string c_str = "Microsoft Access Driver (*.mdb)";
-
 		auto SecondFile = std::make_shared<ODBC>();
 		// Create A New DB
-		SecondFile->CreateDataBase(c_str, NameNewFile);
-		SecondFile->Connect(c_str, NameNewFile, "", {});
+		SecondFile->CreateDataBase(DefaultDriverString, NameNewFile);
+		SecondFile->Connect(DefaultDriverString, NameNewFile, "", {});
 
 		std::string table = !NameTable.empty() ? NameTable : CurrentTable;
 		// Then Get * From NameTable And Add It To New DB
-		auto CurrDB = SelectValues(table, { "*" }, {}, true);
+		auto RowsFromDatabase = SelectValues(table, { "*" }, {}, true);
 
 		std::vector<std::string> NameColumns, TypeColumns, EmptyValue;
 		std::vector<std::vector<std::string>> EmptyAttributes;
-		for (auto it = CurrDB.begin(); it != CurrDB.end(); ++it)
+		for (auto it = RowsFromDatabase.begin(); it != RowsFromDatabase.end(); ++it)
 		{
 			NameColumns.push_back(it.key());
 
 			if (!it.value().front()["sql_type"].is_null() || !it.value().front()["sql_type"].empty())
+			{
 				TypeColumns.push_back(it.value().front()["sql_type"]);
+			}
 
-			EmptyValue.push_back("");
+			EmptyValue.push_back({});
 			EmptyAttributes.push_back({});
 		}
-		SecondFile->CreateTable(table, NameColumns, TypeColumns, EmptyValue, EmptyAttributes);
+		SecondFile->CreateAndSetCurrentTable(table, NameColumns, TypeColumns, EmptyValue, EmptyAttributes);
 
-		size_t size_y = 
+		size_t sizeRows = 
 			(size_t)Query("SELECT COUNT(*) FROM `" + table + "`").front().back().get<nlohmann::json::number_integer_t>(),
-			cur = 1u;
+			currentRowIndex = 1u;
 		
 		while (true)
 		{
@@ -663,20 +863,28 @@ namespace odbc
 			{
 				columns.push_back(NameColumns.at(i));
 
-				auto It = CurrDB[NameColumns.at(i)];
-				if (It.is_string())
+				auto It = RowsFromDatabase[NameColumns.at(i)];
+				if (It.is_string() || It.is_object())
+				{
 					value.push_back(It);
+				}
 				else if (It.is_array())
-					value.push_back(It.at(cur));
-				else if (It.is_object())
-					value.push_back(It);
+				{
+					value.push_back(It.at(currentRowIndex));
+				}
 			}
+
 			SecondFile->InsertValues(NameTable, columns, value);
-			if (cur >= size_y)
+
+			if (currentRowIndex >= sizeRows)
+			{
 				break;
+			}
 			else
-				cur++;
+			{
+				currentRowIndex++;
+			}
 		}
-		SecondFile->Exit();
+		SecondFile->Destroy();
 	}
 } // namespace odbc

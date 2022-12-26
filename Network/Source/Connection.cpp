@@ -70,7 +70,7 @@ Connection::Connection(ConnectionManager *connectionManager, asio::io_service &I
 
 	m_socketTCP = std::move(socket);
 
-	ftpClient = std::make_shared<network::FTPClient>();
+	ftpClient = std::make_shared<network::ClientFTP>();
 }
 Connection::Connection(ConnectionManager *connectionManager, asio::io_service &IO):
 	m_clientId(m_nextClientId++)
@@ -87,7 +87,7 @@ Connection::Connection(ConnectionManager *connectionManager, asio::io_service &I
 		ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", m_clientId);
 #endif
 
-	ftpClient = std::make_shared<network::FTPClient>();
+	ftpClient = std::make_shared<network::ClientFTP>();
 }
 Connection::Connection(ConnectionManager *connectionManager, asio::io_service &IO,
 	const asio::ip::udp::endpoint &ep):
@@ -105,7 +105,7 @@ Connection::Connection(ConnectionManager *connectionManager, asio::io_service &I
 		ConnectionManager::TypeWorking::Client ? "[CLIENT]" : "[SERVER]", m_clientId);
 #endif
 
-	ftpClient = std::make_shared<network::FTPClient>();
+	ftpClient = std::make_shared<network::ClientFTP>();
 }
 #endif
 
@@ -137,7 +137,7 @@ void Connection::Start()
 //--------------------------------------------------------------------
 extern std::atomic_bool NoMessageLeft;
 extern std::condition_variable cvBlocking;
-extern std::vector<std::shared_ptr<ConnectionManager::PoolWaiter>> PacketChain;
+extern std::vector<std::shared_ptr<ConnectionManager::PoolWaiterPackets>> PacketChain;
 
 //extern std::atomic_bool HasConnectionPacket;
 //extern std::condition_variable cv_PacketWaiter;

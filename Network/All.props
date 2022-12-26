@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)Submodules\json\include;$(SolutionDir)Network\Include;$(SolutionDir)Submodules\LZ4\Include;$(SolutionDir)Submodules\MySQL Connection\Include;$(SolutionDir)Submodules\boost\asio\include;$(SolutionDir)Submodules\FTP\fineftp-server\include;$(SolutionDir)Submodules\Boost;$(SolutionDir)Submodules\SelfLogger\src;$(SolutionDir)Submodules;%(AdditionalIncludeDirectories);$(SolutionDir)Submodules\crypto++\include;$(SolutionDir)Submodules\Project System\FileWatcher;$(SolutionDir)Submodules\tinyXML2;$(SolutionDir)Include;$(SolutionDir)Submodules\FTP\Server\fineftp-server\include;$(SolutionDir)Submodules\FTP\Server\fineftp-server\src;$(SolutionDir)Submodules\FTP\Server\thirdparty\asio\asio\include;$(SolutionDir)Submodules\SFML\include;$(SolutionDir)Submodules\SFMLextlibs\headers;$(SolutionDir)Include\HTTP;$(ProjectDir)Server\fineftp-server\include;$(ProjectDir)Server\fineftp-server\src;$(ProjectDir)Server\thirdparty\asio\asio\include;$(SolutionDir)Submodules\mysql connector\include</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>lz4d.lib;mysqlcppconn8.lib;Dnsapi.lib;libssl.lib;libcurl-d.lib;cryptopp.lib;%(AdditionalDependencies);flac.lib;freetyped.lib;ogg.lib;openal32.lib;vorbis.lib;vorbisenc.lib;vorbisfile.lib;sfml-audio-d.lib;sfml-system-d.lib;sfml-network-d.lib;tinyxml2.lib</AdditionalDependencies>
+    </Lib>
+    <Lib>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)Submodules\File System\Level\Model\ASSIMP\lib\$(Configuration);$(SolutionDir)Submodules\DXTK\Bin\Desktop_2017\Win32\$(Configuration);$(SolutionDir)Build\$(Configuration);$(SolutionDir)Submodules\mysql connector\lib\vs14\$(Configuration);$(SolutionDir)Submodules\mysql connector\lib\vs14\</AdditionalLibraryDirectories>
+    </Lib>
+    <Link>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)Submodules\File System\Level\Model\ASSIMP\lib\$(Configuration);$(SolutionDir)Submodules\DXTK\Bin\Desktop_2017\Win32\$(Configuration);$(SolutionDir)Build\$(Configuration);$(SolutionDir)Submodules\mysql connector\lib\vs14\$(Configuration);$(SolutionDir)Submodules\mysql connector\lib\vs14\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>lz4d.lib;mysqlcppconn8-static.lib;mysqlcppconn-static.lib;Dnsapi.lib;libssl.lib;libcurl-d.lib;cryptopp.lib;%(AdditionalDependencies);flac.lib;freetyped.lib;ogg.lib;openal32.lib;vorbis.lib;vorbisenc.lib;vorbisfile.lib;sfml-audio-d.lib;sfml-system-d.lib;sfml-network-d.lib;tinyxml2.lib;libcrypto.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>

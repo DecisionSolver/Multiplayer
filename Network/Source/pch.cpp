@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "crypto++/include/sha.h"
-#include <md5.h>
+#include "cryptopp/sha.h"
+#include "cryptopp/md5.h"
 
 const std::string md5_from_file(const std::string &path)
 {
@@ -18,9 +18,9 @@ const std::string md5_from_file(const std::string &path)
 }
 const std::string md5_from_buffer(const std::string &data)
 {
-	CryptoPP::byte digest[CryptoPP::Weak::MD5::DIGESTSIZE];
+	CryptoPP::byte digest[CryptoPP::Weak1::MD5::DIGESTSIZE];
 
-	CryptoPP::Weak::MD5 hash;
+	CryptoPP::Weak1::MD5 hash;
 	hash.CalculateDigest(digest, (const CryptoPP::byte *)data.c_str(), data.length());
 
 	CryptoPP::HexEncoder encoder;

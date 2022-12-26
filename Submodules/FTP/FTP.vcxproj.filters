@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Исходные файлы">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Файлы заголовков">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Файлы ресурсов">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Исходные файлы\fineftp">
+      <UniqueIdentifier>{ed157687-9b86-47d8-952b-5f8fb4cfc7b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\fineftp">
+      <UniqueIdentifier>{be45315a-5a97-486f-adad-6a3f9ad85645}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\MySQL">
+      <UniqueIdentifier>{8dc01a62-b0a6-45ec-8ee8-7ae2edee0119}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\MySQL">
+      <UniqueIdentifier>{e42b3ab2-5ddb-4459-9feb-1743bc3bb948}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="FTP.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Server\fineftp-server\src\server.cpp">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Server\fineftp-server\src\server_impl.cpp">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Server\fineftp-server\src\user_database.cpp">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Server\fineftp-server\src\filesystem.cpp">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="Server\fineftp-server\src\ftp_session.cpp">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Network\Source\MySQL\MySQL_Client.cpp">
+      <Filter>Исходные файлы\MySQL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SelfLogger\src\logger.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Server\fineftp-server\include\fineftp\permissions.h">
+      <Filter>Файлы заголовков\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Server\fineftp-server\include\fineftp\server.h">
+      <Filter>Файлы заголовков\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Server\fineftp-server\src\ftp_session.h">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Server\fineftp-server\src\ftp_user.h">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Server\fineftp-server\src\server_impl.h">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Server\fineftp-server\src\user_database.h">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Server\fineftp-server\src\filesystem.h">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="Server\fineftp-server\src\ftp_message.h">
+      <Filter>Исходные файлы\fineftp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Include\MySQL\MySQL_Config.h">
+      <Filter>Файлы заголовков\MySQL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SelfLogger\src\logger.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Network\Include\MySQL\MySQL_Client.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
