@@ -1683,41 +1683,6 @@ void ConnectionManager::SendPacket(bool ExceptionClient, const Connection::Share
 	}
 }
 
-std::pair<bool, std::pair<ConnectionManager::PoolWaiterPackets::ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>>
-ConnectionManager::PoolWaiterPackets::Check(const std::chrono::seconds &TimeOut)
-{
-	std::unique_lock<std::mutex> ul(m_PacketWaiter);
-	
-	Cur = Last = std::chrono::high_resolution_clock::now();
-	std::chrono::nanoseconds Diff = (Last - Cur);
-
-	// Create Loop For Non-block The Main Thread (to receive packets)
-	while (Diff <= TimeOut)
-	{
-		Last = std::chrono::high_resolution_clock::now();
-		Diff = (Last - Cur);
-
-		// Wait For Acception Connection Packet From Server
-		std::this_thread::sleep_for(100ms);
-
-		if (NeedToBreak.load())
-		{
-			break;
-		}
-	}
-	// If It Wasn't Triggered By Time-Out
-	if (WasPacket.load() && !wasActive.load())
-	{
-		wasActive.store(true);
-		return { true, CauseBreak };
-	}
-	else
-	{
-		return { false, CauseBreak };
-	}
-	return { false, CauseBreak };
-}
-
 void ConnectionManager::EnableNotAllowWithoutCookie()
 {
 	// Sets When Only One Server Is Allowed To Connect Without Cookie To Set Cookies For Other Servers!

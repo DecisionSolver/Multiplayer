@@ -84,8 +84,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Network\Source\Client.cpp" />
-    <ClCompile Include="..\..\Network\Source\Connection.cpp" />
-    <ClCompile Include="..\..\Network\Source\ConnMan.cpp" />
     <ClCompile Include="..\..\Network\Source\Cookie.cpp" />
     <ClCompile Include="..\..\Network\Source\DB_Query.cpp" />
     <ClCompile Include="..\..\Network\Source\FTPClient.cpp" />

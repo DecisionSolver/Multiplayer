@@ -171,37 +171,97 @@
     </Xdcmake>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.cpp" />
-    <ClCompile Include="..\Submodules\Project System\File_system.cpp" />
-    <ClCompile Include="Source\Client.cpp" />
-    <ClCompile Include="Source\Connection.cpp" />
-    <ClCompile Include="Source\ConnMan.cpp" />
-    <ClCompile Include="Source\Cookie.cpp" />
-    <ClCompile Include="Source\FTPClient.cpp" />
-    <ClCompile Include="Source\http\HTTP.cpp" />
-    <ClCompile Include="Source\MySQL\MySQL_Client.cpp" />
-    <ClCompile Include="Source\ODBC\ODBC.cpp" />
-    <ClCompile Include="Source\Packet.cpp" />
-    <ClCompile Include="Source\pch.cpp" />
-    <ClCompile Include="Source\Servers.cpp" />
-    <ClCompile Include="Source\DB_Query.cpp" />
-    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\filesystem.cpp" />
-    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp" />
-    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\server.cpp" />
-    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\server_impl.cpp" />
-    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\user_database.cpp" />
-    <ClCompile Include="..\Submodules\Project System\FileWatcher\source\FileWatcher.cpp" />
-    <ClCompile Include="..\Submodules\Project System\FileWatcher\source\FileWatcherWin32.cpp" />
-    <ClCompile Include="..\Submodules\Project System\GameObjects.cpp" />
-    <ClCompile Include="..\Submodules\Project System\Levels.cpp" />
-    <ClCompile Include="..\Submodules\Project System\Project.cpp" />
-    <ClCompile Include="..\Submodules\Project System\SimpleLogic.cpp" />
-    <ClCompile Include="..\Submodules\Project System\Tools.cpp" />
-    <ClCompile Include="..\Submodules\SelfLogger\src\logger.cpp" />
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\File_system.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\ClientFTP_OLD.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\Client.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\PackerLine.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\Server.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\Cookie.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\FTPClient.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\http\HTTP.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\MySQL\MySQL_Client.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\ODBC\ODBC.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\Packet.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\pch.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\Servers.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\DB_Query.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\filesystem.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_session.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\server.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\server_impl.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\user_database.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\FileWatcher\source\FileWatcher.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\FileWatcher\source\FileWatcherWin32.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\GameObjects.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\Levels.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\Project.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\SimpleLogic.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\Project System\Tools.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Submodules\SelfLogger\src\logger.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\SocketImplement.cpp" />
+    <ClCompile Include="Source\SocketTCP.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Include\Client.hpp" />
-    <ClInclude Include="Include\ConnMan.h" />
+    <ClInclude Include="Include\Client.h" />
+    <ClInclude Include="Include\PackerLine.h" />
+    <ClInclude Include="Include\Server.h" />
     <ClInclude Include="Include\Cookie.h" />
     <ClInclude Include="Include\FTPClient.h" />
     <ClInclude Include="Include\http\HTTP.h" />
@@ -217,22 +277,54 @@
     <ClInclude Include="Include\DB_Query.hpp" />
     <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\include\fineftp\permissions.h" />
     <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\include\fineftp\server.h" />
-    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\filesystem.h" />
-    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_message.h" />
-    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_session.h" />
-    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.h" />
-    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\server_impl.h" />
-    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\user_database.h" />
-    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcher.h" />
-    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherImpl.h" />
-    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherWin32.h" />
-    <ClInclude Include="..\Submodules\Project System\File_system.h" />
-    <ClInclude Include="..\Submodules\Project System\GameObjects.h" />
-    <ClInclude Include="..\Submodules\Project System\Levels.h" />
-    <ClInclude Include="..\Submodules\Project System\Project.h" />
-    <ClInclude Include="..\Submodules\Project System\SimpleLogic.h" />
-    <ClInclude Include="..\Submodules\Project System\Tools.h" />
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\filesystem.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_message.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_session.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\server_impl.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\FTP\Server\fineftp-server\src\user_database.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcher.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherImpl.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\FileWatcher\FileWatcher\FileWatcherWin32.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\File_system.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\GameObjects.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\Levels.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\Project.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\SimpleLogic.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\Submodules\Project System\Tools.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="..\Submodules\SelfLogger\src\logger.h" />
+    <ClInclude Include="Include\SocketImplement.h" />
+    <ClInclude Include="Include\SocketTCP.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

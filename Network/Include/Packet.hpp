@@ -14,12 +14,10 @@ namespace network
 			Connection = (1 << 2),
 			Disconnection = (1 << 3),
 			PlaySound = (1 << 4),
-			// Used When Sending Mic Captured Packet
-			VOIP = (1 << 5), // To understand it's VOIP Type Of Packet (it needs to proccess it a bit different)
 
 			// Server
 			ClosedServerByUpdate = (1 << 6),
-			// Getting List Of Users Who's Online In The Moment (Information Based On MySQL)
+			// Getting List Of Users Who's Online In The Moment (Information Based On Database!)
 			GetListUsersOnline = (1 << 7),
 
 			Sync_PosChanges = (1 << 8),

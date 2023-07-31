@@ -54,7 +54,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Client.cpp">
+    <ClCompile Include="Source\ClientFTP_OLD.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Packet.cpp">
@@ -66,10 +66,10 @@
     <ClCompile Include="Source\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Connection.cpp">
+    <ClCompile Include="Source\Client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ConnMan.cpp">
+    <ClCompile Include="Source\Server.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\FTPClient.cpp">
@@ -135,11 +135,17 @@
     <ClCompile Include="..\Submodules\FTP\Server\fineftp-server\src\ftp_user.cpp">
       <Filter>Source Files\fineftp</Filter>
     </ClCompile>
+    <ClCompile Include="Source\PackerLine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SocketImplement.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SocketTCP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Include\Client.hpp">
-      <Filter>Include Files</Filter>
-    </ClInclude>
     <ClInclude Include="Include\Packet.hpp">
       <Filter>Include Files</Filter>
     </ClInclude>
@@ -155,7 +161,7 @@
     <ClInclude Include="Include\pch.h">
       <Filter>Include Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\ConnMan.h">
+    <ClInclude Include="Include\Server.h">
       <Filter>Include Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\MySQL\MySQL_Config.h">
@@ -235,6 +241,18 @@
     </ClInclude>
     <ClInclude Include="..\Submodules\Project System\SimpleLogic.h">
       <Filter>Source Files\Project System\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Client.h">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\PackerLine.h">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SocketImplement.h">
+      <Filter>Include Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SocketTCP.h">
+      <Filter>Include Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

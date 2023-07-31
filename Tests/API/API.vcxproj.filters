@@ -67,12 +67,6 @@
     <ClCompile Include="..\..\Network\Source\Client.cpp">
       <Filter>Исходные файлы\files test thing</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Network\Source\Connection.cpp">
-      <Filter>Исходные файлы\files test thing</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Network\Source\ConnMan.cpp">
-      <Filter>Исходные файлы\files test thing</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Network\Source\Cookie.cpp">
       <Filter>Исходные файлы\files test thing</Filter>
     </ClCompile>

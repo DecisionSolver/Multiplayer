@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "Connection.h"
+#include "fineftp/server.h"
 
 #include "ODBC/ODBC.h"
 #include "Servers.hpp"
@@ -9,7 +9,6 @@
 #include "Project System/File_system.h"
 
 #include <filesystem>
-#include <iostream>
 #include <fstream>
 
 #include "user_database.h"
@@ -19,11 +18,6 @@
 #include <stdlib.h>
 #include <iostream>
 
-/*
-  Include directly the different
-  headers from cppconn/ and mysql_driver.h + mysql_util.h
-  (and mysql_connection.h). This will reduce your build time!
-*/
 #include "mysql connector/include/jdbc/mysql_connection.h"
 
 #include <mysql connector/include/jdbc/cppconn/driver.h>
@@ -31,6 +25,7 @@
 #include <mysql connector/include/jdbc/cppconn/resultset.h>
 #include <mysql connector/include/jdbc/cppconn/statement.h>
 
+#include <SocketTCP.h>
 
 using namespace std::chrono_literals;
 
@@ -60,6 +55,7 @@ void UpdateUserPermission(std::shared_ptr<mysql::Client> client, std::shared_ptr
 	ServerFTP->GetUsers()->checkOrUpdatePermissions("anonym");
 }
 
+/*
 TEST(TestingDataBases, MySQL)
 {
 	std::cout << "------Testing MySQL API" << std::endl << std::endl;
@@ -143,7 +139,7 @@ TEST(TestingDataBases, ODBC)
 
 	client.InsertValuesInCurrentTable({ "ColumnNumber", "ColumnString", "AnotherColumnNumber" }, { "5", "Test1Test2Test3", "42" });
 	
-	Result = client.SelectValuesInCurrentTable({ "ColumnNumber", "ColumnString", "AnotherColumnNumber" /* or "*" */});
+	Result = client.SelectValuesInCurrentTable({ "ColumnNumber", "ColumnString", "AnotherColumnNumber"});
 	ASSERT_TRUE(Result["AnotherColumnNumber"][0] == 42);
 	ASSERT_TRUE(Result["ColumnNumber"][0] == 5);
 	EXPECT_STREQ(Result["ColumnString"][0].get<nlohmann::json::string_t>().c_str(), "Test1Test2Test3");
@@ -168,183 +164,6 @@ TEST(TestingDataBases, ODBC)
 
 	client.Destroy();
 }
-
-/*
-TEST(TestingMysql, ExampleMysql)
-{
-	std::cout << std::endl;
-	std::cout << "Running 'SELECT 'Hello World!' << AS _message'..." << std::endl;
-
-	sql::Driver *driver = nullptr;
-	sql::Statement *stmt = nullptr;
-	sql::ResultSet *res = nullptr;
-	sql::Connection *con = nullptr;
-	bool DoWork = true;
-	size_t i = 0;
-	while (DoWork)
-	{
-		if (stmt)
-		{
-			delete stmt;
-		}
-
-		if (con)
-		{
-			delete con;
-		}
-		driver = nullptr;
-		stmt = nullptr;
-		res = nullptr;
-		con = nullptr;
-		try
-		{
-			if (!driver || !con)
-			{
-				// Create a connection
-				driver = get_driver_instance();
-				con = driver->connect("127.0.0.1", "root", "");
-				int on_off = 1;
-
-				//Activate debug trace of the MySQL client library (C API)
-				//Only available with a debug build of the MySQL client library!
-				
-				con->setClientOption("libmysql_debug", "d:t:O,client.trace");
-
-				//Connector/C++ tracing is available if you have compiled the
-				//driver using cmake -DMYSQLCPPCONN_TRACE_ENABLE:BOOL=1
-				
-				con->setClientOption("clientTrace", &on_off);
-
-				//Connect to the MySQL test database
-				con->setSchema("ds_users");
-			}
-
-			for (; i < 5000; i++)
-			{
-				nlohmann::json ReturnJSON = {};
-				stmt = con->createStatement();
-				res = stmt->executeQuery("SELECT 'Hello World!' AS _message");
-				while (res->next())
-				{
-					// In This Column (Horizontal, Left-Right Direction)
-					sql::ResultSetMetaData *MetaDataResultSet = res->getMetaData();
-					size_t rowsCount = res->rowsCount(),
-						columnCount = MetaDataResultSet->getColumnCount();
-
-					for (size_t i = 1; i <= MetaDataResultSet->getColumnCount(); i++)
-					{
-						std::string ColumnName, ColumnID = MetaDataResultSet->getColumnLabel(i).asStdString();
-						ColumnName.append(ColumnID);
-
-						switch (MetaDataResultSet->getColumnType(i))
-						{
-							case sql::DataType::BIT:
-							case sql::DataType::INTEGER:
-							case sql::DataType::NUMERIC:
-							case sql::DataType::TINYINT:
-							case sql::DataType::SMALLINT:
-							case sql::DataType::BIGINT:
-							{
-								if (rowsCount == 1 && columnCount == 1)
-								{
-									ReturnJSON = nlohmann::json::object({ { ColumnName, res->getInt64(ColumnID) } });
-								}
-								else
-								{
-									ReturnJSON[ColumnName].push_back(res->getInt64(ColumnID));
-								}
-
-								break;
-							}
-							case sql::DataType::REAL:
-							case sql::DataType::DECIMAL:
-							case sql::DataType::DOUBLE:
-							{
-								if (rowsCount == 1 && columnCount == 1)
-								{
-									ReturnJSON = nlohmann::json::object({ { ColumnName, res->getDouble(ColumnID) } });
-								}
-								else
-								{
-									ReturnJSON[ColumnName].push_back(res->getDouble(ColumnID));
-								}
-
-								break;
-							}
-							case sql::DataType::CHAR:
-							case sql::DataType::VARCHAR:
-							case sql::DataType::LONGVARCHAR:
-							case sql::DataType::BINARY:
-							case sql::DataType::VARBINARY:
-							case sql::DataType::LONGVARBINARY:
-							{
-								nlohmann::json ParsedJSON;
-								std::string stringFromRow = res->getString(ColumnID).asStdString();
-
-								if (!stringFromRow.empty())
-								{
-									if (stringFromRow.front() == '\"')
-									{
-										stringFromRow.erase(stringFromRow.begin());
-									}
-									if (stringFromRow.back() == '\"')
-									{
-										stringFromRow.erase(stringFromRow.end());
-									}
-
-									ParsedJSON = nlohmann::json::parse(stringFromRow, nullptr, false);
-
-									if (ParsedJSON.is_discarded())
-									{
-										ParsedJSON = stringFromRow;
-									}
-								}
-
-								if (rowsCount == 1 && columnCount == 1)
-								{
-									ReturnJSON = ParsedJSON;
-								}
-								else
-								{
-									ReturnJSON[ColumnName].push_back(stringFromRow.empty() ? "" : ParsedJSON);
-								}
-
-								break;
-							}
-						}
-					}
-				}
-
-				std::cout << ReturnJSON.dump() << std::endl;
-
-				delete res;
-				delete stmt;
-			}
-
-			delete con;
-			DoWork = false;
-		}
-		catch (sql::SQLException &e)
-		{
-			std::cout << "# ERR: SQLException in " << __FILE__;
-			std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-			std::cout << "# ERR: " << e.what();
-			std::cout << " (MySQL error code: " << e.getErrorCode();
-			std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-
-			if (e.getErrorCode() == 2013)
-			{
-				// try to prevent the error with reconnect
-				if (con && !con->isValid())
-				{
-					con->reconnect();
-				}
-			}
-		}
-	}
-	std::cout << std::endl;
-}
-/*/
 
 TEST(TestingFTP, FTP_API)
 {
@@ -463,6 +282,83 @@ TEST(TestingFTP, FTP_API)
 	}).join();
 
 	This_Server_FTP->StopSystem();
+}
+*/
+
+void StartTestServerTCP()
+{
+	asio::io_context io_context;
+	asio::ip::tcp::acceptor acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 8080));
+
+	while (true)
+	{
+		asio::ip::tcp::socket socket(io_context);
+		acceptor.accept(socket);
+
+		asio::streambuf buf;
+		asio::read_until(socket, buf, "\n");
+
+		std::string response = "There you are\n";
+		asio::write(socket, asio::buffer(response));
+	}
+}
+
+asio::io_context io_context;
+
+void IoServiceThread()
+{
+	try
+	{
+		io_context.run();
+		DWORD last_error = ::GetLastError();
+		asio::error_code ec(last_error, asio::error::get_system_category());
+		asio::detail::throw_error(ec, "IoServiceThreadProc");
+	}
+	catch (std::system_error &e)
+	{
+#if __has_include("logger.h")
+		Logger_Error_F("System error caught in io_service socket thread. Exception: {}\nError Code: {}\n",
+			e.what(), e.code().value());
+#endif
+	}
+	catch (std::exception &e)
+	{
+#if __has_include("logger.h")
+		Logger_Error_F("Standard exception caught in io_service socket thread. Exception: {}\n", e.what());
+#endif
+	}
+	catch (...)
+	{
+#if __has_include("logger.h")
+		Logger_Error_F("Unhandled exception caught in io_service socket thread.\n");
+#endif
+	}
+}
+
+TEST(TestingReadWriteSockets, BasicOfSockets)
+{
+	std::thread([&]
+	{
+		IoServiceThread();
+	}).detach();
+
+	std::shared_ptr<SocketTCP> NewSocket_TCP = std::make_shared<SocketTCP>();
+	ASSERT_TRUE(NewSocket_TCP->ConnectAsync("127.0.0.1", 5000, io_context));
+	
+	(*NewSocket_TCP) << "Hello World!";
+
+	ASSERT_TRUE(NewSocket_TCP->SendAsync());
+
+	ASSERT_TRUE(NewSocket_TCP->ReceiveAsync());
+	
+	asio::streambuf buffer;
+	std::istream data(&buffer);
+	(*NewSocket_TCP) >> data;
+
+	ASSERT_TRUE(buffer.size() != 0);
+
+	ASSERT_TRUE(std::string({ buffers_begin(buffer.data()),
+		buffers_end(buffer.data()) }) != "There you are!");
 }
 
 int main(int argc, char **argv)

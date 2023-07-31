@@ -14,8 +14,6 @@ namespace network
 			ConnectionManager(ConnectionManager::TypeWorking::Server, _Proto, IP, Port, numThreads) {}
 		~Server() = default;
 		void Start();
-		void Send(const std::string &Packet);
-		void Send(const std::shared_ptr<network::Packet> &Packet);
 	private:
 		void OnPacketHandler(Connection::SharedPtr connection);
 	};

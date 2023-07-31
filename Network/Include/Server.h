@@ -1,11 +1,11 @@
 #pragma once
 #include "pch.h"
-#include "Connection.h"
+#include "Client.h"
 
 #include "MySQL/MySQL_Client.h"
 #include <fineftp/server.h>
 
-class ConnectionManager
+class Server
 {
 protected:
 	std::string _IP;
@@ -16,18 +16,13 @@ protected:
 		IsSetupPathsCert_DH = false, IsSetupPathsCert_RSA_Private_Key = false;
 	const std::string SSL_Cert_Chain, SSL_Private_Key, SSL_TMP_DH, SSL_RSA_Private_Key;
 #endif
-	void SendPacket(bool ExceptionClient, const Connection::SharedPtr &connection,
+	void SendPacket(bool ExceptionClient, const std::shared_ptr<Client> &connection,
 		const std::shared_ptr<network::Packet>& Packet);
 public:
 #if defined(USE_SSL)
 	static bool verify_certificate(bool preverified, asio::ssl::verify_context &ctx);
 #endif
 
-	enum TypeWorking
-	{
-		Server = 0,
-		Client
-	};
 	enum class TypeProtocol: int
 	{
 		TCP = (1 << 0),
@@ -35,15 +30,15 @@ public:
 		FTP = (1 << 2),
 	};
 
-	ConnectionManager(const TypeWorking &_Type, const int Protocol, const std::string &IP, const USHORT &port,
+	Server(const int Protocol, const std::string &IP, const USHORT &port,
 		size_t numThreads = 2);
-	ConnectionManager(const ConnectionManager &) = delete;
-	ConnectionManager(ConnectionManager &&) = delete;
-	ConnectionManager &operator = (const ConnectionManager &) = delete;
-	ConnectionManager &operator = (ConnectionManager &&) = delete;
-	~ConnectionManager();
+	Server(const Server &) = delete;
+	Server(Server &&) = delete;
+	Server &operator = (const Server &) = delete;
+	Server &operator = (Server &&) = delete;
+	~Server();
 
-	bool StartSystem(const std::function<void(Connection::SharedPtr)> &Func = nullptr);
+	bool StartSystem(const std::function<void(std::shared_ptr<Client>)> &Func = nullptr);
 	void StopSystem();
 
 	void SetIP(const std::string &NewIP) { _IP = NewIP; }
@@ -57,13 +52,13 @@ public:
 	void Send(const std::string &Packet);
 	void Send(const void *Data, size_t Size);
 
-	void Set_OnAccept(const std::function<void(Connection::SharedPtr)> &Func);
-	void Set_OnPacketHandle(const std::function<void(Connection::SharedPtr)> &Func);
-	void Set_OnLoggin(const std::function<void(Connection::SharedPtr)> &Func);
+	void Set_OnAccept(const std::function<void(std::shared_ptr<Client>)> &Func);
+	void Set_OnPacketHandle(const std::function<void(std::shared_ptr<Client>)> &Func);
+	void Set_OnLoggin(const std::function<void(std::shared_ptr<Client>)> &Func);
 	void Set_OnError(const std::function<void(asio::error_code)> &Func);
 
-	void OnConnectionClosed(Connection::SharedPtr connection, bool Need2DiscFromMySQL = true);
-	bool OnConnection(Connection::SharedPtr connection, const std::string &Login,
+	void OnConnectionClosed(std::shared_ptr<Client> connection, bool Need2DiscFromMySQL = true);
+	bool OnConnection(std::shared_ptr<Client> connection, const std::string &Login,
 		const std::string &Pass = std::string());
 
 	std::atomic_bool &isInUpdate()
@@ -72,12 +67,8 @@ public:
 	};
 
 	// Only CLIENT!
-	Connection::SharedPtr GetConnect();
+	std::shared_ptr<Client> GetConnect();
 	
-	const TypeWorking GetTypeWork() const
-	{
-		return _Type;
-	}
 	const int GetProtocol() const
 	{
 		return _Proto;
@@ -95,8 +86,8 @@ public:
 	}
 	
 	//asio::ip::udp::socket &GetSocketUDP() { return *m_SocketUDP; }
-	static std::map<asio::ip::udp::endpoint, Connection::SharedPtr> m_connectionsUDP;
-	static std::map<asio::ip::tcp::endpoint, Connection::SharedPtr> m_connectionsTCP;
+	static std::map<asio::ip::udp::endpoint, std::shared_ptr<Client>> m_connectionsUDP;
+	static std::map<asio::ip::tcp::endpoint, std::shared_ptr<Client>> m_connectionsTCP;
 	
 	std::shared_ptr<mysql::Client> MySQL_DB = std::make_shared<mysql::Client>();
 
@@ -168,82 +159,6 @@ public:
 #endif
 	}
 
-	struct PoolWaiterPackets
-	{
-	public:
-		enum ReturnType{ Type = 1, Status };
-	private:
-		std::mutex m_PacketWaiter;
-		std::atomic_bool WasPacket = false;
-		std::atomic_bool wasActive = false;
-		std::atomic_bool NeedToBreak = false;
-		std::chrono::time_point<std::chrono::steady_clock> Cur, Last;
-
-		// Packet Type To Check
-		//		type, need to break all chain
-		std::map<int, bool> TypeToCheck; // ref: network::Packet::Type
-
-		// Packet Status (Only Works With Type)
-		//		type, need to break all chain
-		std::map<int, bool> StatusToCheck; // ref: network::Packet::Status
-
-		std::pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>> CauseBreak;
-	public:
-		//std::condition_variable cv_PacketWaiter;
-
-		void SetTypeCauseBreak(const int &Type)
-		{
-			//							.first		.second			.first			.second
-			CauseBreak = std::make_pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>(ReturnType::Type,
-				{ (*TypeToCheck.find(Type)), { -1, false } });
-		}
-		void SetStatusCauseBreak(const int &Type, const int &Status)
-		{
-			//							.first		.second			.first			.second
-			CauseBreak = std::make_pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>(ReturnType::Status,
-				{ (*TypeToCheck.find(Type)), (*StatusToCheck.find(Status)) });
-		}
-
-		// Set Type To Check In Needed Packet When It Cames
-		void SetType(const int &Type, bool need2break = false)
-		{
-			TypeToCheck.insert({ Type, need2break });
-		}
-		// Sets When Need To Unblock "Check" Function
-		void NotifyOne()
-		{
-			NeedToBreak.store(true);
-		}
-
-		// Sets When Packet Has Come
-		void SetWasPacket()
-		{
-			WasPacket.store(true);
-		}
-		// Set Status To Check In Needed Packet When It Cames (Only Works With Type!!!)
-		void SetStatus(const int &Status, const int &Type, bool need2break = false)
-		{
-			TypeToCheck.insert({ Type, need2break });
-			StatusToCheck.insert({ Status, need2break });
-		}
-
-		std::map<int, bool> &GetStatus()
-		{
-			return StatusToCheck;
-		}
-		std::map<int, bool> &GetType()
-		{
-			return TypeToCheck;
-		}
-		bool WasActive()
-		{
-			return wasActive.load();
-		}
-		//			//was break								// type,				// status
-		std::pair<bool, std::pair<ReturnType, std::pair<std::pair<int, bool>, std::pair<int, bool>>>>
-			Check(const std::chrono::seconds &TimeOut = 60s);
-	};
-
 	void EnableNotAllowWithoutCookie();
 	void DisableNotAllowWithoutCookie();
 
@@ -272,7 +187,7 @@ protected:
 	std::vector<std::thread> m_threads;
 
 	mutable std::mutex m_MySQL, m_ConnectedClose;
-	Connection::SharedPtr one_connection;
+	std::shared_ptr<Client> one_connection;
 
 	std::atomic_bool isUpdate = false;
 	std::condition_variable waiter_update, WaitForMySQL;
@@ -280,13 +195,12 @@ protected:
 	void IoServiceThreadProc();
 
 	void DoAccept();
-	void Handler(std::function<void(Connection::SharedPtr)> Func);
+	void Handler(std::function<void(std::shared_ptr<Client>)> Func);
 
 	bool IsWorking = false, NotAllowWithoutCookie = false, SocketBlocking = false;
-	TypeWorking _Type;
 	int _Proto = (int)TypeProtocol::TCP;
 
-	std::function<void(Connection::SharedPtr)> Callback_OnClientHandler, Callback_Accept, Callback_OnLoggin;
+	std::function<void(std::shared_ptr<Client>)> Callback_OnClientHandler, Callback_Accept, Callback_OnLoggin;
 	std::function<void(asio::error_code)> Callback_OnError;
 
 #if defined(USE_SSL)
@@ -296,7 +210,7 @@ protected:
 #endif
 
 	std::chrono::time_point<std::chrono::steady_clock> Curr, Last;
-	bool GetTimer(const Connection::SharedPtr &User);
+	bool GetTimer(const std::shared_ptr<Client> &User);
 
 	bool LoadConfig();
 	

@@ -26,7 +26,9 @@ namespace network
 		if (_Proto & (int)(TypeProtocol::VOIP))
 		{
 			if (connection->m_owner && connection->m_owner->IsSocketBlocking())
+			{
 				connection->DoReceive();
+			}
 
 			connection->GetPacket(packet, (int)network::Packet::Type::VOIP);
 			if (packet)
@@ -117,9 +119,13 @@ namespace network
 				{
 					Next.second->Send(Answer);
 					if (unparse["_0"].get<int>() != -1)
+					{
 						break;
+					}
 					else if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>())
+					{
 						continue;
+					}
 				}
 			}
 #endif 
@@ -129,9 +135,13 @@ namespace network
 				{
 					Next.second->Send(Answer);
 					if (unparse["_0"].get<int>() != -1)
+					{
 						break;
+					}
 					else if (Next.second->GetMetaDB_User() != unparse["_0"].get<int>())
+					{
 						continue;
+					}
 				}
 			}
 			packet.clear();
@@ -153,17 +163,29 @@ namespace network
 					std::vector<float> Float3;
 					std::string Context;
 					if (JSData.find("X") != END)
+					{
 						Context += JSData["X"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += std::to_string(NeededNode->GM->GetPositionCord()[0]);
+					}
 					if (JSData.find("Y") != END)
+					{
 						Context += "," + JSData["Y"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += "," + std::to_string(NeededNode->GM->GetPositionCord()[1]);
+					}
 					if (JSData.find("Z") != END)
+					{
 						Context += "," + JSData["Z"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += "," + std::to_string(NeededNode->GM->GetPositionCord()[2]);
+					}
 
 					getFloat3Text(Context, ",", Float3);
 					NeededNode->GM->SetPositionCoords(Float3);
@@ -195,17 +217,29 @@ namespace network
 					std::vector<float> Float3;
 					std::string Context;
 					if (JSData.find("X") != END)
+					{
 						Context += JSData["X"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += std::to_string(NeededNode->GM->GetRotCord()[0]);
+					}
 					if (JSData.find("Y") != END)
+					{
 						Context += "," + JSData["Y"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += "," + std::to_string(NeededNode->GM->GetRotCord()[1]);
+					}
 					if (JSData.find("Z") != END)
+					{
 						Context += "," + JSData["Z"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += "," + std::to_string(NeededNode->GM->GetRotCord()[2]);
+					}
 
 					getFloat3Text(Context, ",", Float3);
 					NeededNode->GM->SetRotationCoords(Float3);
@@ -237,17 +271,29 @@ namespace network
 					std::vector<float> Float3;
 					std::string Context;
 					if (JSData.find("X") != END)
+					{
 						Context += JSData["X"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += std::to_string(NeededNode->GM->GetScaleCord()[0]);
+					}
 					if (JSData.find("Y") != END)
+					{
 						Context += "," + JSData["Y"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += "," + std::to_string(NeededNode->GM->GetScaleCord()[1]);
+					}
 					if (JSData.find("Z") != END)
+					{
 						Context += "," + JSData["Z"].get<nlohmann::json::string_t>();
+					}
 					else
+					{
 						Context += "," + std::to_string(NeededNode->GM->GetScaleCord()[2]);
+					}
 
 					getFloat3Text(Context, ",", Float3);
 					NeededNode->GM->SetScaleCoords(Float3);
@@ -558,7 +604,9 @@ namespace network
 				}
 				// If Has Something
 				if (Get_AllProjects)
+				{
 					connection->Send(Get_AllProjects);
+				}
 				// Send That It Has Nothin'
 				else
 				{
@@ -656,18 +704,5 @@ namespace network
 		
 		// Set All Users To Offline
 		MySQL_DB->UpdateValues("", std::vector<std::string>{ { "_2" } }, {{"0"}}, {{" WHERE _2 = '1'"}});
-	}
-
-	void Server::Send(const std::string &Packet)
-	{
-		ConnectionManager::Send(Packet);
-	}
-	void Server::Send(const std::shared_ptr<network::Packet> &Packet)
-	{
-		ConnectionManager::Send(Packet);
-	}
-	void ServerFTP::Start()
-	{
-		ConnectionManager::StartSystem();
 	}
 }
